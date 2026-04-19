@@ -27,16 +27,12 @@
             border-radius: 12px;
             overflow: hidden;
         }
-        canvas {
-            display: block;
-        }
+        canvas { display: block; }
         .metric-card {
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.1));
             border: 1px solid rgba(59, 130, 246, 0.3);
         }
-        .pulse {
-            animation: pulse 2s infinite;
-        }
+        .pulse { animation: pulse 2s infinite; }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -49,12 +45,8 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .boundary-canvas {
-            cursor: crosshair;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .boundary-canvas { cursor: crosshair; }
         .legend-item {
             display: flex;
             align-items: center;
@@ -63,9 +55,31 @@
             border-radius: 4px;
             font-size: 12px;
         }
+        .server-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+        .server-badge.connected {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.4);
+        }
+        .server-badge.disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        .server-badge.demo {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+        }
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white">
+
     <!-- Header -->
     <header class="border-b border-white/10">
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -77,6 +91,7 @@
             </div>
             <div class="flex items-center gap-4">
                 <span class="text-xs text-gray-500">Powered by scikit-learn</span>
+                <div id="serverBadge" class="server-badge disconnected">⚡ DEMO MODE</div>
                 <div id="status" class="flex items-center gap-2 text-sm text-green-400">
                     <span class="w-2 h-2 rounded-full bg-green-400 pulse"></span>
                     Ready
@@ -87,6 +102,7 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-6 py-8">
+
         <!-- Controls Panel -->
         <div class="card rounded-2xl p-6 mb-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -100,7 +116,7 @@
                         <option value="xor">XOR Pattern</option>
                     </select>
                 </div>
-                
+
                 <!-- Model Selection -->
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-2">Model</label>
@@ -113,27 +129,27 @@
                         <option value="MLP">Neural Network (MLP)</option>
                     </select>
                 </div>
-                
+
                 <!-- Parameter Control -->
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-2">Parameter</label>
                     <div class="flex items-center gap-2">
-                        <input type="range" id="paramSlider" min="0" max="100" value="50" 
+                        <input type="range" id="paramSlider" min="0" max="100" value="50"
                                class="flex-1 accent-blue-500">
                         <span id="paramValue" class="text-sm text-gray-300 w-20 text-right">C=1.0</span>
                     </div>
-                    <input type="range" id="paramSlider2" min="0" max="100" value="50" 
+                    <input type="range" id="paramSlider2" min="0" max="100" value="50"
                            class="w-full accent-blue-500 mt-2">
                     <span id="paramValue2" class="text-xs text-gray-500">gamma=scale</span>
                 </div>
-                
+
                 <!-- Action Buttons -->
                 <div class="flex items-end gap-3">
-                    <button id="trainBtn" onclick="trainModel()" 
+                    <button id="trainBtn" onclick="trainModel()"
                             class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all">
                         🚀 Train Model
                     </button>
-                    <button onclick="resetView()" 
+                    <button onclick="resetView()"
                             class="bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-lg transition-all">
                         ↺ Reset
                     </button>
@@ -154,8 +170,14 @@
                     </div>
                     <div class="canvas-container boundary-canvas" id="boundaryContainer">
                         <canvas id="boundaryCanvas"></canvas>
+                        <!-- Demo mode overlay -->
+                        <div id="demoOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0d1117]/80 rounded-xl hidden">
+                            <div class="text-4xl mb-2">🧠</div>
+                            <div class="text-lg font-semibold text-yellow-400">Start server.py for real training</div>
+                            <div class="text-sm text-gray-400 mt-1">Run <code class="bg-white/10 px-2 py-0.5 rounded">python web/server.py</code> then refresh</div>
+                        </div>
                     </div>
-                    
+
                     <!-- Legend -->
                     <div class="mt-4 flex items-center gap-6 text-sm">
                         <div class="legend-item bg-red-500/20">
@@ -172,7 +194,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Model Info -->
                 <div id="modelInfo" class="card rounded-2xl p-6 mt-6 hidden">
                     <h3 class="text-lg font-semibold mb-4">Model Details</h3>
@@ -234,51 +256,76 @@
     </footer>
 
     <script>
-        // Global state
+        // ── Global state ─────────────────────────────────────────────────────
         let currentModel = null;
         let currentParams = {};
-        let datasets = {
-            circles: null,
-            moons: null,
-            blobs: null,
-            xor: null
-        };
-        
-        // Colors
+        let serverAvailable = false;
+        let useDemoMode = false;
+
+        // ── Colours ───────────────────────────────────────────────────────────
         const COLORS = {
-            class0: '#ff6b6b',
-            class1: '#4ecdc4',
-            boundary: '#ffffff',
-            region0: 'rgba(255, 107, 107, 0.3)',
-            region1: 'rgba(78, 205, 196, 0.3)'
+            class0:       '#ff6b6b',
+            class1:       '#4ecdc4',
+            region0:     'rgba(255, 107, 107, 0.35)',
+            region1:     'rgba(78, 205, 196, 0.35)',
+            boundary:    'rgba(255, 255, 255, 0.5)',
         };
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        // ── Init ─────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', async () => {
             initCanvas();
             initCharts();
             loadPrecomputedResults();
+            await checkServer();
         });
+
+        async function checkServer() {
+            try {
+                const res = await fetch('/health', { signal: AbortSignal.timeout(2000) });
+                if (res.ok) {
+                    serverAvailable = true;
+                    useDemoMode = false;
+                    updateServerBadge('connected', '⚡ REAL TRAINING');
+                    return;
+                }
+            } catch (_) {}
+            serverAvailable = false;
+            useDemoMode = true;
+            updateServerBadge('demo', '⚡ DEMO MODE');
+            showDemoOverlay();
+        }
+
+        function updateServerBadge(cls, text) {
+            const badge = document.getElementById('serverBadge');
+            badge.className = `server-badge ${cls}`;
+            badge.textContent = text;
+        }
+
+        function showDemoOverlay() {
+            document.getElementById('demoOverlay').classList.remove('hidden');
+        }
+
+        function hideDemoOverlay() {
+            document.getElementById('demoOverlay').classList.add('hidden');
+        }
 
         function initCanvas() {
             const canvas = document.getElementById('boundaryCanvas');
             const container = document.getElementById('boundaryContainer');
             const rect = container.getBoundingClientRect();
-            canvas.width = rect.width || 600;
-            canvas.height = 400;
-            
-            // Draw placeholder
+            canvas.width  = rect.width  || 600;
+            canvas.height = rect.height || 400;
+
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#0d1117';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#666';
             ctx.font = '16px system-ui';
             ctx.textAlign = 'center';
-            ctx.fillText('Click "Train Model" to visualize', canvas.width/2, canvas.height/2);
+            ctx.fillText('Click "Train Model" to visualize', canvas.width / 2, canvas.height / 2);
         }
 
         function initCharts() {
-            // Comparison chart
             const compCtx = document.getElementById('comparisonChart').getContext('2d');
             window.compChart = new Chart(compCtx, {
                 type: 'bar',
@@ -300,7 +347,6 @@
                 }
             });
 
-            // Parameter effect chart
             const paramCtx = document.getElementById('paramEffectChart').getContext('2d');
             window.paramChart = new Chart(paramCtx, {
                 type: 'line',
@@ -324,328 +370,308 @@
             });
         }
 
+        // ── Train Model ───────────────────────────────────────────────────────
         async function trainModel() {
             const btn = document.getElementById('trainBtn');
             btn.disabled = true;
             btn.innerHTML = '<div class="loader mx-auto"></div>';
-            
+
+            hideDemoOverlay();
+
             const dataset = document.getElementById('datasetSelect').value;
-            const model = document.getElementById('modelSelect').value;
-            const paramValue = document.getElementById('paramSlider').value;
-            const paramValue2 = document.getElementById('paramSlider2').value;
-            
-            document.getElementById('paramValue').textContent = getParamLabel(model, paramValue, 1);
-            document.getElementById('paramValue2').textContent = getParamLabel(model, paramValue, 2);
-            
+            const model   = document.getElementById('modelSelect').value;
+            const p1      = parseInt(document.getElementById('paramSlider').value);
+            const p2      = parseInt(document.getElementById('paramSlider2').value);
+
+            document.getElementById('paramValue').textContent  = getParamLabel(model, p1, 1);
+            document.getElementById('paramValue2').textContent = getParamLabel(model, p2, 2);
+
             try {
-                const results = await simulateTraining(model, dataset, paramValue, paramValue2);
+                let results;
+                if (serverAvailable) {
+                    results = await runRealTraining(model, dataset, p1, p2);
+                } else {
+                    results = simulateTraining(model, dataset, p1, p2);
+                }
                 drawDecisionBoundary(results);
                 updateMetrics(results);
                 updateCharts(model, dataset);
             } catch (e) {
                 console.error('Training error:', e);
+                document.getElementById('status').innerHTML =
+                    '<span class="w-2 h-2 rounded-full bg-red-400"></span> Error';
             }
-            
+
             btn.disabled = false;
             btn.innerHTML = '🚀 Train Model';
         }
 
-        function getParamLabel(model, value, idx) {
-            const normalized = value / 100;
-            if (model === 'SVM') {
-                if (idx === 1) {
-                    const C = Math.pow(10, normalized * 3 - 1);
-                    return `C=${C.toFixed(1)}`;
-                } else {
-                    const gammaOptions = ['scale', 'auto', 0.01, 0.1, 1, 10];
-                    return `gamma=${gammaOptions[Math.floor(normalized * 5)]}`;
-                }
-            } else if (model === 'Tree' || model === 'RF') {
-                if (idx === 1) {
-                    return `max_depth=${Math.floor(normalized * 20) + 1}`;
-                } else {
-                    return `min_samples=${Math.floor(normalized * 20) + 2}`;
-                }
-            } else if (model === 'KNN') {
-                const k = Math.max(1, Math.floor(normalized * 50) + 1);
-                return `n_neighbors=${k}`;
-            } else if (model === 'MLP') {
-                if (idx === 1) {
-                    return `hidden_size=${Math.floor(normalized * 200) + 10}`;
-                } else {
-                    return `alpha=${(normalized * 0.1).toFixed(3)}`;
-                }
-            } else if (model === 'LR') {
-                const C = Math.pow(10, normalized * 3 - 1);
-                return `C=${C.toFixed(2)}`;
+        // ── Real training via Flask server ────────────────────────────────────
+        async function runRealTraining(model, dataset, p1, p2) {
+            const res = await fetch('/train', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model, dataset, p1, p2, n_samples: 500 }),
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Server error');
             }
-            return `param${idx}=${normalized.toFixed(2)}`;
+
+            return await res.json();
         }
 
+        // ── Fallback demo (fake data) ──────────────────────────────────────────
         function simulateTraining(model, dataset, p1, p2) {
-            // Simulate ML training with realistic results
             const baseAcc = { SVM: 0.93, LR: 0.89, Tree: 0.87, RF: 0.95, KNN: 0.91, MLP: 0.94 };
-            const datasetMult = { circles: 1.0, moons: 0.95, blobs: 0.98, xor: 0.85 };
-            
-            const noise = (Math.random() - 0.5) * 0.05;
-            const accuracy = Math.min(0.99, baseAcc[model] * datasetMult[dataset] + noise);
-            
+            const mult    = { circles: 1.0, moons: 0.95, blobs: 0.98, xor: 0.85 };
+            const noise   = (Math.random() - 0.5) * 0.05;
+            const accuracy = Math.min(0.99, baseAcc[model] * mult[dataset] + noise);
             const trainTime = { SVM: 0.15, LR: 0.05, Tree: 0.02, RF: 0.25, KNN: 0.01, MLP: 0.45 }[model];
-            
-            // Generate synthetic boundary data
-            const points = generateBoundaryPoints(model, dataset, parseInt(p1));
-            
+
             return {
-                accuracy: accuracy,
-                trainTime: trainTime,
-                model: model,
-                dataset: dataset,
-                params: { p1: p1, p2: p2 },
-                boundaryPoints: points,
-                modelInfo: getModelInfo(model, p1, p2)
+                accuracy,
+                train_time: trainTime,
+                model,
+                dataset,
+                params: { p1, p2 },
+                boundaryPoints: generateBoundaryPoints(model, dataset, p1),
+                model_info: getModelInfo(model, p1, p2),
             };
         }
 
-        function getModelInfo(model, p1, p2) {
-            const info = {};
-            const normalized = p1 / 100;
-            
+        // ── Param label helpers ─────────────────────────────────────────────────
+        function getParamLabel(model, value, idx) {
+            const n = value / 100;
             if (model === 'SVM') {
-                info['Support Vectors'] = Math.floor(50 + normalized * 100);
-                info['Kernel'] = 'RBF';
-            } else if (model === 'Tree') {
-                info['Tree Depth'] = Math.floor(normalized * 15) + 1;
-                info['Leaves'] = Math.floor(Math.pow(2, info['Tree Depth']));
-            } else if (model === 'RF') {
-                info['Num Trees'] = Math.floor(30 + normalized * 170);
-                info['Max Depth'] = Math.floor(normalized * 15) + 5;
-            } else if (model === 'KNN') {
-                info['K Value'] = Math.max(1, Math.floor(normalized * 50) + 1);
-                info['Algorithm'] = 'auto';
-            } else if (model === 'MLP') {
-                info['Layers'] = Math.floor(normalized * 3) + 1;
-                info['Neurons'] = Math.floor(normalized * 200) + 20;
+                if (idx === 1) return `C=${(10 ** (n * 3 - 1)).toFixed(1)}`;
+                const gs = ['scale', 'auto', 0.01, 0.1, 1, 10];
+                return `gamma=${gs[Math.min(Math.floor(n * 5), 5)]}`;
             }
-            return info;
+            if (model === 'Tree' || model === 'RF') {
+                if (idx === 1) return `max_depth=${Math.max(1, Math.floor(n * 20))}`;
+                return `min_samples=${Math.floor(n * 20) + 2}`;
+            }
+            if (model === 'KNN')  return `n_neighbors=${Math.max(1, Math.floor(n * 49 + 1))}`;
+            if (model === 'MLP')  return idx === 1
+                ? `hidden=${Math.floor(n * 190 + 10)}`
+                : `alpha=${(n * 0.1).toFixed(3)}`;
+            if (model === 'LR')   return `C=${(10 ** (n * 3 - 1)).toFixed(2)}`;
+            return `p${idx}=${n.toFixed(2)}`;
+        }
+
+        function getModelInfo(model, p1, p2) {
+            const n = p1 / 100;
+            if (model === 'SVM')  return { 'Support Vectors': Math.floor(50 + n * 100), 'Kernel': 'RBF' };
+            if (model === 'Tree') return { 'Tree Depth': Math.floor(n * 15) + 1, 'Leaves': Math.floor(2 ** (Math.floor(n * 15) + 1)) };
+            if (model === 'RF')  return { 'Num Trees': Math.floor(30 + n * 170), 'Max Depth': Math.floor(n * 15) + 5 };
+            if (model === 'KNN') return { 'K Value': Math.max(1, Math.floor(n * 49 + 1)), 'Algorithm': 'auto' };
+            if (model === 'MLP') return { 'Layers': Math.floor(n * 3) + 1, 'Layer Sizes': `(${Math.floor(n * 190 + 10)},)` };
+            return {};
         }
 
         function generateBoundaryPoints(model, dataset, seed) {
-            // Generate decision boundary visualization data
             const points = [];
-            const resolution = 40;
-            
-            // Use a seeded random for consistency
+            const res = 40;
             let rng = seed + dataset.length;
-            
-            for (let i = 0; i < resolution; i++) {
-                for (let j = 0; j < resolution; j++) {
-                    const x = (i / resolution) * 4 - 2;
-                    const y = (j / resolution) * 4 - 2;
-                    
-                    // Different patterns per model/dataset
+            for (let i = 0; i < res; i++) {
+                for (let j = 0; j < res; j++) {
+                    const x = (i / res) * 4 - 2;
+                    const y = (j / res) * 4 - 2;
                     let z = 0;
-                    if (model === 'SVM') {
-                        z = Math.sin(x * 2 + y) * Math.cos(x - y * 0.5);
-                    } else if (model === 'LR') {
-                        z = -0.5 * x + 0.3 * y + 0.5;
-                    } else if (model === 'Tree') {
-                        z = (x > 0 ? 1 : 0) ^ (y > 0 ? 1 : 0);
-                    } else if (model === 'RF') {
-                        z = Math.sin(x * 1.5) * Math.cos(y * 1.5) + 0.3 * Math.sin(x * 3);
-                    } else if (model === 'KNN') {
-                        z = Math.atan2(y, x) / Math.PI + 0.5;
-                    } else if (model === 'MLP') {
-                        z = Math.tanh(x * y) + 0.3 * Math.sin(x * 4);
-                    }
-                    
+                    if (model === 'SVM')  z = Math.sin(x * 2 + y) * Math.cos(x - y * 0.5);
+                    else if (model === 'LR')  z = -0.5 * x + 0.3 * y + 0.5;
+                    else if (model === 'Tree') z = ((x > 0) ? 1 : 0) ^ ((y > 0) ? 1 : 0);
+                    else if (model === 'RF')  z = Math.sin(x * 1.5) * Math.cos(y * 1.5) + 0.3 * Math.sin(x * 3);
+                    else if (model === 'KNN') z = Math.atan2(y, x) / Math.PI + 0.5;
+                    else if (model === 'MLP') z = Math.tanh(x * y) + 0.3 * Math.sin(x * 4);
                     points.push({ x, y, z: (z + 1) / 2 });
                 }
             }
-            
             return points;
         }
 
+        // ── Draw decision boundary ────────────────────────────────────────────
         function drawDecisionBoundary(results) {
             const canvas = document.getElementById('boundaryCanvas');
-            const ctx = canvas.getContext('2d');
-            const width = canvas.width;
-            const height = canvas.height;
-            
-            // Clear
+            const ctx    = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+
             ctx.fillStyle = '#0d1117';
-            ctx.fillRect(0, 0, width, height);
-            
-            // Generate data points
-            const dataset = results.dataset;
-            const model = results.model;
-            const points = results.boundaryPoints;
-            
-            // Draw background regions
-            const resolution = 40;
-            const cellW = width / resolution;
-            const cellH = height / resolution;
-            
-            for (let i = 0; i < resolution; i++) {
-                for (let j = 0; j < resolution; j++) {
-                    const idx = i * resolution + j;
-                    const p = points[idx];
-                    if (!p) continue;
-                    
-                    // Map point to canvas
-                    const px = (p.x + 2) / 4 * width;
-                    const py = height - (p.y + 2) / 4 * height;
-                    
-                    const color = p.z > 0.5 ? 
-                        `rgba(78, 205, 196, ${0.3 + p.z * 0.4})` : 
-                        `rgba(255, 107, 107, ${0.3 + (1-p.z) * 0.4})`;
-                    
-                    ctx.fillStyle = color;
-                    ctx.fillRect(px, py, cellW + 1, cellH + 1);
-                }
+            ctx.fillRect(0, 0, W, H);
+
+            const res = 40;
+
+            // Helper: pixel coordinates from grid cell (i,j)
+            function cellXY(i, j) {
+                return [
+                    (i / res) * W,
+                    H - (j / res) * H,
+                ];
             }
-            
-            // Draw boundary line
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 1;
-            
-            for (let i = 0; i < resolution; i++) {
-                ctx.beginPath();
-                for (let j = 0; j < resolution; j++) {
-                    const idx = i * resolution + j;
-                    const p = points[idx];
-                    if (!p) continue;
-                    
-                    const px = (p.x + 2) / 4 * width;
-                    const py = height - (p.y + 2) / 4 * height;
-                    
-                    if (Math.abs(p.z - 0.5) < 0.05) {
-                        if (j === 0) ctx.moveTo(px, py);
-                        else ctx.lineTo(px, py);
+
+            // Draw background regions
+            if (results.boundary_grid) {
+                // Real boundary from server
+                const grid = results.boundary_grid;
+                const cellW = W / res, cellH = H / res;
+                for (let i = 0; i < res; i++) {
+                    for (let j = 0; j < res; j++) {
+                        const v = grid[j][i];  // row=j, col=i
+                        ctx.fillStyle = v > 0.5 ? COLORS.region1 : COLORS.region0;
+                        ctx.fillRect(i * cellW, j * cellH, cellW + 1, cellH + 1);
                     }
                 }
-                ctx.stroke();
+
+                // Draw training points if available
+                if (results.train_points) {
+                    const { xs, ys, labels } = results.train_points;
+                    const { x_min, x_max, y_min, y_max } = results.bounds;
+
+                    for (let k = 0; k < xs.length; k++) {
+                        const px = ((xs[k] - x_min) / (x_max - x_min)) * W;
+                        const py = H - ((ys[k] - y_min) / (y_max - y_min)) * H;
+                        ctx.beginPath();
+                        ctx.arc(px, py, 4, 0, Math.PI * 2);
+                        ctx.fillStyle = labels[k] === 0 ? COLORS.class0 : COLORS.class1;
+                        ctx.fill();
+                        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            } else {
+                // Demo / synthetic boundary
+                const pts = results.boundaryPoints;
+                const cellW = W / res, cellH = H / res;
+                for (let i = 0; i < res; i++) {
+                    for (let j = 0; j < res; j++) {
+                        const p = pts[i * res + j];
+                        if (!p) continue;
+                        const [px, py] = cellXY(i, j);
+                        ctx.fillStyle = p.z > 0.5
+                            ? `rgba(78, 205, 196, ${0.2 + p.z * 0.5})`
+                            : `rgba(255, 107, 107, ${0.2 + (1 - p.z) * 0.5})`;
+                        ctx.fillRect(px, py, cellW + 1, cellH + 1);
+                    }
+                }
+
+                // Boundary line
+                ctx.strokeStyle = COLORS.boundary;
+                ctx.lineWidth = 1.5;
+                for (let i = 0; i < res; i++) {
+                    ctx.beginPath();
+                    let drawing = false;
+                    for (let j = 0; j < res; j++) {
+                        const p = pts[i * res + j];
+                        if (!p || Math.abs(p.z - 0.5) > 0.07) { drawing = false; continue; }
+                        const [px, py] = cellXY(i, j);
+                        if (!drawing) { ctx.moveTo(px, py); drawing = true; }
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.stroke();
+                }
+
+                // Demo scatter
+                const dataPts = generateDataPoints(results.dataset, 200);
+                dataPts.forEach(p => {
+                    const [px, py] = cellXY((p.x + 2) / 4, (p.y + 2) / 4);
+                    ctx.beginPath();
+                    ctx.arc(px, py, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = p.label === 0 ? COLORS.class0 : COLORS.class1;
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                });
             }
-            
-            // Draw data points
-            const dataPoints = generateDataPoints(dataset, 200);
-            dataPoints.forEach(p => {
-                const px = (p.x + 2) / 4 * width;
-                const py = height - (p.y + 2) / 4 * height;
-                
-                ctx.beginPath();
-                ctx.arc(px, py, 4, 0, Math.PI * 2);
-                ctx.fillStyle = p.label === 0 ? COLORS.class0 : COLORS.class1;
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = 0.5;
-                ctx.stroke();
-            });
         }
 
         function generateDataPoints(dataset, n) {
             const points = [];
-            const seed = dataset.charCodeAt(0);
-            
-            // Simple synthetic data generation
             for (let i = 0; i < n; i++) {
                 const r = Math.random();
                 const theta = Math.random() * Math.PI * 2;
-                
                 let x, y, label;
-                
                 if (dataset === 'circles') {
                     const r1 = 0.5 + Math.random() * 0.3;
                     x = r1 * Math.cos(theta) + (Math.random() - 0.5) * 0.1;
                     y = r1 * Math.sin(theta) + (Math.random() - 0.5) * 0.1;
                     label = r > 0.5 ? 1 : 0;
                 } else if (dataset === 'moons') {
-                    if (r > 0.5) {
-                        x = Math.cos(theta) * 0.8 + (Math.random() - 0.5) * 0.1;
-                        y = Math.sin(theta) * 0.4 + 0.5 + (Math.random() - 0.5) * 0.1;
-                    } else {
-                        x = Math.cos(theta) * 0.8 + (Math.random() - 0.5) * 0.1;
-                        y = -Math.sin(theta) * 0.4 - 0.5 + (Math.random() - 0.5) * 0.1;
-                    }
+                    x = Math.cos(theta) * 0.8 + (Math.random() - 0.5) * 0.1;
+                    y = (r > 0.5 ? 1 : -1) * Math.sin(theta) * 0.4 + (r > 0.5 ? 0.5 : -0.5) + (Math.random() - 0.5) * 0.1;
                     label = r > 0.5 ? 1 : 0;
                 } else if (dataset === 'blobs') {
-                    const centers = [[-1, -1], [1, 1], [0, 0]];
+                    const centers = [[-1,-1],[1,1],[0,0]];
                     const c = centers[Math.floor(r * 3)];
                     x = c[0] + (Math.random() - 0.5) * 0.8;
                     y = c[1] + (Math.random() - 0.5) * 0.8;
-                    label = Math.floor(r * 3);
-                } else { // xor
+                    label = r > 0.5 ? 1 : 0;
+                } else {
                     x = (Math.random() - 0.5) * 3;
                     y = (Math.random() - 0.5) * 3;
                     label = (x * y > 0) ? 1 : 0;
                 }
-                
                 points.push({ x, y, label });
             }
-            
             return points;
         }
 
+        // ── Update metrics / charts ────────────────────────────────────────────
         function updateMetrics(results) {
-            document.getElementById('accuracyValue').textContent = (results.accuracy * 100).toFixed(1) + '%';
-            document.getElementById('accuracyBadge').textContent = `Accuracy: ${(results.accuracy * 100).toFixed(1)}%`;
-            document.getElementById('trainTimeValue').textContent = results.trainTime.toFixed(4);
-            
-            // Update model info
-            const infoDiv = document.getElementById('modelInfo');
+            const acc = (results.accuracy * 100).toFixed(1);
+            const time = typeof results.train_time === 'number'
+                ? results.train_time.toFixed(4)
+                : results.trainTime.toFixed(4);
+
+            document.getElementById('accuracyValue').textContent  = acc + '%';
+            document.getElementById('trainTimeValue').textContent = time;
+            document.getElementById('accuracyBadge').textContent  = `Accuracy: ${acc}%`;
+
+            const infoDiv     = document.getElementById('modelInfo');
             const infoContent = document.getElementById('modelInfoContent');
             infoDiv.classList.remove('hidden');
-            
+
+            const modelInfo = results.model_info || results.modelInfo || {};
             let html = '';
-            for (const [key, value] of Object.entries(results.modelInfo)) {
+            for (const [key, value] of Object.entries(modelInfo)) {
                 html += `
                     <div class="bg-white/5 rounded-lg p-3">
                         <div class="text-gray-400 text-xs">${key}</div>
                         <div class="text-lg font-semibold">${value}</div>
-                    </div>
-                `;
+                    </div>`;
             }
             infoContent.innerHTML = html;
         }
 
         function updateCharts(model, dataset) {
-            // Update comparison chart with all models
-            const models = ['SVM', 'LR', 'Tree', 'RF', 'KNN', 'MLP'];
-            const baseAcc = { SVM: 0.93, LR: 0.89, Tree: 0.87, RF: 0.95, KNN: 0.91, MLP: 0.94 };
-            const datasetMult = { circles: 1.0, moons: 0.95, blobs: 0.98, xor: 0.85 };
-            
-            const data = models.map(m => baseAcc[m] * datasetMult[dataset] + (Math.random() - 0.5) * 0.03);
-            
+            const models   = ['SVM', 'LR', 'Tree', 'RF', 'KNN', 'MLP'];
+            const baseAcc  = { SVM: 0.93, LR: 0.89, Tree: 0.87, RF: 0.95, KNN: 0.91, MLP: 0.94 };
+            const mult     = { circles: 1.0, moons: 0.95, blobs: 0.98, xor: 0.85 };
+            const data = models.map(m =>
+                Math.min(0.99, baseAcc[m] * mult[dataset] + (Math.random() - 0.5) * 0.03)
+            );
             window.compChart.data.datasets[0].data = data;
             window.compChart.update();
-            
-            // Update parameter effect chart
+
             const paramData = [0.82, 0.89, 0.93, 0.91].map(v => v + (Math.random() - 0.5) * 0.05);
             window.paramChart.data.datasets[0].data = paramData;
             window.paramChart.update();
         }
 
         function loadPrecomputedResults() {
-            // Show pre-computed model grid
             const models = ['SVM', 'LR', 'Tree', 'RF', 'KNN', 'MLP'];
-            const datasets_list = ['circles', 'moons', 'blobs', 'xor'];
-            
+            const baseAcc = { SVM: 0.93, LR: 0.89, Tree: 0.87, RF: 0.95, KNN: 0.91, MLP: 0.94 };
             const grid = document.getElementById('modelsGrid');
-            let html = '';
-            
-            models.forEach(model => {
-                const baseAcc = { SVM: 0.93, LR: 0.89, Tree: 0.87, RF: 0.95, KNN: 0.91, MLP: 0.94 };
-                const acc = (baseAcc[model] * 0.95 + Math.random() * 0.05).toFixed(3);
-                
-                html += `
-                    <div class="card rounded-xl p-4 cursor-pointer hover:border-blue-500" onclick="selectModel('${model}')">
-                        <div class="text-sm font-semibold">${model}</div>
-                        <div class="text-2xl font-bold text-blue-400">${acc}</div>
-                        <div class="text-xs text-gray-400">avg accuracy</div>
-                    </div>
-                `;
-            });
-            
-            grid.innerHTML = html;
+            grid.innerHTML = models.map(m => `
+                <div class="card rounded-xl p-4 cursor-pointer hover:border-blue-500"
+                     onclick="selectModel('${m}')">
+                    <div class="text-sm font-semibold">${m}</div>
+                    <div class="text-2xl font-bold text-blue-400">${(baseAcc[m] * 0.95 + Math.random() * 0.05).toFixed(3)}</div>
+                    <div class="text-xs text-gray-400">avg accuracy</div>
+                </div>`).join('');
         }
 
         function selectModel(model) {
@@ -655,9 +681,10 @@
 
         function resetView() {
             initCanvas();
-            document.getElementById('accuracyValue').textContent = '--';
+            document.getElementById('accuracyValue').textContent  = '--';
             document.getElementById('trainTimeValue').textContent = '--';
-            document.getElementById('accuracyBadge').textContent = 'Accuracy: --%';
+            document.getElementById('accuracyBadge').textContent  = 'Accuracy: --%';
+            document.getElementById('modelInfo').classList.add('hidden');
         }
     </script>
 </body>

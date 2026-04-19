@@ -96,15 +96,22 @@ output/
 └── experiment_results.json     # Full structured results
 ```
 
-### 3. Interactive Web Interface
+### 3. Interactive Web Interface (Real ML Training)
 
 ```bash
-# Option A: Standalone HTML (visual demo, no real training)
-open web/index.html
+cd web
+pip install -r ../requirements.txt   # includes flask
+python server.py
+# Open http://localhost:5000
+```
 
-# Option B: Full web with real ML backend
-cd web && pip install flask && python server.py
-# Then open http://localhost:5000
+> **Note:** The Flask server runs real sklearn training — SVM, Trees, KNN, etc. with actual decision boundary computation.
+
+### 4. Standalone HTML Demo
+
+```bash
+# Just open in browser — visual demo only, no real ML
+open web/index.html
 ```
 
 ---

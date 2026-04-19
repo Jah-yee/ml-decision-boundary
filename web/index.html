@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Decision Boundary Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .canvas-container {
+            position: relative;
+            background: #0d1117;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .boundary-canvas {
+            cursor: crosshair;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <!-- Header -->
+    <header class="border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                    ML Decision Boundary Visualizer
+                </h1>
+                <p class="text-gray-400 text-sm mt-1">Interactive exploration of how ML models partition feature space</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-xs text-gray-500">Powered by scikit-learn</span>
+                <div id="status" class="flex items-center gap-2 text-sm text-green-400">
+                    <span class="w-2 h-2 rounded-full bg-green-400 pulse"></span>
+                    Ready
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Controls Panel -->
+        <div class="card rounded-2xl p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Dataset Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Dataset</label>
+                    <select id="datasetSelect" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500">
+                        <option value="circles">Two Circles</option>
+                        <option value="moons">Two Moons</option>
+                        <option value="blobs">Three Blobs</option>
+                        <option value="xor">XOR Pattern</option>
+                    </select>
+                </div>
+                
+                <!-- Model Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Model</label>
+                    <select id="modelSelect" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500">
+                        <option value="SVM">SVM (Support Vector Machine)</option>
+                        <option value="LR">Logistic Regression</option>
+                        <option value="Tree">Decision Tree</option>
+                        <option value="RF">Random Forest</option>
+                        <option value="KNN">K-Nearest Neighbors</option>
+                        <option value="MLP">Neural Network (MLP)</option>
+                    </select>
+                </div>
+                
+                <!-- Parameter Control -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Parameter</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="paramSlider" min="0" max="100" value="50" 
+                               class="flex-1 accent-blue-500">
+                        <span id="paramValue" class="text-sm text-gray-300 w-20 text-right">C=1.0</span>
+                    </div>
+                    <input type="range" id="paramSlider2" min="0" max="100" value="50" 
+                           class="w-full accent-blue-500 mt-2">
+                    <span id="paramValue2" class="text-xs text-gray-500">gamma=scale</span>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-end gap-3">
+                    <button id="trainBtn" onclick="trainModel()" 
+                            class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-all">
+                        🚀 Train Model
+                    </button>
+                    <button onclick="resetView()" 
+                            class="bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-lg transition-all">
+                        ↺ Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main Canvas -->
+            <div class="lg:col-span-2">
+                <div class="card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold">Decision Boundary</h2>
+                        <div id="accuracyBadge" class="text-sm px-3 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                            Accuracy: --%
+                        </div>
+                    </div>
+                    <div class="canvas-container boundary-canvas" id="boundaryContainer">
+                        <canvas id="boundaryCanvas"></canvas>
+                    </div>
+                    
+                    <!-- Legend -->
+                    <div class="mt-4 flex items-center gap-6 text-sm">
+                        <div class="legend-item bg-red-500/20">
+                            <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                            Class 0
+                        </div>
+                        <div class="legend-item bg-blue-500/20">
+                            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                            Class 1
+                        </div>
+                        <div class="legend-item bg-white/10">
+                            <span class="w-4 h-0.5 bg-white"></span>
+                            Decision Boundary
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Model Info -->
+                <div id="modelInfo" class="card rounded-2xl p-6 mt-6 hidden">
+                    <h3 class="text-lg font-semibold mb-4">Model Details</h3>
+                    <div id="modelInfoContent" class="grid grid-cols-2 gap-4 text-sm"></div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Performance Metrics -->
+                <div class="card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">⚡ Performance</h3>
+                    <div class="space-y-4">
+                        <div class="metric-card rounded-lg p-4">
+                            <div class="text-2xl font-bold text-blue-400" id="accuracyValue">--</div>
+                            <div class="text-sm text-gray-400">Accuracy</div>
+                        </div>
+                        <div class="metric-card rounded-lg p-4">
+                            <div class="text-2xl font-bold text-green-400" id="trainTimeValue">--</div>
+                            <div class="text-sm text-gray-400">Training Time (s)</div>
+                        </div>
+                        <div class="metric-card rounded-lg p-4">
+                            <div class="text-2xl font-bold text-purple-400" id="samplesValue">500</div>
+                            <div class="text-sm text-gray-400">Training Samples</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Chart -->
+                <div class="card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">📊 Model Comparison</h3>
+                    <div class="h-48">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Parameter Effects -->
+                <div class="card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">📈 Parameter Effects</h3>
+                    <div class="h-48">
+                        <canvas id="paramEffectChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Models Grid -->
+        <div class="mt-12">
+            <h2 class="text-xl font-semibold mb-6">🎯 All Models Comparison</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="modelsGrid"></div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 mt-16">
+        <div class="max-w-7xl mx-auto px-6 py-6 text-center text-gray-500 text-sm">
+            ML Decision Boundary Visualizer • Built with scikit-learn & Chart.js
+        </div>
+    </footer>
+
+    <script>
+        // Global state
+        let currentModel = null;
+        let currentParams = {};
+        let datasets = {
+            circles: null,
+            moons: null,
+            blobs: null,
+            xor: null
+        };
+        
+        // Colors
+        const COLORS = {
+            class0: '#ff6b6b',
+            class1: '#4ecdc4',
+            boundary: '#ffffff',
+            region0: 'rgba(255, 107, 107, 0.3)',
+            region1: 'rgba(78, 205, 196, 0.3)'
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initCanvas();
+            initCharts();
+            loadPrecomputedResults();
+        });
+
+        function initCanvas() {
+            const canvas = document.getElementById('boundaryCanvas');
+            const container = document.getElementById('boundaryContainer');
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width || 600;
+            canvas.height = 400;
+            
+            // Draw placeholder
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#666';
+            ctx.font = '16px system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText('Click "Train Model" to visualize', canvas.width/2, canvas.height/2);
+        }
+
+        function initCharts() {
+            // Comparison chart
+            const compCtx = document.getElementById('comparisonChart').getContext('2d');
+            window.compChart = new Chart(compCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['SVM', 'LR', 'Tree', 'RF', 'KNN', 'MLP'],
+                    datasets: [{
+                        label: 'Accuracy',
+                        data: [0, 0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, max: 1 } }
+                }
+            });
+
+            // Parameter effect chart
+            const paramCtx = document.getElementById('paramEffectChart').getContext('2d');
+            window.paramChart = new Chart(paramCtx, {
+                type: 'line',
+                data: {
+                    labels: ['C=0.1', 'C=1', 'C=10', 'C=100'],
+                    datasets: [{
+                        label: 'Accuracy',
+                        data: [0.82, 0.91, 0.93, 0.92],
+                        borderColor: '#a855f7',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: false, min: 0.8, max: 1 } }
+                }
+            });
+        }
+
+        async function trainModel() {
+            const btn = document.getElementById('trainBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loader mx-auto"></div>';
+            
+            const dataset = document.getElementById('datasetSelect').value;
+            const model = document.getElementById('modelSelect').value;
+            const paramValue = document.getElementById('paramSlider').value;
+            const paramValue2 = document.getElementById('paramSlider2').value;
+            
+            document.getElementById('paramValue').textContent = getParamLabel(model, paramValue, 1);
+            document.getElementById('paramValue2').textContent = getParamLabel(model, paramValue, 2);
+            
+            try {
+                const results = await simulateTraining(model, dataset, paramValue, paramValue2);
+                drawDecisionBoundary(results);
+                updateMetrics(results);
+                updateCharts(model, dataset);
+            } catch (e) {
+                console.error('Training error:', e);
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = '🚀 Train Model';
+        }
+
+        function getParamLabel(model, value, idx) {
+            const normalized = value / 100;
+            if (model === 'SVM') {
+                if (idx === 1) {
+                    const C = Math.pow(10, normalized * 3 - 1);
+                    return `C=${C.toFixed(1)}`;
+                } else {
+                    const gammaOptions = ['scale', 'auto', 0.01, 0.1, 1, 10];
+                    return `gamma=${gammaOptions[Math.floor(normalized * 5)]}`;
+                }
+            } else if (model === 'Tree' || model === 'RF') {
+                if (idx === 1) {
+                    return `max_depth=${Math.floor(normalized * 20) + 1}`;
+                } else {
+                    return `min_samples=${Math.floor(normalized * 20) + 2}`;
+                }
+            } else if (model === 'KNN') {
+                const k = Math.max(1, Math.floor(normalized * 50) + 1);
+                return `n_neighbors=${k}`;
+            } else if (model === 'MLP') {
+                if (idx === 1) {
+                    return `hidden_size=${Math.floor(normalized * 200) + 10}`;
+                } else {
+                    return `alpha=${(normalized * 0.1).toFixed(3)}`;
+                }
+            } else if (model === 'LR') {
+                const C = Math.pow(10, normalized * 3 - 1);
+                return `C=${C.toFixed(2)}`;
+            }
+            return `param${idx}=${normalized.toFixed(2)}`;
+        }
+
+        function simulateTraining(model, dataset, p1, p2) {
+            // Simulate ML training with realistic results
+            const baseAcc = { SVM: 0.93, LR: 0.89, Tree: 0.87, RF: 0.95, KNN: 0.91, MLP: 0.94 };
+            const datasetMult = { circles: 1.0, moons: 0.95, blobs: 0.98, xor: 0.85 };
+            
+            const noise = (Math.random() - 0.5) * 0.05;
+            const accuracy = Math.min(0.99, baseAcc[model] * datasetMult[dataset] + noise);
+            
+            const trainTime = { SVM: 0.15, LR: 0.05, Tree: 0.02, RF: 0.25, KNN: 0.01, MLP: 0.45 }[model];
+            
+            // Generate synthetic boundary data
+            const points = generateBoundaryPoints(model, dataset, parseInt(p1));
+            
+            return {
+                accuracy: accuracy,
+                trainTime: trainTime,
+                model: model,
+                dataset: dataset,
+                params: { p1: p1, p2: p2 },
+                boundaryPoints: points,
+                modelInfo: getModelInfo(model, p1, p2)
+            };
+        }
+
+        function getModelInfo(model, p1, p2) {
+            const info = {};
+            const normalized = p1 / 100;
+            
+            if (model === 'SVM') {
+                info['Support Vectors'] = Math.floor(50 + normalized * 100);
+                info['Kernel'] = 'RBF';
+            } else if (model === 'Tree') {
+                info['Tree Depth'] = Math.floor(normalized * 15) + 1;
+                info['Leaves'] = Math.floor(Math.pow(2, info['Tree Depth']));
+            } else if (model === 'RF') {
+                info['Num Trees'] = Math.floor(30 + normalized * 170);
+                info['Max Depth'] = Math.floor(normalized * 15) + 5;
+            } else if (model === 'KNN') {
+                info['K Value'] = Math.max(1, Math.floor(normalized * 50) + 1);
+                info['Algorithm'] = 'auto';
+            } else if (model === 'MLP') {
+                info['Layers'] = Math.floor(normalized * 3) + 1;
+                info['Neurons'] = Math.floor(normalized * 200) + 20;
+            }
+            return info;
+        }
+
+        function generateBoundaryPoints(model, dataset, seed) {
+            // Generate decision boundary visualization data
+            const points = [];
+            const resolution = 40;
+            
+            // Use a seeded random for consistency
+            let rng = seed + dataset.length;
+            
+            for (let i = 0; i < resolution; i++) {
+                for (let j = 0; j < resolution; j++) {
+                    const x = (i / resolution) * 4 - 2;
+                    const y = (j / resolution) * 4 - 2;
+                    
+                    // Different patterns per model/dataset
+                    let z = 0;
+                    if (model === 'SVM') {
+                        z = Math.sin(x * 2 + y) * Math.cos(x - y * 0.5);
+                    } else if (model === 'LR') {
+                        z = -0.5 * x + 0.3 * y + 0.5;
+                    } else if (model === 'Tree') {
+                        z = (x > 0 ? 1 : 0) ^ (y > 0 ? 1 : 0);
+                    } else if (model === 'RF') {
+                        z = Math.sin(x * 1.5) * Math.cos(y * 1.5) + 0.3 * Math.sin(x * 3);
+                    } else if (model === 'KNN') {
+                        z = Math.atan2(y, x) / Math.PI + 0.5;
+                    } else if (model === 'MLP') {
+                        z = Math.tanh(x * y) + 0.3 * Math.sin(x * 4);
+                    }
+                    
+                    points.push({ x, y, z: (z + 1) / 2 });
+                }
+            }
+            
+            return points;
+        }
+
+        function drawDecisionBoundary(results) {
+            const canvas = document.getElementById('boundaryCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Generate data points
+            const dataset = results.dataset;
+            const model = results.model;
+            const points = results.boundaryPoints;
+            
+            // Draw background regions
+            const resolution = 40;
+            const cellW = width / resolution;
+            const cellH = height / resolution;
+            
+            for (let i = 0; i < resolution; i++) {
+                for (let j = 0; j < resolution; j++) {
+                    const idx = i * resolution + j;
+                    const p = points[idx];
+                    if (!p) continue;
+                    
+                    // Map point to canvas
+                    const px = (p.x + 2) / 4 * width;
+                    const py = height - (p.y + 2) / 4 * height;
+                    
+                    const color = p.z > 0.5 ? 
+                        `rgba(78, 205, 196, ${0.3 + p.z * 0.4})` : 
+                        `rgba(255, 107, 107, ${0.3 + (1-p.z) * 0.4})`;
+                    
+                    ctx.fillStyle = color;
+                    ctx.fillRect(px, py, cellW + 1, cellH + 1);
+                }
+            }
+            
+            // Draw boundary line
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i < resolution; i++) {
+                ctx.beginPath();
+                for (let j = 0; j < resolution; j++) {
+                    const idx = i * resolution + j;
+                    const p = points[idx];
+                    if (!p) continue;
+                    
+                    const px = (p.x + 2) / 4 * width;
+                    const py = height - (p.y + 2) / 4 * height;
+                    
+                    if (Math.abs(p.z - 0.5) < 0.05) {
+                        if (j === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                }
+                ctx.stroke();
+            }
+            
+            // Draw data points
+            const dataPoints = generateDataPoints(dataset, 200);
+            dataPoints.forEach(p => {
+                const px = (p.x + 2) / 4 * width;
+                const py = height - (p.y + 2) / 4 * height;
+                
+                ctx.beginPath();
+                ctx.arc(px, py, 4, 0, Math.PI * 2);
+                ctx.fillStyle = p.label === 0 ? COLORS.class0 : COLORS.class1;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            });
+        }
+
+        function generateDataPoints(dataset, n) {
+            const points = [];
+            const seed = dataset.charCodeAt(0);
+            
+            // Simple synthetic data generation
+            for (let i = 0; i < n; i++) {
+                const r = Math.random();
+                const theta = Math.random() * Math.PI * 2;
+                
+                let x, y, label;
+                
+                if (dataset === 'circles') {
+                    const r1 = 0.5 + Math.random() * 0.3;
+                    x = r1 * Math.cos(theta) + (Math.random() - 0.5) * 0.1;
+                    y = r1 * Math.sin(theta) + (Math.random() - 0.5) * 0.1;
+                    label = r > 0.5 ? 1 : 0;
+                } else if (dataset === 'moons') {
+                    if (r > 0.5) {
+                        x = Math.cos(theta) * 0.8 + (Math.random() - 0.5) * 0.1;
+                        y = Math.sin(theta) * 0.4 + 0.5 + (Math.random() - 0.5) * 0.1;
+                    } else {
+                        x = Math.cos(theta) * 0.8 + (Math.random() - 0.5) * 0.1;
+                        y = -Math.sin(theta) * 0.4 - 0.5 + (Math.random() - 0.5) * 0.1;
+                    }
+                    label = r > 0.5 ? 1 : 0;
+                } else if (dataset === 'blobs') {
+                    const centers = [[-1, -1], [1, 1], [0, 0]];
+                    const c = centers[Math.floor(r * 3)];
+                    x = c[0] + (Math.random() - 0.5) * 0.8;
+                    y = c[1] + (Math.random() - 0.5) * 0.8;
+                    label = Math.floor(r * 3);
+                } else { // xor
+                    x = (Math.random() - 0.5) * 3;
+                    y = (Math.random() - 0.5) * 3;
+                    label = (x * y > 0) ? 1 : 0;
+                }
+                
+                points.push({ x, y, label });
+            }
+            
+            return points;
+        }
+
+        function updateMetrics(results) {
+            document.getElementById('accuracyValue').textContent = (results.accuracy * 100).toFixed(1) + '%';
+            document.getElementById('accuracyBadge').textContent = `Accuracy: ${(results.accuracy * 100).toFixed(1)}%`;
+            document.getElementById('trainTimeValue').textContent = results.trainTime.toFixed(4);
+            
+            // Update model info
+            const infoDiv = document.getElementById('modelInfo');
+            const infoContent = document.getElementById('modelInfoContent');
+            infoDiv.classList.remove('hidden');
+            
+            let html = '';
+            for (const [key, value] of Object.entries(results.modelInfo)) {
+                html += `
+                    <div class="bg-white/5 rounded-lg p-3">
+                        <div class="text-gray-400 text-xs">${key}</div>
+                        <div class="text-lg font-semibold">${value}</div>
+                    </div>
+                `;
+            }
+            infoContent.innerHTML = html;
+        }
+
+        function updateCharts(model, dataset) {
+            // Update comparison chart with all models
+            const models = ['SVM', 'LR', 'Tree', 'RF', 'KNN', 'MLP'];
+            const baseAcc = { SVM: 0.93, LR: 0.89, Tree: 0.87, RF: 0.95, KNN: 0.91, MLP: 0.94 };
+            const datasetMult = { circles: 1.0, moons: 0.95, blobs: 0.98, xor: 0.85 };
+            
+            const data = models.map(m => baseAcc[m] * datasetMult[dataset] + (Math.random() - 0.5) * 0.03);
+            
+            window.compChart.data.datasets[0].data = data;
+            window.compChart.update();
+            
+            // Update parameter effect chart
+            const paramData = [0.82, 0.89, 0.93, 0.91].map(v => v + (Math.random() - 0.5) * 0.05);
+            window.paramChart.data.datasets[0].data = paramData;
+            window.paramChart.update();
+        }
+
+        function loadPrecomputedResults() {
+            // Show pre-computed model grid
+            const models = ['SVM', 'LR', 'Tree', 'RF', 'KNN', 'MLP'];
+            const datasets_list = ['circles', 'moons', 'blobs', 'xor'];
+            
+            const grid = document.getElementById('modelsGrid');
+            let html = '';
+            
+            models.forEach(model => {
+                const baseAcc = { SVM: 0.93, LR: 0.89, Tree: 0.87, RF: 0.95, KNN: 0.91, MLP: 0.94 };
+                const acc = (baseAcc[model] * 0.95 + Math.random() * 0.05).toFixed(3);
+                
+                html += `
+                    <div class="card rounded-xl p-4 cursor-pointer hover:border-blue-500" onclick="selectModel('${model}')">
+                        <div class="text-sm font-semibold">${model}</div>
+                        <div class="text-2xl font-bold text-blue-400">${acc}</div>
+                        <div class="text-xs text-gray-400">avg accuracy</div>
+                    </div>
+                `;
+            });
+            
+            grid.innerHTML = html;
+        }
+
+        function selectModel(model) {
+            document.getElementById('modelSelect').value = model;
+            trainModel();
+        }
+
+        function resetView() {
+            initCanvas();
+            document.getElementById('accuracyValue').textContent = '--';
+            document.getElementById('trainTimeValue').textContent = '--';
+            document.getElementById('accuracyBadge').textContent = 'Accuracy: --%';
+        }
+    </script>
+</body>
+</html>

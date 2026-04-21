@@ -34,6 +34,8 @@ class ModelResult:
     support_vectors: Optional[int] = None
     tree_depth: Optional[int] = None
     n_layers: Optional[int] = None
+    n_trees: Optional[int] = None
+    max_depth: Optional[int] = None
 
 
 def generate_dataset(dataset_name: str, n_samples: int = 500, noise: float = 0.3, seed: int = 42) -> Tuple:
@@ -116,8 +118,7 @@ def get_model_info(model, model_type: str) -> dict:
         info["n_trees"] = len(model.estimators_)
         info["max_depth"] = max(e.get_depth() for e in model.estimators_)
     elif model_type == "MLP":
-        info["n_layers"] = len(model.hidden_layers)
-        info["layer_sizes"] = model.hidden_layer_sizes
+        info["n_layers"] = len(model.hidden_layer_sizes)
     return info
 
 

@@ -1,31 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/train.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "api/health.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "web/index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/train",
-      "dest": "/api/train"
-    },
-    {
-      "src": "/health",
-      "dest": "/api/health"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/web/$1"
-    }
+  "rewrites": [
+    {"source": "/api/(.*)", "destination": "/api/$1"},
+    {"source": "/(.*)", "destination": "/web/$1"}
   ]
 }

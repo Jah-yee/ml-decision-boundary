@@ -4,6 +4,10 @@ Flask server for ML Decision Boundary Web Interface
 Runs real sklearn training and returns decision boundary data
 """
 
+import matplotlib
+matplotlib.use('Agg')  # headless backend for server environments
+import matplotlib.pyplot as plt
+
 import json
 import time
 import numpy as np

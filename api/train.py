@@ -3,6 +3,10 @@ Vercel serverless function: /api/train
 Exposes the ML training endpoint for the interactive web interface.
 """
 
+import matplotlib
+matplotlib.use('Agg')  # headless backend for serverless
+import matplotlib.pyplot as plt
+
 import json
 import time
 import numpy as np

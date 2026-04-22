@@ -7,6 +7,7 @@
 ![Matplotlib](https://img.shields.io/badge/Matplotlib-3.7+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Build](https://img.shields.io/badge/build-passing-green.svg)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Jah-yee/ml-decision-boundary)
 
 **See how machine learning models draw the line between classes**
 
@@ -116,6 +117,27 @@ open web/index.html
 
 ---
 
+## 🚀 Quick Deploy to Vercel
+
+One-click deploy — no configuration needed:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Jah-yee/ml-decision-boundary)
+
+Or via CLI:
+```bash
+npm i -g vercel
+vercel
+```
+
+**What gets deployed:**
+- `/api/train` — serverless sklearn training endpoint
+- `/api/health` — health check
+- `/` → `web/index.html` — interactive UI (demo mode without real ML, or with serverless backend)
+
+**Note:** For real ML in the web UI on Vercel, the serverless `/api/train` endpoint is used. Locally, use the Flask server for real-time training.
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -123,6 +145,10 @@ ml-decision-boundary/
 ├── main.py                # CLI entry point + experiment runner
 ├── requirements.txt       # Dependencies (numpy, matplotlib, scikit-learn)
 ├── run.sh                 # One-liner: bash run.sh
+├── vercel.json            # Vercel deployment config
+├── api/
+│   ├── train.py           # Vercel serverless: POST /api/train
+│   └── health.py          # Vercel serverless: GET /api/health
 ├── web/
 │   ├── index.html         # Interactive web UI
 │   └── server.py          # (optional) Flask server for real training

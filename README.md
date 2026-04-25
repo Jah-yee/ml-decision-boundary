@@ -10,6 +10,8 @@
 
 <a href="https://vercel.com/new/clone?repository-url=https://github.com/Jah-yee/ml-decision-boundary" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; border-radius: 5px; font-size: 14px;">Deploy with Vercel</a>
 
+</div>
+
 **See how machine learning models draw the line between classes**
 
 [Live Demo](https://ml-decision-boundary.vercel.app) · [Quick Start](#-quick-start) · [Features](#-features) · [Documentation](#-documentation)

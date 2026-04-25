@@ -2,14 +2,14 @@
 
 <div align="center">
 
+<a href="https://vercel.com/new/clone?repository-url=https://github.com/Jah-yee/ml-decision-boundary">
+  <img src="https://vercel.com/button" alt="Deploy with Vercel" height="20">
+</a>
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-orange.svg)
 ![Matplotlib](https://img.shields.io/badge/Matplotlib-3.7+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Build](https://img.shields.io/badge/build-passing-green.svg)
-<a href="https://vercel.com/new/clone?repository-url=https://github.com/Jah-yee/ml-decision-boundary">
-  <img src="https://vercel.com/button" alt="Deploy with Vercel" height="20">
-</a>
 
 **See how machine learning models draw the line between classes**
 

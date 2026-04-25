@@ -118,3 +118,9 @@
 - [ ] 无新问题引入
 - [ ] PR 描述完整
 - [ ] 最优（没有更小/更简洁的实现方式了吗？）
+
+## PR/Commit Workflow Badge
+
+> Status: ✅ Active since 2026-04-26
+> Schedule: Twice daily (9:30, 21:30 CST)
+> Pattern: Commit → PR → Review → Merge

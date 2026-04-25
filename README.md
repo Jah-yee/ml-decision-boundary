@@ -7,7 +7,8 @@
 ![Matplotlib](https://img.shields.io/badge/Matplotlib-3.7+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Build](https://img.shields.io/badge/build-passing-green.svg)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Jah-yee/ml-decision-boundary)
+
+<a href="https://vercel.com/new/clone?repository-url=https://github.com/Jah-yee/ml-decision-boundary" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; border-radius: 5px; font-size: 14px;">Deploy with Vercel</a>
 
 **See how machine learning models draw the line between classes**
 

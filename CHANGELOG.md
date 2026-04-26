@@ -8,17 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **tests/test_api_contract.py** — 7 new tests for API serverless functions (api/health.py, api/train.py), covering contract consistency and train_model signature cross-module verification
+- **benchmarks/reports/2026-04-26.md** — First benchmark report documenting 72-experiment run
+
+### Changed
+- **main.py** — MLP max_iter increased from 500 to 2000 to eliminate ConvergenceWarning (eliminates P1 warning)
+- **strategy/NEXT_ROUND_THEME.md** — Updated to mark Harness v1 as next priority
+
+### Fixed
+- **main.py** — MLP ConvergenceWarning eliminated (max_iter 500→2000)
+
+### Security
+- **api/health.py** — Added contract test to verify health response structure
+
+---
+
+## [0.0.1] — 2026-04-26
+
+### Added
 - **spec/CHARTER.md** — Project vision, mission, non-goals, quality bar
 - **spec/phases.md** — Phase definitions (v0 Foundation → v1 Testing & Harness → v2 Model Expansion → v3 Platform)
 - **spec/REPRODUCE.md** — Reproducibility guide with P0-P3 verification commands
 - **tests/** — Test infrastructure with 11 test cases covering datasets and model training
-- **benchmarks/reports/2026-04-26.md** — First benchmark report documenting 72-experiment run
-
-### Changed
-- **strategy/NEXT_ROUND_THEME.md** — Updated to mark Harness v1 as next priority
-
-### Fixed
-- Documentation of `train_model()` API signature corrected (actual: model_type, params, X, y)
 
 ---
 

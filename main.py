@@ -92,7 +92,7 @@ def train_model(model_type: str, params: dict, X_train, y_train) -> Tuple:
         "Tree": lambda: DecisionTreeClassifier(**params, random_state=42),
         "RF": lambda: RandomForestClassifier(**params, random_state=42),
         "KNN": lambda: KNeighborsClassifier(**params),
-        "MLP": lambda: MLPClassifier(**params, random_state=42, max_iter=500),
+        "MLP": lambda: MLPClassifier(**params, random_state=42, max_iter=2000),
         "NB": lambda: GaussianNB(**params),
     }
     

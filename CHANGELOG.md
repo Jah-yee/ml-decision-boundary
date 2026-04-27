@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **ADR-0001** — Phase v0→v1 升级判定文档（正式记录 v0 完成，v1 开始）
+- **docs/adr/ADR-0001-phase-v0-to-v1.md** — 阶段升级决策记录
+- **spec/phases.md** (v0.2) — 更新：v0 已完成标记，v1 DoD 新增（pytest≥80%, API全覆, benchmark标准化）
 - **tests/test_api_contract.py** — 7 new tests for API serverless functions (api/health.py, api/train.py), covering contract consistency and train_model signature cross-module verification
 - **benchmarks/reports/2026-04-26.md** — First benchmark report documenting 72-experiment run
 - **spec/DEPENDENCY_POLICY.md** (v0.1) — Dependency management policy: principles, environment constraints (serverless/CPU), P0/P1分级, 变更流程

@@ -10,8 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **tests/test_api_contract.py** — 7 new tests for API serverless functions (api/health.py, api/train.py), covering contract consistency and train_model signature cross-module verification
 - **benchmarks/reports/2026-04-26.md** — First benchmark report documenting 72-experiment run
+- **spec/DEPENDENCY_POLICY.md** (v0.1) — Dependency management policy: principles, environment constraints (serverless/CPU), P0/P1分级, 变更流程
+- **benchmarks/reports/2026-04-27.md** — Second benchmark report (72-experiment run, MLP best on circles/xor, blobs linear separable)
+- **tests/test_main.py** — +10 new tests: LR/NB model training, dataset edge cases, ModelResult dataclass, API contract signature checks
 
 ### Changed
+- **requirements.txt** — Added `pytest>=7.0.0` (上轮遗留：pytest 未写入依赖)
 - **main.py** — MLP max_iter increased from 500 to 2000 to eliminate ConvergenceWarning (eliminates P1 warning)
 - **strategy/NEXT_ROUND_THEME.md** — Updated to mark Harness v1 as next priority
 

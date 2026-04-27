@@ -1,38 +1,48 @@
 # NEXT_ROUND_THEME
 
-## 上轮遗留（必须处理）
+## 本轮完成（2026-04-27 上午场）
 
-- [ ] `pytest` 是否写入 `requirements.txt`（上轮发现，上轮未处理）
-- [ ] `benchmarks/reports/2026-04-27.md` 尚未生成（上轮 P2 未完成）
-- [ ] 新建 `spec/DEPENDENCY_POLICY.md`（上轮三事项之一）
+- [x] `pytest>=7.0.0` 已写入 `requirements.txt` ✅
+- [x] `benchmarks/reports/2026-04-27.md` 已生成 ✅
+- [x] `spec/DEPENDENCY_POLICY.md` 已创建 ✅
+- [x] `tests/test_main.py` 扩展：+10 新测试（LR/NB/edge cases/ModelResult/API签名）✅
+- [x] `pytest -q` 28/28 passed ✅
+- [x] `python3 -m compileall .` 无错误 ✅
 
-## 本轮任务（2026-04-27 上午场/下午场统一入口）
+---
 
-### 任务A：日常维护（新工作）
-- **主轴**： Harness v1 — 扩展测试覆盖 + API 集成测试
-- **约束**：不改动核心 ML 逻辑；聚焦测试和数据契约
-- **验收**：P1 pytest 扩展；P3 API health 测试通过；benchmark report 更新
+## 上轮遗留（2026-04-27 上午场处理结果）
 
-### 任务B：上轮 PR 收尾置信度评估（必须先做）
-在进入任务A之前，**必须先执行 PR 收尾评估**：
+- [x] `pytest` 写入 requirements.txt ✅
+- [x] benchmarks/reports/2026-04-27.md 生成 ✅
+- [x] spec/DEPENDENCY_POLICY.md 创建 ✅
 
-1. 查 GitHub 上 Jah-yee/ml-decision-boundary 所有 OPEN PR：
-   ```bash
-   gh pr list --state open --repo Jah-yee/ml-decision-boundary --json number,title,url,state,reviewDecision,updatedAt
-   ```
+---
 
-2. 对每条 PR 做五维置信度评分（0-2 分/维，总分 10 分）：
-   - 代码质量 / 必要性 / 维护者响应 / 冲突风险 / 时效性
+## 下轮任务（2026-04-27 下午场）
 
-3. 决策：
-   - ≥8 分 → **立即 merge**（高置信）
-   - 5-7 分 → **继续等**，记录原因
-   - <5 分 → **礼貌关闭**，附原因
+### 任务：Harness v1 继续 — 测试矩阵完善 + REPRODUCE.md 更新
 
-4. 将评估结果写入 strategy/runs/YYYY-MM-DD-HHMM.md 的「PR收尾评估」小节
+**主轴**：扩展测试覆盖 → 下一阶段：模型实验矩阵或 API 错误处理增强
 
-### 本轮验收层级
-- P0：必须（compileall）
-- P1：pytest 扩展覆盖
-- P2：生成 benchmarks/reports/YYYY-MM-DD.md
-- P3：API health smoke test 通过
+**约束**：不改动核心 ML 逻辑
+
+**验收层级**：P0 / P1 / P2 / P3 全部维持通过
+
+### 待办
+- [ ] `spec/REPRODUCE.md` 是否需要更新（P0 命令有变化？）
+- [ ] 评估是否有更旧的遗留项需要处理
+- [ ] 考虑下轮是否推进「模型与数据科学深化」（分叉#2）
+
+### PR 状态
+- 无 OPEN PR（本轮完成后将创建 1 个 PR）
+- 置信度评估：N/A（本轮之前无 OPEN PR）
+
+---
+
+## 长期待办池（供参考）
+
+- [ ] `pip-compile` 或 `pip-lock` 流程（防止传递依赖隐性升级）
+- [ ] `THREAT_MODEL.md`（每 3 轮至少检查一次）
+- [ ] 监控 Vercel cold start 时间（当前 < 3s）
+- [ ] api/train.py 中 MLP max_iter 是否也需要从 500 提升到 2000（一致性）

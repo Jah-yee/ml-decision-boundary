@@ -62,7 +62,7 @@ def build_model(model_name, params):
         'Tree': lambda: DecisionTreeClassifier(**params, random_state=42),
         'RF':   lambda: RandomForestClassifier(**params, random_state=42),
         'KNN':  lambda: KNeighborsClassifier(**params),
-        'MLP':  lambda: MLPClassifier(**params, random_state=42, max_iter=500),
+        'MLP':  lambda: MLPClassifier(**params, random_state=42, max_iter=2000),
     }
     if model_name not in factories:
         raise ValueError(f'Unknown model: {model_name}')

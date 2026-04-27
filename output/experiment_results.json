@@ -3,7 +3,7 @@
     {
       "name": "SVM_circles",
       "accuracy": 0.79,
-      "train_time": 0.01995332888327539,
+      "train_time": 0.0032682280289009213,
       "params": {
         "kernel": "rbf",
         "C": 1.0,
@@ -14,7 +14,7 @@
     {
       "name": "SVM_circles",
       "accuracy": 0.76,
-      "train_time": 0.0042488668113946915,
+      "train_time": 0.0037375689717009664,
       "params": {
         "kernel": "rbf",
         "C": 10.0,
@@ -25,7 +25,7 @@
     {
       "name": "SVM_circles",
       "accuracy": 0.43,
-      "train_time": 0.004369434202089906,
+      "train_time": 0.0029221439617685974,
       "params": {
         "kernel": "linear",
         "C": 1.0
@@ -35,7 +35,7 @@
     {
       "name": "LR_circles",
       "accuracy": 0.36,
-      "train_time": 0.026804415974766016,
+      "train_time": 0.0016109590069390833,
       "params": {
         "C": 1.0
       }
@@ -43,7 +43,7 @@
     {
       "name": "LR_circles",
       "accuracy": 0.34,
-      "train_time": 0.007712634978815913,
+      "train_time": 0.0011995579698123038,
       "params": {
         "C": 10.0
       }
@@ -51,7 +51,7 @@
     {
       "name": "LR_circles",
       "accuracy": 0.36,
-      "train_time": 0.003574906149879098,
+      "train_time": 0.0011698069865815341,
       "params": {
         "C": 0.1
       }
@@ -59,7 +59,7 @@
     {
       "name": "Tree_circles",
       "accuracy": 0.7,
-      "train_time": 0.0033079718705266714,
+      "train_time": 0.0009213130106218159,
       "params": {
         "max_depth": 3
       },
@@ -68,7 +68,7 @@
     {
       "name": "Tree_circles",
       "accuracy": 0.68,
-      "train_time": 0.001598987029865384,
+      "train_time": 0.0012114869896322489,
       "params": {
         "max_depth": 10
       },
@@ -77,16 +77,43 @@
     {
       "name": "Tree_circles",
       "accuracy": 0.66,
-      "train_time": 0.0032622041180729866,
+      "train_time": 0.001237137010321021,
       "params": {
         "max_depth": null
       },
       "tree_depth": 15
     },
     {
+      "name": "RF_circles",
+      "accuracy": 0.75,
+      "train_time": 0.044201141980011016,
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      }
+    },
+    {
+      "name": "RF_circles",
+      "accuracy": 0.77,
+      "train_time": 0.09373532998142764,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      }
+    },
+    {
+      "name": "RF_circles",
+      "accuracy": 0.77,
+      "train_time": 0.19981449702754617,
+      "params": {
+        "n_estimators": 200,
+        "max_depth": null
+      }
+    },
+    {
       "name": "KNN_circles",
       "accuracy": 0.68,
-      "train_time": 0.0036376428324729204,
+      "train_time": 0.0006207379628904164,
       "params": {
         "n_neighbors": 3
       }
@@ -94,7 +121,7 @@
     {
       "name": "KNN_circles",
       "accuracy": 0.71,
-      "train_time": 0.0007387008517980576,
+      "train_time": 0.0005568189662881196,
       "params": {
         "n_neighbors": 7
       }
@@ -102,15 +129,54 @@
     {
       "name": "KNN_circles",
       "accuracy": 0.76,
-      "train_time": 0.0007019718177616596,
+      "train_time": 0.0005324999801814556,
       "params": {
         "n_neighbors": 15
       }
     },
     {
+      "name": "MLP_circles",
+      "accuracy": 0.78,
+      "train_time": 0.2092326480196789,
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      },
+      "n_layers": 1
+    },
+    {
+      "name": "MLP_circles",
+      "accuracy": 0.77,
+      "train_time": 1.1996480439556763,
+      "params": {
+        "hidden_layer_sizes": [
+          100,
+          50
+        ],
+        "alpha": 0.001
+      },
+      "n_layers": 2
+    },
+    {
+      "name": "MLP_circles",
+      "accuracy": 0.8,
+      "train_time": 0.996688247018028,
+      "params": {
+        "hidden_layer_sizes": [
+          50,
+          50,
+          50
+        ],
+        "alpha": 0.01
+      },
+      "n_layers": 3
+    },
+    {
       "name": "SVM_moons",
       "accuracy": 0.87,
-      "train_time": 0.006586345843970776,
+      "train_time": 0.001844084996264428,
       "params": {
         "kernel": "rbf",
         "C": 1.0,
@@ -121,7 +187,7 @@
     {
       "name": "SVM_moons",
       "accuracy": 0.89,
-      "train_time": 0.0030816381331533194,
+      "train_time": 0.0018949939985759556,
       "params": {
         "kernel": "rbf",
         "C": 10.0,
@@ -132,7 +198,7 @@
     {
       "name": "SVM_moons",
       "accuracy": 0.85,
-      "train_time": 0.0030830688774585724,
+      "train_time": 0.002150779007934034,
       "params": {
         "kernel": "linear",
         "C": 1.0
@@ -142,7 +208,7 @@
     {
       "name": "LR_moons",
       "accuracy": 0.85,
-      "train_time": 0.0021421529818326235,
+      "train_time": 0.0015324120176956058,
       "params": {
         "C": 1.0
       }
@@ -150,7 +216,7 @@
     {
       "name": "LR_moons",
       "accuracy": 0.85,
-      "train_time": 0.0016959549393504858,
+      "train_time": 0.0021170800318941474,
       "params": {
         "C": 10.0
       }
@@ -158,7 +224,7 @@
     {
       "name": "LR_moons",
       "accuracy": 0.83,
-      "train_time": 0.0014924700371921062,
+      "train_time": 0.0018901840085163713,
       "params": {
         "C": 0.1
       }
@@ -166,7 +232,7 @@
     {
       "name": "Tree_moons",
       "accuracy": 0.89,
-      "train_time": 0.0010450929403305054,
+      "train_time": 0.0012194259907118976,
       "params": {
         "max_depth": 3
       },
@@ -175,7 +241,7 @@
     {
       "name": "Tree_moons",
       "accuracy": 0.82,
-      "train_time": 0.001219186931848526,
+      "train_time": 0.001049969985615462,
       "params": {
         "max_depth": 10
       },
@@ -184,16 +250,43 @@
     {
       "name": "Tree_moons",
       "accuracy": 0.82,
-      "train_time": 0.001198678044602275,
+      "train_time": 0.0009901520097628236,
       "params": {
         "max_depth": null
       },
       "tree_depth": 12
     },
     {
+      "name": "RF_moons",
+      "accuracy": 0.91,
+      "train_time": 0.042628051014617085,
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      }
+    },
+    {
+      "name": "RF_moons",
+      "accuracy": 0.88,
+      "train_time": 0.0860139179858379,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      }
+    },
+    {
+      "name": "RF_moons",
+      "accuracy": 0.88,
+      "train_time": 0.17581836198223755,
+      "params": {
+        "n_estimators": 200,
+        "max_depth": null
+      }
+    },
+    {
       "name": "KNN_moons",
       "accuracy": 0.88,
-      "train_time": 0.0008667760994285345,
+      "train_time": 0.0005049610044807196,
       "params": {
         "n_neighbors": 3
       }
@@ -201,7 +294,7 @@
     {
       "name": "KNN_moons",
       "accuracy": 0.91,
-      "train_time": 0.0009063959587365389,
+      "train_time": 0.0005272889975458384,
       "params": {
         "n_neighbors": 7
       }
@@ -209,15 +302,54 @@
     {
       "name": "KNN_moons",
       "accuracy": 0.87,
-      "train_time": 0.0007648300379514694,
+      "train_time": 0.0006724169943481684,
       "params": {
         "n_neighbors": 15
       }
     },
     {
+      "name": "MLP_moons",
+      "accuracy": 0.89,
+      "train_time": 0.47887965699192137,
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      },
+      "n_layers": 1
+    },
+    {
+      "name": "MLP_moons",
+      "accuracy": 0.9,
+      "train_time": 1.5605051720049232,
+      "params": {
+        "hidden_layer_sizes": [
+          100,
+          50
+        ],
+        "alpha": 0.001
+      },
+      "n_layers": 2
+    },
+    {
+      "name": "MLP_moons",
+      "accuracy": 0.9,
+      "train_time": 1.331190335971769,
+      "params": {
+        "hidden_layer_sizes": [
+          50,
+          50,
+          50
+        ],
+        "alpha": 0.01
+      },
+      "n_layers": 3
+    },
+    {
       "name": "SVM_blobs",
       "accuracy": 1.0,
-      "train_time": 0.0015681979712098837,
+      "train_time": 0.0010637999512255192,
       "params": {
         "kernel": "rbf",
         "C": 1.0,
@@ -228,7 +360,7 @@
     {
       "name": "SVM_blobs",
       "accuracy": 1.0,
-      "train_time": 0.0014882199466228485,
+      "train_time": 0.0010917990002781153,
       "params": {
         "kernel": "rbf",
         "C": 10.0,
@@ -239,7 +371,7 @@
     {
       "name": "SVM_blobs",
       "accuracy": 1.0,
-      "train_time": 0.0013489448465406895,
+      "train_time": 0.000866874004714191,
       "params": {
         "kernel": "linear",
         "C": 1.0
@@ -249,7 +381,7 @@
     {
       "name": "LR_blobs",
       "accuracy": 1.0,
-      "train_time": 0.03441442409530282,
+      "train_time": 0.004201870004180819,
       "params": {
         "C": 1.0
       }
@@ -257,7 +389,7 @@
     {
       "name": "LR_blobs",
       "accuracy": 1.0,
-      "train_time": 0.006232203915715218,
+      "train_time": 0.00343061494641006,
       "params": {
         "C": 10.0
       }
@@ -265,7 +397,7 @@
     {
       "name": "LR_blobs",
       "accuracy": 1.0,
-      "train_time": 0.0053351279348134995,
+      "train_time": 0.0030533020035363734,
       "params": {
         "C": 0.1
       }
@@ -273,7 +405,7 @@
     {
       "name": "Tree_blobs",
       "accuracy": 1.0,
-      "train_time": 0.0009670339059084654,
+      "train_time": 0.0007557859644293785,
       "params": {
         "max_depth": 3
       },
@@ -282,7 +414,7 @@
     {
       "name": "Tree_blobs",
       "accuracy": 1.0,
-      "train_time": 0.0008659269660711288,
+      "train_time": 0.0006888170028105378,
       "params": {
         "max_depth": 10
       },
@@ -291,16 +423,43 @@
     {
       "name": "Tree_blobs",
       "accuracy": 1.0,
-      "train_time": 0.0008548169862478971,
+      "train_time": 0.0007119369693100452,
       "params": {
         "max_depth": null
       },
       "tree_depth": 2
     },
     {
+      "name": "RF_blobs",
+      "accuracy": 1.0,
+      "train_time": 0.038555526989512146,
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      }
+    },
+    {
+      "name": "RF_blobs",
+      "accuracy": 1.0,
+      "train_time": 0.07846136897569522,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      }
+    },
+    {
+      "name": "RF_blobs",
+      "accuracy": 1.0,
+      "train_time": 0.15611828496912494,
+      "params": {
+        "n_estimators": 200,
+        "max_depth": null
+      }
+    },
+    {
       "name": "KNN_blobs",
       "accuracy": 1.0,
-      "train_time": 0.0007994179613888264,
+      "train_time": 0.000521361012943089,
       "params": {
         "n_neighbors": 3
       }
@@ -308,7 +467,7 @@
     {
       "name": "KNN_blobs",
       "accuracy": 1.0,
-      "train_time": 0.000762508949264884,
+      "train_time": 0.0005566300242207944,
       "params": {
         "n_neighbors": 7
       }
@@ -316,15 +475,54 @@
     {
       "name": "KNN_blobs",
       "accuracy": 1.0,
-      "train_time": 0.0008159580174833536,
+      "train_time": 0.0005173310055397451,
       "params": {
         "n_neighbors": 15
       }
     },
     {
+      "name": "MLP_blobs",
+      "accuracy": 1.0,
+      "train_time": 0.08712968498002738,
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      },
+      "n_layers": 1
+    },
+    {
+      "name": "MLP_blobs",
+      "accuracy": 1.0,
+      "train_time": 0.4219765479792841,
+      "params": {
+        "hidden_layer_sizes": [
+          100,
+          50
+        ],
+        "alpha": 0.001
+      },
+      "n_layers": 2
+    },
+    {
+      "name": "MLP_blobs",
+      "accuracy": 1.0,
+      "train_time": 0.43035622901516035,
+      "params": {
+        "hidden_layer_sizes": [
+          50,
+          50,
+          50
+        ],
+        "alpha": 0.01
+      },
+      "n_layers": 3
+    },
+    {
       "name": "SVM_xor",
       "accuracy": 0.76,
-      "train_time": 0.003840958932414651,
+      "train_time": 0.0029131750343367457,
       "params": {
         "kernel": "rbf",
         "C": 1.0,
@@ -335,7 +533,7 @@
     {
       "name": "SVM_xor",
       "accuracy": 0.8,
-      "train_time": 0.0028588941786438227,
+      "train_time": 0.0032026899862103164,
       "params": {
         "kernel": "rbf",
         "C": 10.0,
@@ -346,7 +544,7 @@
     {
       "name": "SVM_xor",
       "accuracy": 0.59,
-      "train_time": 0.0031682560220360756,
+      "train_time": 0.00352469296194613,
       "params": {
         "kernel": "linear",
         "C": 1.0
@@ -356,7 +554,7 @@
     {
       "name": "LR_xor",
       "accuracy": 0.59,
-      "train_time": 0.0014818909112364054,
+      "train_time": 0.0013805929920636117,
       "params": {
         "C": 1.0
       }
@@ -364,7 +562,7 @@
     {
       "name": "LR_xor",
       "accuracy": 0.59,
-      "train_time": 0.0013352041132748127,
+      "train_time": 0.0011206099879927933,
       "params": {
         "C": 10.0
       }
@@ -372,7 +570,7 @@
     {
       "name": "LR_xor",
       "accuracy": 0.59,
-      "train_time": 0.001216217176988721,
+      "train_time": 0.0010616490035317838,
       "params": {
         "C": 0.1
       }
@@ -380,7 +578,7 @@
     {
       "name": "Tree_xor",
       "accuracy": 0.46,
-      "train_time": 0.0010014830622822046,
+      "train_time": 0.0008813029853627086,
       "params": {
         "max_depth": 3
       },
@@ -389,7 +587,7 @@
     {
       "name": "Tree_xor",
       "accuracy": 0.73,
-      "train_time": 0.0012952238321304321,
+      "train_time": 0.001155367004685104,
       "params": {
         "max_depth": 10
       },
@@ -398,16 +596,43 @@
     {
       "name": "Tree_xor",
       "accuracy": 0.75,
-      "train_time": 0.0013041440397500992,
+      "train_time": 0.001148566952906549,
       "params": {
         "max_depth": null
       },
       "tree_depth": 11
     },
     {
+      "name": "RF_xor",
+      "accuracy": 0.76,
+      "train_time": 0.04470990097615868,
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      }
+    },
+    {
+      "name": "RF_xor",
+      "accuracy": 0.77,
+      "train_time": 0.09257886302657425,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      }
+    },
+    {
+      "name": "RF_xor",
+      "accuracy": 0.79,
+      "train_time": 0.1896350800525397,
+      "params": {
+        "n_estimators": 200,
+        "max_depth": null
+      }
+    },
+    {
       "name": "KNN_xor",
       "accuracy": 0.78,
-      "train_time": 0.0005859748926013708,
+      "train_time": 0.000546099036000669,
       "params": {
         "n_neighbors": 3
       }
@@ -415,7 +640,7 @@
     {
       "name": "KNN_xor",
       "accuracy": 0.82,
-      "train_time": 0.0005667060613632202,
+      "train_time": 0.0005257800221443176,
       "params": {
         "n_neighbors": 7
       }
@@ -423,27 +648,68 @@
     {
       "name": "KNN_xor",
       "accuracy": 0.78,
-      "train_time": 0.0005993531085550785,
+      "train_time": 0.0005234599811956286,
       "params": {
         "n_neighbors": 15
       }
+    },
+    {
+      "name": "MLP_xor",
+      "accuracy": 0.81,
+      "train_time": 0.157122045988217,
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      },
+      "n_layers": 1
+    },
+    {
+      "name": "MLP_xor",
+      "accuracy": 0.83,
+      "train_time": 1.3010283979820088,
+      "params": {
+        "hidden_layer_sizes": [
+          100,
+          50
+        ],
+        "alpha": 0.001
+      },
+      "n_layers": 2
+    },
+    {
+      "name": "MLP_xor",
+      "accuracy": 0.83,
+      "train_time": 2.092377894965466,
+      "params": {
+        "hidden_layer_sizes": [
+          50,
+          50,
+          50
+        ],
+        "alpha": 0.01
+      },
+      "n_layers": 3
     }
   ],
   "summary": {
-    "total_experiments": 48,
+    "total_experiments": 72,
     "best_accuracy": 1.0,
-    "fastest_train_time": 0.0005667060613632202,
+    "fastest_train_time": 0.0005049610044807196,
     "model_types": [
-      "SVM",
-      "LR",
+      "MLP",
+      "RF",
       "Tree",
-      "KNN"
+      "KNN",
+      "SVM",
+      "LR"
     ],
     "datasets": [
-      "xor",
-      "circles",
+      "blobs",
       "moons",
-      "blobs"
+      "circles",
+      "xor"
     ]
   }
 }

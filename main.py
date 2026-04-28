@@ -444,10 +444,10 @@ def save_results(results: List[ModelResult], output_path: str):
         "experiments": [],
         "summary": {
             "total_experiments": len(results),
-            "best_accuracy": max(r.accuracy for r in results),
-            "fastest_train_time": min(r.train_time for r in results),
-            "model_types": list(set(r.name.split('_')[0] for r in results)),
-            "datasets": list(set(r.name.split('_')[1] for r in results)),
+            "best_accuracy": max(r.accuracy for r in results) if results else float('nan'),
+            "fastest_train_time": min(r.train_time for r in results) if results else float('nan'),
+            "model_types": list(set(r.name.split('_')[0] for r in results)) if results else [],
+            "datasets": list(set(r.name.split('_')[1] for r in results)) if results else [],
         }
     }
     

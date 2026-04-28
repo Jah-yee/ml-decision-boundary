@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **benchmarks/ package** — Standardized benchmark harness with `python3 -m benchmarks` entrypoint (--quick smoke test + full suite), structured JSON + MD report output to benchmarks/reports/
 - **ADR-0001** — Phase v0→v1 升级判定文档（正式记录 v0 完成，v1 开始）
 - **docs/adr/ADR-0001-phase-v0-to-v1.md** — 阶段升级决策记录
 - **spec/phases.md** (v0.2) — 更新：v0 已完成标记，v1 DoD 新增（pytest≥80%, API全覆, benchmark标准化）

@@ -1,38 +1,40 @@
 # NEXT_ROUND_THEME
 
-## 本轮完成（2026-04-27 上午场）
+## 本轮完成（2026-04-27 下午场）
 
-- [x] `pytest>=7.0.0` 已写入 `requirements.txt` ✅
-- [x] `benchmarks/reports/2026-04-27.md` 已生成 ✅
-- [x] `spec/DEPENDENCY_POLICY.md` 已创建 ✅
-- [x] `tests/test_main.py` 扩展：+10 新测试（LR/NB/edge cases/ModelResult/API签名）✅
-- [x] `pytest -q` 28/28 passed ✅
+- [x] ADR-0001 创建 ✅ (`docs/adr/ADR-0001-phase-v0-to-v1.md`)
+- [x] `spec/phases.md` v0.2 更新 ✅（v0 标记完成，v1 DoD 新增）
+- [x] CHANGELOG.md 更新 ✅
+- [x] PR #4 已合并 ✅
 - [x] `python3 -m compileall .` 无错误 ✅
+- [x] `pytest -q` 28/28 passed ✅
 
 ---
 
-## 上轮遗留（2026-04-27 上午场处理结果）
+## 上轮遗留（2026-04-27 下午场处理结果）
 
-- [x] `pytest` 写入 requirements.txt ✅
-- [x] benchmarks/reports/2026-04-27.md 生成 ✅
-- [x] spec/DEPENDENCY_POLICY.md 创建 ✅
+- [x] `spec/REPRODUCE.md` 检查（无需更新，内容正确）✅
+- [x] v0→v1 阶段升级（通过 ADR-0001 正式记录）✅
 
 ---
 
-## 下轮任务（2026-04-27 下午场）
+## 下轮任务（2026-04-28 上午场）
 
-### 任务：Harness v1 继续 — 测试矩阵完善 + REPRODUCE.md 更新
+### 任务：v1 Testing & Harness — 继续推进 DoD
 
-**主轴**：扩展测试覆盖 → 下一阶段：模型实验矩阵或 API 错误处理增强
+**主轴**：Harness 平台化（分叉#1）+ 治理工程（分叉#5）
 
 **约束**：不改动核心 ML 逻辑
 
 **验收层级**：P0 / P1 / P2 / P3 全部维持通过
 
-### 待办
-- [ ] `spec/REPRODUCE.md` 是否需要更新（P0 命令有变化？）
-- [ ] 评估是否有更旧的遗留项需要处理
-- [ ] 考虑下轮是否推进「模型与数据科学深化」（分叉#2）
+### v1 DoD（待推进）
+- [ ] pytest 覆盖率 ≥ 80%（main.py 核心路径）
+- [ ] API 端点全测试覆盖
+- [ ] benchmark 命令标准化为 `python3 -m benchmark` 或类似
+
+### 备选任务
+- [ ] 推进「模型与数据科学深化」（分叉#2）：新增模型族或评估协议
 
 ### PR 状态
 - 无 OPEN PR（本轮完成后将创建 1 个 PR）
@@ -42,7 +44,6 @@
 
 ## 长期待办池（供参考）
 
-- [ ] `pip-compile` 或 `pip-lock` 流程（防止传递依赖隐性升级）
+- [ ] `pip-compile` 或 `pip-lock` 流程（来源：DEPENDENCY_POLICY 待办）
 - [ ] `THREAT_MODEL.md`（每 3 轮至少检查一次）
 - [ ] 监控 Vercel cold start 时间（当前 < 3s）
-- [ ] api/train.py 中 MLP max_iter 是否也需要从 500 提升到 2000（一致性）

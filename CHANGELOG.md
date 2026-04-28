@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **tests/test_experiment_flow.py** — 15 new tests: run_experiment (10 cases covering all models/datasets) + save_results (5 cases including edge case for empty list)
+- **tests/test_benchmarks_smoke.py** — 8 new tests: benchmark CLI smoke + run module integration tests
+- **research/2026-04-28-negative-tree-on-xor.md** — Negative result: Tree(depth=3) on XOR achieves only 0.46 accuracy (expected ~0.50); 3 actionable recommendations for benchmark threshold granularity and depth sensitivity testing
+
+### Changed
+- **main.py** — save_results([]) edge case fixed: now returns NaN for best_accuracy/fastest_train_time instead of ValueError on empty list
+
+### Metrics
+- main.py coverage: **27% → 42%** (+15pp)
+- TOTAL coverage: **42% → 60%** (+18pp)
+- Tests: **28 → 58** (+30 passing tests)
+- benchmark: 52 exp, 45 passed, 7 expected-fail (documented as design limitations, not regressions)
+
+### Added
 - **benchmarks/ package** — Standardized benchmark harness with `python3 -m benchmarks` entrypoint (--quick smoke test + full suite), structured JSON + MD report output to benchmarks/reports/
 - **ADR-0001** — Phase v0→v1 升级判定文档（正式记录 v0 完成，v1 开始）
 - **docs/adr/ADR-0001-phase-v0-to-v1.md** — 阶段升级决策记录

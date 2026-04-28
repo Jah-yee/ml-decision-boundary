@@ -4,6 +4,24 @@
 本任务允许较长时间预算:请按阶段推进,允许深度实验与依赖引入;禁止用"短答"替代验收。
 
 ====================
+第零步：先读行为准则
+====================
+
+在开始任何操作之前，必须先读取：
+karpathy-claude.md（同目录下，或 /home/ubuntu/.openclaw/workspace-taizi/ml-decision-boundary/karpathy-claude.md）
+
+读取后，在本轮执行中严格遵循其中的四原则：
+
+1. **Think Before Coding** — 先确认假设，不确定就多列几个方案比较；发现假设冲突就提出来
+2. **Simplicity First** — 代码简洁，不做超纲的"改进"；如果200行可以50行解决，就重写
+3. **Surgical Changes** — 只动该动的，不碰周边；每行改动都要能追溯到用户的原始需求
+4. **Goal-Driven Execution** — 把"做X"转成"验证Y"；多步任务每步都有可检查的验证点
+
+读完打勾：✅ karpathy-claude.md 已解读，本轮遵循四原则
+
+**项目特定注意：** 本仓库 git author 为 Jah-yee，commit email 为 74031749+Jah-yee@users.noreply.github.com（配置在仓库 .gitconfig）
+
+====================
 0) 仓库与硬边界
 ====================
 唯一工作根目录(禁止改路径):

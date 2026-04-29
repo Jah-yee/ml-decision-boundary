@@ -10,8 +10,8 @@
         "gamma": "scale"
       },
       "accuracy": 0.79,
-      "train_time": 0.0046757489908486605,
-      "wall_time": 0.4058568549808115,
+      "train_time": 0.0037297389935702085,
+      "wall_time": 0.43624589301180094,
       "passed": true
     }
   ],
@@ -20,10 +20,10 @@
     "dataset": "circles",
     "model": "SVM",
     "accuracy": 0.79,
-    "train_time": 0.0046757489908486605,
-    "wall_time": 0.4058568549808115,
+    "train_time": 0.0037297389935702085,
+    "wall_time": 0.43624589301180094,
     "passed": true,
     "threshold": 0.7
   },
-  "timestamp": "2026-04-28T22:02:43.180863"
+  "timestamp": "2026-04-28T22:05:01.348940"
 }

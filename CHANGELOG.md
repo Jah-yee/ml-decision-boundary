@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **tests/test_main_coverage.py** — 13 new tests for main.py missing coverage: compute_decision_boundary (2), get_model_info (5 model types), generate_single_model_visualization (4), generate_comparison_plots (1), run_all_experiments (1)
+- **tests/test_benchmarks_main.py** — 3 new tests for `python3 -m benchmarks` CLI: --quick smoke, full suite with JSON output, --help
+- **THREAT_MODEL.md** — Threat model v0.1: attack surface analysis, trust boundaries, dependency security, deployment posture, 4 open items
+
+### Changed
+- **benchmarks/reports/2026-04-28.json/.md** — Updated smoke test timings (re-run)
+
+### Metrics
+- main.py coverage: **42% → 87%** (+45pp)
+- TOTAL coverage: **60% → 79%** (+19pp)
+- Tests: **58 → 74** (+16 passing tests)
+
+---
+
+## ["2026-04-28"]
+
+### Added
 - **tests/test_experiment_flow.py** — 15 new tests: run_experiment (10 cases covering all models/datasets) + save_results (5 cases including edge case for empty list)
 - **tests/test_benchmarks_smoke.py** — 8 new tests: benchmark CLI smoke + run module integration tests
 - **research/2026-04-28-negative-tree-on-xor.md** — Negative result: Tree(depth=3) on XOR achieves only 0.46 accuracy (expected ~0.50); 3 actionable recommendations for benchmark threshold granularity and depth sensitivity testing

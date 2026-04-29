@@ -8,20 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- *(empty — awaiting next session)*
+
+---
+
+## ["2026-04-29"]
+
+### Added
 - **tests/test_benchmarks_run.py** — 7 new tests for benchmarks/run.py: run_quick_benchmark (smoke + threshold), generate_summary (smoke/full/empty), write_report (files + markdown)
 - **tests/test_api_train.py** — 19 new tests for api/train.py pure functions: build_model (6 model types + unknown), slider_to_params (6 model configs), DATASET_GENERATORS (4 datasets), get_model_info_dict (2 model types)
-- **tests/test_main_coverage.py** — 13 new tests for main.py missing coverage: compute_decision_boundary (2), get_model_info (5 model types), generate_single_model_visualization (4), generate_comparison_plots (1), run_all_experiments (1)
-- **tests/test_benchmarks_main.py** — 3 new tests for `python3 -m benchmarks` CLI: --quick smoke, full suite with JSON output, --help
-- **THREAT_MODEL.md** — Threat model v0.1: attack surface analysis, trust boundaries, dependency security, deployment posture, 4 open items
-
-### Changed
-- **benchmarks/reports/2026-04-28.json/.md** — Updated smoke test timings (re-run)
 
 ### Metrics
-- main.py coverage: **42% → 87%** (+45pp)
-- TOTAL coverage: **60% → 79%** (+19pp)
-- Tests: **58 → 74** (+16 passing tests)
-- pytest: **74 → 100** (+26 passing tests) [2026-04-29 afternoon]
+- pytest: **74 → 100** (+26 passing tests)
 
 ---
 

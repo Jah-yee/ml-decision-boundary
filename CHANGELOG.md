@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **REPRODUCE.md** — First reproducibility guide: quick start, core commands, expected baseline results, troubleshooting, CI/reproducibility notes
 - **strategy/runs/2026-04-30-1440.md** — Afternoon session run log
+- **benchmarks/reports/2026-04-30.json/.md** — Refreshed with evening smoke test timestamp (22:38 CST)
 
 ### Fixed
 - **benchmarks/reports/2026-04-29.json** — Restored from smoke (21-line truncated) to full 52-experiment output; pipeline now writes smoke to `YYYY-MM-DD` date of execution

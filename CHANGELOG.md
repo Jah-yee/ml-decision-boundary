@@ -8,7 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- *(empty — awaiting next session)*
+- **REPRODUCE.md** — First reproducibility guide: quick start, core commands, expected baseline results, troubleshooting, CI/reproducibility notes
+- **strategy/runs/2026-04-30-1440.md** — Afternoon session run log
+
+### Fixed
+- **benchmarks/reports/2026-04-29.json** — Restored from smoke (21-line truncated) to full 52-experiment output; pipeline now writes smoke to `YYYY-MM-DD` date of execution
+
+### Metrics
+- pytest: **100/100** passed (maintained from morning)
+- TOTAL coverage: **89%** (maintained)
+- Full benchmark suite: **52 exp, 45 passed, 7 expected-fail** (reproducible baseline)
 
 ---
 

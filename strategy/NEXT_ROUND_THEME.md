@@ -31,15 +31,14 @@
 - [x] API 端点全测试覆盖 ✅（19 个测例）
 - [x] benchmark 命令标准化 ✅
 
-### 重点任务
-1. **pip-compile / pip-lock 验证**：运行 `pip-compile` 或手动验证 `requirements.txt` 锁版本稳定性
-   - 来源：spec/DEPENDENCY_POLICY 待办
-   - 工具待评估：pip-tools / pip-compile
-2. **Tree depth 敏感性测试矩阵**：benchmark threshold 按 model×dataset 区分
-   - 来源：research/2026-04-28-negative-tree-on-xor.md 建议
-3. **api/train.py 错误消息信息泄露 review**：检查是否泄露内部路径
-   - 来源：THREAT_MODEL.md 待办
-4. **v1 → v2 阶段升级评审**：覆盖率 89%，v1 DoD 基本完成，准备评估阶段升级
+### 上午场（2026-05-01-0937）
+- [x] `strategy/runs/2026-05-01-0937.md` 新建 ✅
+- [x] **api/train.py 错误消息信息泄露 review** ✅（移除 traceback.format_exc()，防止生产环境内部路径泄露）
+- [x] `THREAT_MODEL.md` 更新 ✅（标记已完成）
+- [x] `CHANGELOG.md` 新增 Security 条目 ✅
+- [x] PR #14 合并 ✅
+- [x] P0/P1/P2 通过层级确认 ✅
+- git author 确认：noreply github email ✅
 
 ### 风险备注
 - 无新增风险
@@ -56,6 +55,6 @@
 
 - [ ] pip-compile / pip-lock 流程（来源：DEPENDENCY_POLICY 待办）
 - [ ] Tree depth 敏感性测试矩阵（来源：research 负结果文档）
-- [ ] api/train.py 错误消息信息泄露 review（来源：THREAT_MODEL）
+- [x] api/train.py 错误消息信息泄露 review ✅（来源：THREAT_MODEL）
 - [ ] v1 → v2 阶段升级 ADR（来源：phases.md）
 - [ ] SPEC.md 拆分（当前 spec/ 下文件混杂）

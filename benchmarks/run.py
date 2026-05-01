@@ -61,6 +61,26 @@ ACCURACY_THRESHOLDS = {
     "xor": 0.60,
 }
 
+# Tree depth sweep configuration: depths to test across all datasets
+DEPTH_SWEEP_DEPTHS = [1, 2, 3, 5, 10, None]
+
+# Per-dataset thresholds for Tree depth sweep
+# These are lower than normal thresholds because shallow trees are known to underperform
+DEPTH_TREE_THRESHOLDS = {
+    "circles": {
+        1: 0.40, 2: 0.45, 3: 0.50, 5: 0.55, 10: 0.60, None: 0.70,
+    },
+    "moons": {
+        1: 0.45, 2: 0.55, 3: 0.60, 5: 0.65, 10: 0.68, None: 0.70,
+    },
+    "blobs": {
+        1: 0.70, 2: 0.80, 3: 0.85, 5: 0.88, 10: 0.90, None: 0.90,
+    },
+    "xor": {
+        1: 0.40, 2: 0.45, 3: 0.45, 5: 0.60, 10: 0.65, None: 0.70,
+    },
+}
+
 
 def run_quick_benchmark() -> dict:
     """Run a single smoke test: SVM on circles, to verify the harness is functional."""
@@ -82,6 +102,111 @@ def run_quick_benchmark() -> dict:
         "wall_time": elapsed,
         "passed": result.accuracy >= ACCURACY_THRESHOLDS[dataset_name],
     }
+
+
+def run_depth_sweep() -> list:
+    """Run Tree model across multiple depth values on all datasets.
+
+    This maps the sensitivity of Tree model accuracy to max_depth parameter,
+    revealing at which depth the model becomes competent for each dataset geometry.
+    """
+    results = []
+    for dataset_name in DATASETS:
+        for depth in DEPTH_SWEEP_DEPTHS:
+            params = {"max_depth": depth} if depth is not None else {}
+            try:
+                t0 = time.perf_counter()
+                result = run_experiment(dataset_name, "Tree", params, seed=42)
+                elapsed = time.perf_counter() - t0
+
+                threshold = DEPTH_TREE_THRESHOLDS.get(dataset_name, {}).get(depth, 0.50)
+                passed = result.accuracy >= threshold
+
+                results.append({
+                    "dataset": dataset_name,
+                    "model": "Tree",
+                    "params": params,
+                    "max_depth": depth,
+                    "actual_tree_depth": result.tree_depth,
+                    "accuracy": result.accuracy,
+                    "threshold": threshold,
+                    "train_time": result.train_time,
+                    "wall_time": elapsed,
+                    "passed": passed,
+                })
+            except Exception as e:
+                results.append({
+                    "dataset": dataset_name,
+                    "model": "Tree",
+                    "params": params,
+                    "max_depth": depth,
+                    "error": str(e),
+                    "passed": False,
+                })
+    return results
+
+
+def generate_depth_sweep_report(results: list) -> dict:
+    """Generate structured summary from depth sweep results."""
+    by_dataset = {}
+    for ds in DATASETS:
+        ds_results = [r for r in results if r.get("dataset") == ds]
+        accuracies = [r["accuracy"] for r in ds_results if "accuracy" in r]
+        passed = sum(1 for r in ds_results if r.get("passed", False))
+        by_dataset[ds] = {
+            "total": len(ds_results),
+            "passed": passed,
+            "accuracies": {
+                r["max_depth"]: round(r["accuracy"], 4)
+                for r in ds_results if "accuracy" in r
+            },
+        }
+
+    return {
+        "total_experiments": len(results),
+        "passed": sum(1 for r in results if r.get("passed", False)),
+        "by_dataset": by_dataset,
+    }
+
+
+def write_depth_sweep_report(output_dir: Path, results: list, summary: dict) -> tuple:
+    """Write JSON + Markdown reports for depth sweep."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y-%m-%d")
+    json_path = output_dir / f"depth_sweep_{ts}.json"
+    md_path = output_dir / f"depth_sweep_{ts}.md"
+
+    with open(json_path, "w") as f:
+        json.dump({"results": results, "summary": summary, "timestamp": datetime.now().isoformat()}, f, indent=2)
+
+    md_lines = [
+        f"# Tree Depth Sensitivity Report — {ts}",
+        "",
+        "**Purpose**: Map Tree(max_depth) accuracy across dataset geometries.",
+        "",
+        f"**Total experiments**: {summary['total_experiments']} | **Passed**: {summary['passed']}",
+        "",
+        "## Accuracy by Dataset × Depth",
+        "",
+        "| Dataset | d=1 | d=2 | d=3 | d=5 | d=10 | d=None | Min depth to threshold |",
+        "|---------|-----|-----|-----|-----|------|--------|------------------------|",
+    ]
+
+    for ds, info in summary["by_dataset"].items():
+        accs = info["accuracies"]
+        row = [
+            ds,
+            f"{accs.get(1, '—')}",
+            f"{accs.get(2, '—')}",
+            f"{accs.get(3, '—')}",
+            f"{accs.get(5, '—')}",
+            f"{accs.get(10, '—')}",
+            f"{accs.get(None, '—')}",
+        ]
+        md_lines.append("| " + " | ".join(row) + " |")
+
+    md_path.write_text("\n".join(md_lines))
+    return str(json_path), str(md_path)
 
 
 def run_full_benchmark() -> list:
@@ -212,8 +337,25 @@ def write_report(output_dir: Path, results: list, summary: dict) -> tuple:
     return str(json_path), str(md_path)
 
 
-def run_benchmarks(quick: bool = False) -> dict:
-    """Main entry point: run benchmarks and return summary dict."""
+def run_benchmarks(quick: bool = False, depth_sweep: bool = False) -> dict:
+    """Main entry point: run benchmarks and return summary dict.
+
+    Args:
+        quick: Run only a single smoke test.
+        depth_sweep: Run Tree depth sensitivity matrix across all datasets.
+    """
+    if depth_sweep:
+        print("🌲 Running Tree depth sensitivity sweep...")
+        results = run_depth_sweep()
+        summary = generate_depth_sweep_report(results)
+        report_dir = Path(__file__).parent / "reports"
+        json_path, md_path = write_depth_sweep_report(report_dir, results, summary)
+        summary["json_report"] = json_path
+        summary["md_report"] = md_path
+        print(f"  Total: {summary['total_experiments']} | Passed: {summary['passed']}")
+        print(f"  Reports: {json_path} + {md_path}")
+        return summary
+
     raw_results = run_quick_benchmark() if quick else run_full_benchmark()
     # Normalize to list
     results = [raw_results] if isinstance(raw_results, dict) else raw_results
@@ -228,9 +370,15 @@ def run_benchmarks(quick: bool = False) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="ml-decision-boundary benchmark harness")
     parser.add_argument("--quick", action="store_true", help="Run only a single smoke test")
+    parser.add_argument("--depth-sweep", action="store_true", help="Run Tree depth sensitivity matrix on all datasets")
     parser.add_argument("--report", action="store_true", help="Generate report (default on)")
     parser.add_argument("--no-report", action="store_true", help="Skip report generation")
     args = parser.parse_args()
+
+    if args.depth_sweep:
+        summary = run_benchmarks(depth_sweep=True)
+        print(f"  Reports: {summary['json_report']} + {summary['md_report']}")
+        return 0 if summary["passed"] > 0 else 1
 
     if args.quick:
         print("🏃 Running quick smoke test...")

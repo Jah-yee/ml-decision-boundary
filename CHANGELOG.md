@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **strategy/runs/2026-04-30-1440.md** — Afternoon session run log
 - **benchmarks/reports/2026-04-30.json/.md** — Refreshed with evening smoke test timestamp (22:38 CST)
 
+### Security
+- **api/train.py** — Remove `traceback.format_exc()` from error handler to prevent internal path/filename leakage in production responses (fixes THREAT_MODEL.md item)
+
 ### Fixed
 - **benchmarks/reports/2026-04-29.json** — Restored from smoke (21-line truncated) to full 52-experiment output; pipeline now writes smoke to `YYYY-MM-DD` date of execution
 

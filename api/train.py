@@ -7,7 +7,6 @@ import matplotlib
 matplotlib.use('Agg')  # headless backend for serverless
 import matplotlib.pyplot as plt
 
-import json
 import time
 import numpy as np
 
@@ -181,6 +180,5 @@ def handle(req, res):
             'params': params,
         })
     except Exception as e:
-        import traceback
         res.status = 500
-        res.json({'error': str(e), 'trace': traceback.format_exc()})
+        res.json({'error': str(e)})

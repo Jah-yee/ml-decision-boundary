@@ -78,6 +78,6 @@
 ## 5. 未评估项（本轮标记，待下轮处理）
 
 - [ ] pytest 可以通过 `python3 -m pytest` 任意读文件系统（测试时）
-- [ ] `api/train.py` 错误消息是否泄露内部路径（未做 review）
+- [x] `api/train.py` 错误消息是否泄露内部路径（已完成 review，已移除 traceback.format_exc()）
 - [ ] 未来若开放文件上传接口，需重新评估路径遍历
 - [ ] 依赖传递依赖（transitive deps）的 CVE 监控

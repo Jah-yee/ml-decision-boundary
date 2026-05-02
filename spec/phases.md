@@ -29,26 +29,30 @@
 
 ---
 
-## 当前阶段: v1 — Testing & Harness
+## v1 — Testing & Harness (已完成 ✅)
 
-**入口条件**: v0 DoD 全部完成 ✅
+---
+
+## 当前阶段: v2 — Model & Data Expansion
+
+**入口条件**: v1 DoD 全部完成 ✅
 
 **本阶段 DoD**:
-- [ ] pytest 覆盖率 ≥ 80%（main.py 核心路径）
-- [ ] API 端点全测试覆盖
-- [ ] benchmark 命令标准化为 `python3 -m benchmark` 或类似
+- [ ] SPEC.md 拆分（从 spec/ 目录移除混杂文件）
+- [ ] CLI 帮助文本改进
+- [ ] ADR-0002: Phase v1 → v2 升级判定 ✅ (2026-05-02)
 
-**v0 已完成 ✅ | v1 进行中**
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 进行中**
+
+### v2 附加目标
+- 扩展模型族（新增模型类型或超参数配置）
+- 新数据集支持（更多合成数据场景）
+- 模型超参数调优实验体系
+- benchmark 报告自动化（HTML schema）
 
 ---
 
-## 下一阶段: v2 — Model & Data Expansion
-
-**目标**: 扩展模型族和数据集
-
----
-
-## 未来阶段: v3 — Platform
+## 下一阶段: v3 — Platform
 
 **目标**: 完整的 CLI/Web/API 平台化
 

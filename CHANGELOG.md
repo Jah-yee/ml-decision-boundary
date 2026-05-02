@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **docs/adr/ADR-0002-phase-v1-to-v2.md** — Phase v1→v2 升级判定: v1 DoD 全部完成（pytest 89%, API全覆盖, benchmark标准化, 安全修复, REPRODUCE.md）; v2 进入 Model & Data Expansion 阶段
+- **spec/phases.md** — 更新：v1 已完成标记, v2 DoD 新增（SPEC.md拆分, CLI改进, ADR-0002）
 - **benchmarks/run.py** — Tree depth sensitivity sweep: `--depth-sweep` flag runs 24 experiments across depth∈{1,2,3,5,10,None} on all datasets. Per-dataset thresholds (DEPTH_TREE_THRESHOLDS) calibrated for shallow tree underperformance. Reports: `benchmarks/reports/depth_sweep_YYYY-MM-DD.json/.md`
 - **research/2026-05-01-tree-depth-sensitivity.md** — Key finding: circles/moons peak at depth=5 then degrade (overfitting); xor needs depth≥5 to break 0.60 threshold (0.46→0.75 jump); blobs saturates at depth=2
 - **REPRODUCE.md** — First reproducibility guide: quick start, core commands, expected baseline results, troubleshooting, CI/reproducibility notes

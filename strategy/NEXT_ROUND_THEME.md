@@ -1,6 +1,6 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary 深度维护版
 
-**更新时间：** 2026-05-01 14:00 CST
+**更新时间：** 2026-05-02 09:55 CST
 **版本：** v2（深度维护版）
 **维护人：** 太子
 
@@ -16,34 +16,34 @@
 - [x] REPRODUCE.md 新建
 
 ### v2 DoD（进行中）
-- [ ] pip-compile / pip-lock 流程
+- [x] pip-compile / pip-lock 流程 ✅ (2026-05-02)
 - [x] Tree depth 敏感性测试矩阵 ✅ (2026-05-01 evening)
 - [ ] v1 → v2 阶段升级 ADR
 - [ ] SPEC.md 拆分
 
 ---
 
-## 🎯 本轮深度维护方向
+## 🎯 下一轮深度维护方向
 
-### 主攻：pip-lock 验证
-**来源：** v2 DoD 遗留
-**问题：** DEPENDENCY_POLICY.md 要求 pip-compile 流程，但尚未执行过验证
+### 主攻：v1 → v2 阶段升级 ADR
+**来源：** v2 DoD
+**问题：** 需要正式的架构决策记录阶段升级内容
 **工作内容：**
-1. 运行 pip-compile 生成 requirements.txt / requirements-dev.txt
-2. 验证 venv 中安装的包与 locked 文件一致
-3. 确认 CI 环境与本地环境一致
+1. 在 docs/adr/ 创建阶段升级 ADR
+2. 记录 v2 交付内容和架构变化
+3. 更新 phases.md
 
-**估计时间：** 30分钟（快速闭环）
+**估计时间：** 60分钟
 
-### 次攻：API 错误响应格式统一
-**来源：** THREAT_MODEL.md
-**问题：** api/train.py 的错误响应格式不统一，可能泄露内部路径信息
+### 次攻：CLI 帮助文本改进
+**来源：** 中优先级待办池
+**问题：** 当前 CLI 帮助文本可能不够清晰
 **工作内容：**
-1. 审查 api/train.py 所有 except 分支的错误响应
-2. 统一为 `{error: string, code: string}` 格式
-3. 确保不泄露 traceback / file path
+1. 审查 main.py 和 benchmarks/run.py 的 CLI 帮助文本
+2. 改进错误提示和使用示例
+3. 确保所有子命令都有 docstring
 
-**估计时间：** 45分钟（可深度挖掘）
+**估计时间：** 30分钟
 
 ---
 
@@ -52,9 +52,9 @@
 ### 高优先级
 | 待办 | 来源 | 估计时间 | 分叉 |
 |------|------|---------|------|
-| pip-lock 验证 | DEPENDENCY_POLICY | 30分钟 | #5 |
-| API 错误响应格式统一 | THREAT_MODEL | 45分钟 | #3 |
-| REPRODUCE.md 添加 Tree depth 注意 | research发现 | 20分钟 | #2 |
+| v1 → v2 阶段升级 ADR | v2 DoD | 60分钟 | #5 |
+| CLI 帮助文本改进 | 产品体验 | 30分钟 | #3 |
+| SPEC.md 拆分 | spec/混杂 | 45分钟 | #5 |
 
 ### 中优先级
 | 待办 | 来源 | 估计时间 | 分叉 |
@@ -89,22 +89,23 @@
 
 ## 🎯 本轮执行建议
 
-### 会话类型：专项深挖（主模式）
+### 会话类型：快速闭环
 
-**适合原因：**
-- Tree depth 矩阵是一个需要3个commit才能完整交付的工作
-- commit 1: 扩展 benchmark 矩阵代码
-- commit 2: 运行实验 + 记录结果
-- commit 3: research 文档 + 结论分析
+**本轮已完成：**
+- ✅ API 错误响应格式统一（PR#17, commit d03df11）
+- ✅ pip-lock requirements.lock 生成（commit 2875a4c）
+- ✅ DEPENDENCY_POLICY.md 待办勾销
+
+**下一轮建议（专项深挖）：**
+- 主攻：v1 → v2 阶段升级 ADR
+- 次攻：CLI 帮助文本改进
 
 **时间分配（120分钟）：**
 ```
 扫描 + 规划：20分钟
-benchmark 矩阵代码：45分钟
-运行实验：30分钟
-research 文档：20分钟
-验证 + 收尾：15分钟
-缓冲：10分钟
+ADR 写作：60分钟
+CLI 改进：30分钟
+验证 + 收尾：30分钟
 ```
 
 ---

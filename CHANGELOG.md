@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **benchmarks/run.py** — Tree depth sensitivity sweep: `--depth-sweep` flag runs 24 experiments across depth∈{1,2,3,5,10,None} on all datasets. Per-dataset thresholds (DEPTH_TREE_THRESHOLDS) calibrated for shallow tree underperformance. Reports: `benchmarks/reports/depth_sweep_YYYY-MM-DD.json/.md`
+- **requirements.lock** — pip-compile output: pins all transitive deps (flask, matplotlib, numpy, scikit-learn, pytest) with exact versions for reproducibility (DEPENDENCY_POLICY D3/D5)
+- **api/train.py** — Unified error response format: all errors return `{error, code}`; 500 errors sanitized to 'Internal training error' (no str(e) leak); added ERR_* constants and ValueError handler
 - **research/2026-05-01-tree-depth-sensitivity.md** — Key finding: circles/moons peak at depth=5 then degrade (overfitting); xor needs depth≥5 to break 0.60 threshold (0.46→0.75 jump); blobs saturates at depth=2
 - **REPRODUCE.md** — First reproducibility guide: quick start, core commands, expected baseline results, troubleshooting, CI/reproducibility notes
 - **strategy/runs/2026-04-30-1440.md** — Afternoon session run log

@@ -91,5 +91,5 @@ pytest>=7.0.0       # 测试框架
 ## 6. 待办（与依赖相关）
 
 - [ ] 评估 sklearn 1.3+ 的 `MLPClassifier` max_iter 默认值变化（已在本仓库设为 2000）
-- [ ] 添加 `pip-compile` 或 `pip-lock` 流程（防止传递依赖隐性升级）
+- [x] 添加 `pip-compile` 或 `pip-lock` 流程（防止传递依赖隐性升级）✅ (2026-05-02)
 - [ ] 监控 Vercel cold start 时间（当前 < 3s，若超 10s 需砍 matplotlib）

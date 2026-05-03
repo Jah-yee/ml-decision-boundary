@@ -20,7 +20,7 @@
 - [x] Tree depth 敏感性测试矩阵 ✅ (2026-05-01 evening)
 - [x] v1 → v2 阶段升级 ADR ✅ (ADR-0002, PR#18)
 - [x] SPEC.md 拆分 ✅ (2026-05-03, PR#19)
-- [ ] CLI 帮助文本改进
+- [x] CLI 帮助文本改进 ✅ (PR#20)
 
 ---
 
@@ -61,12 +61,12 @@
 |------|------|---------|------|
 | SPEC.md 拆分 | docs/混杂 | 45分钟 | #5 |
 | CLI 帮助文本改进 | 产品体验 | 30分钟 | #3 |
-| CONTRIBUTING.md 完善 | 社区工程 | 30分钟 | #5 |
+| CONTRIBUTING.md 完善 | 社区工程 | ✅ (PR#20) | #5 |
 
 ### 低优先级
 | 待办 | 来源 | 估计时间 | 分叉 |
 |------|------|---------|------|
-| CONTRIBUTING.md 完善 | 社区工程 | 30分钟 | #5 |
+| CONTRIBUTING.md 完善 | 社区工程 | ✅ (PR#20) | #5 |
 | GitHub Actions 缓存优化 | CI/CD | 20分钟 | #5 |
 | benchmark 报告 HTML 化 | Harness | 60分钟 | #1 |
 
@@ -95,6 +95,8 @@
 - ✅ v1→v2 阶段升级 ADR（PR#18, commit 8df3911）
 - ✅ phases.md 更新（v1完成，v2当前阶段）
 - ✅ CHANGELOG.md 更新
+- ✅ CLI 帮助文本改进 (PR#20, commits 078fe21)
+- ✅ CONTRIBUTING.md 新建 (PR#20)
 
 **下一轮建议（专项深挖）：**
 - 主攻：SPEC.md 拆分

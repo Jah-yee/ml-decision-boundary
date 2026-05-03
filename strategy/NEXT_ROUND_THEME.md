@@ -19,7 +19,7 @@
 - [x] pip-compile / pip-lock 流程 ✅ (2026-05-02)
 - [x] Tree depth 敏感性测试矩阵 ✅ (2026-05-01 evening)
 - [x] v1 → v2 阶段升级 ADR ✅ (ADR-0002, PR#18)
-- [ ] SPEC.md 拆分
+- [x] SPEC.md 拆分 ✅ (2026-05-03, PR#19)
 - [ ] CLI 帮助文本改进
 
 ---

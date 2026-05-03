@@ -368,12 +368,40 @@ def run_benchmarks(quick: bool = False, depth_sweep: bool = False) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ml-decision-boundary benchmark harness")
-    parser.add_argument("--quick", action="store_true", help="Run only a single smoke test")
-    parser.add_argument("--depth-sweep", action="store_true", help="Run Tree depth sensitivity matrix on all datasets")
-    parser.add_argument("--report", action="store_true", help="Generate report (default on)")
-    parser.add_argument("--no-report", action="store_true", help="Skip report generation")
+    parser = argparse.ArgumentParser(
+        prog="python3 -m benchmarks",
+        description="ml-decision-boundary benchmark harness: run regression tests on model accuracy and training time.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python3 -m benchmarks              # Full benchmark suite (all models × all datasets)
+  python3 -m benchmarks --quick      # Single smoke test (SVM on circles)
+  python3 -m benchmarks --depth-sweep  # Tree depth sensitivity matrix
+
+Reports are written to benchmarks/reports/ as JSON + Markdown.
+"""
+    )
+    parser.add_argument(
+        "--quick", action="store_true",
+        help="Run only a single smoke test (SVM on circles, to verify harness is functional)"
+    )
+    parser.add_argument(
+        "--depth-sweep", action="store_true",
+        help="Run Tree depth sensitivity matrix across all datasets (24 experiments)"
+    )
+    parser.add_argument(
+        "--report", action="store_true",
+        help="Generate JSON + Markdown report (default: on, use --no-report to disable)"
+    )
+    parser.add_argument(
+        "--no-report", action="store_true",
+        help="Skip report generation"
+    )
     args = parser.parse_args()
+
+    if args.no_report:
+        # Suppress report generation (not yet wired in run_benchmarks; reserve the flag)
+        pass
 
     if args.depth_sweep:
         summary = run_benchmarks(depth_sweep=True)

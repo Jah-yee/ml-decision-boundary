@@ -2,8 +2,17 @@
 """
 ML Decision Boundary Visualizer
 Real-time visualization of how different ML models partition feature space
+
+Usage:
+    python3 main.py                    # Run full experiment suite + visualizations
+    python3 main.py --quick           # Quick smoke test only
+    python3 main.py --list-models      # Show available models
+    python3 main.py --list-datasets     # Show available datasets
+    python3 main.py --help             # Show this help message
 """
 
+import argparse
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -472,29 +481,118 @@ def save_results(results: List[ModelResult], output_path: str):
     print(f"💾 Saved results: {output_path}")
 
 
-if __name__ == "__main__":
+def _print_info():
+    """Print project header."""
     print("=" * 60)
     print("🎯 ML Decision Boundary Visualizer")
     print("=" * 60)
-    
-    # Run all experiments
-    print("\n📊 Running experiments...")
-    results = run_all_experiments()
-    
-    # Generate visualizations
-    print("\n📈 Generating plots...")
-    generate_comparison_plots(results)
-    
-    # Generate detailed param effect plots
-    print("\n🔍 Generating parameter effect plots...")
-    for model_type in ["SVM", "Tree", "KNN"]:
-        for dataset in ["circles", "moons", "xor"]:
-            generate_single_model_visualization(model_type, dataset)
-    
-    # Save results
-    print("\n💾 Saving results...")
-    save_results(results, "output/experiment_results.json")
-    
+
+
+def _print_model_info():
+    """Show available models and their configurations."""
+    models = {
+        "SVM": [{"kernel": "rbf", "C": 1.0, "gamma": "scale"},
+                {"kernel": "rbf", "C": 10.0, "gamma": "scale"},
+                {"kernel": "linear", "C": 1.0}],
+        "LR": [{"C": 1.0}, {"C": 10.0}, {"C": 0.1}],
+        "Tree": [{"max_depth": 3}, {"max_depth": 10}, {"max_depth": None}],
+        "RF": [{"n_estimators": 50, "max_depth": 5},
+               {"n_estimators": 100, "max_depth": 10},
+               {"n_estimators": 200, "max_depth": None}],
+        "KNN": [{"n_neighbors": 3}, {"n_neighbors": 7}, {"n_neighbors": 15}],
+        "MLP": [{"hidden_layer_sizes": (50,), "alpha": 0.001},
+                {"hidden_layer_sizes": (100, 50), "alpha": 0.001},
+                {"hidden_layer_sizes": (50, 50, 50), "alpha": 0.01}],
+        "NB": [{}],
+    }
+    print("\n📋 Available models:")
+    for name, configs in models.items():
+        first = configs[0]
+        params = ", ".join(f"{k}={v}" for k, v in first.items())
+        print(f"  • {name}: {params} ({len(configs)} configs)")
+
+
+def _print_dataset_info():
+    """Show available datasets."""
+    datasets = {"circles", "moons", "blobs", "xor"}
+    print("\n📋 Available datasets:")
+    for ds in sorted(datasets):
+        print(f"  • {ds}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog="python3 main.py",
+        description="ML Decision Boundary Visualizer — generate model comparison visualizations",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python3 main.py                    # Full suite: all models × all datasets
+  python3 main.py --quick           # Quick smoke test (SVM on circles)
+  python3 main.py --list-models     # Show available models
+  python3 main.py --list-datasets   # Show available datasets
+
+Output:
+  plots → output/accuracy_heatmap.png, training_time_boxplot.png, best_models_grid.png
+  data  → output/experiment_results.json
+"""
+    )
+    parser.add_argument(
+        "--quick", action="store_true",
+        help="Run only a single smoke test (SVM on circles)"
+    )
+    parser.add_argument(
+        "--list-models", action="store_true",
+        help="Show available models and exit"
+    )
+    parser.add_argument(
+        "--list-datasets", action="store_true",
+        help="Show available datasets and exit"
+    )
+    parser.add_argument(
+        "--help", action="help",
+        help="Show this help message and exit"
+    )
+    args = parser.parse_args()
+
+    if args.list_models:
+        _print_model_info()
+        sys.exit(0)
+    if args.list_datasets:
+        _print_dataset_info()
+        sys.exit(0)
+
+    _print_info()
+
+    if args.quick:
+        print("\n🏃 Running quick smoke test (SVM on circles)...")
+        dataset_name = "circles"
+        model_type = "SVM"
+        params = {"kernel": "rbf", "C": 1.0, "gamma": "scale"}
+        result = run_experiment(dataset_name, model_type, params)
+        print(f"  ✅ {model_type} on {dataset_name}: acc={result.accuracy:.4f} time={result.train_time:.4f}s")
+        from benchmarks.run import ACCURACY_THRESHOLDS
+        threshold = ACCURACY_THRESHOLDS.get(dataset_name, 0.0)
+        print(f"  {'✅ PASSED' if result.accuracy >= threshold else '❌ FAILED'} (threshold={threshold:.4f})")
+    else:
+        # Run all experiments
+        print("\n📊 Running experiments...")
+        results = run_all_experiments()
+
+        # Generate visualizations
+        print("\n📈 Generating plots...")
+        generate_comparison_plots(results)
+
+        # Generate detailed param effect plots
+        print("\n🔍 Generating parameter effect plots...")
+        for model_type in ["SVM", "Tree", "KNN"]:
+            for dataset in ["circles", "moons", "xor"]:
+                generate_single_model_visualization(model_type, dataset)
+
+        # Save results
+        print("\n💾 Saving results...")
+        save_results(results, "output/experiment_results.json")
+
     print("\n" + "=" * 60)
     print("✅ All experiments complete!")
     print("📁 Check 'output/' directory for visualizations")

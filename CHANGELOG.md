@@ -96,3 +96,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 4 datasets: circles, moons, blobs, xor
 - CLI (`python main.py`) and Web interface (`web/server.py`)
 - Vercel deployment config
+
+### Changed
+- **Directory restructure**: Moved `AGENT_CRON_PLAYBOOK.md`, `DEPENDENCY_POLICY.md`, `REPRODUCE.md` from `spec/` to `docs/`. Created `SPEC.md` as core spec entry point (2026-05-03)

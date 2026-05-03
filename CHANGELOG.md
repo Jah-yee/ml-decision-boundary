@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **main.py** — CLI rewrite: add argparse with --help, --quick (smoke test), --list-models, --list-datasets; structured help epilog with examples
+- **CONTRIBUTING.md** — New contributor guide: quick start, P0/P1/P2 quality gates, branch/PR workflow, coding style, Conventional Commits format
 - **benchmarks/run.py** — Tree depth sensitivity sweep: `--depth-sweep` flag runs 24 experiments across depth∈{1,2,3,5,10,None} on all datasets. Per-dataset thresholds (DEPTH_TREE_THRESHOLDS) calibrated for shallow tree underperformance. Reports: `benchmarks/reports/depth_sweep_YYYY-MM-DD.json/.md`
 - **research/2026-05-01-tree-depth-sensitivity.md** — Key finding: circles/moons peak at depth=5 then degrade (overfitting); xor needs depth≥5 to break 0.60 threshold (0.46→0.75 jump); blobs saturates at depth=2
 - **REPRODUCE.md** — First reproducibility guide: quick start, core commands, expected baseline results, troubleshooting, CI/reproducibility notes
@@ -99,3 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Directory restructure**: Moved `AGENT_CRON_PLAYBOOK.md`, `DEPENDENCY_POLICY.md`, `REPRODUCE.md` from `spec/` to `docs/`. Created `SPEC.md` as core spec entry point (2026-05-03)
+
+### Added
+- **main.py** — CLI rewrite: add argparse with --help, --quick (smoke test), --list-models, --list-datasets; structured help epilog with examples
+- **CONTRIBUTING.md** — New contributor guide: quick start, P0/P1/P2 quality gates, branch/PR workflow, coding style, Conventional Commits format

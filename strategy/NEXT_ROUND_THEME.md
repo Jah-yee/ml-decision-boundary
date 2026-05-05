@@ -20,7 +20,7 @@
 - [x] Tree depth 敏感性测试矩阵 ✅ (2026-05-01 evening)
 - [x] v1 → v2 阶段升级 ADR ✅ (ADR-0002, PR#18)
 - [x] SPEC.md 拆分 ✅ (2026-05-03, PR#19)
-- [ ] CLI 帮助文本改进
+- [x] CLI 帮助文本改进 ✅ (2026-05-05: main.py argparse + benchmarks/run.py --help epilog)
 
 ---
 

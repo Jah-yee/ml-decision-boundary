@@ -640,9 +640,6 @@ if __name__ == "__main__":
         # Plot and save
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(figsize=(8, 6))
-        from main import compute_decision_boundary, plot_decision_boundary
-        xx, yy, Z = compute_decision_boundary(result, generate_dataset(dataset, args.n_samples, args.noise, args.seed)[0])
-        # Rebuild model for plotting
         X, y = generate_dataset(dataset, args.n_samples, args.noise, args.seed)
         trained_model, _ = train_model(model, params, X, y)
         xx, yy, Z = compute_decision_boundary(trained_model, X)

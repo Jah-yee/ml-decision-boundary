@@ -83,7 +83,7 @@ DEPTH_TREE_THRESHOLDS = {
 
 
 def run_quick_benchmark() -> dict:
-    """Run a single smoke test: SVM on circles, to verify the harness is functional."""
+    """Run a single smoke test: SVM on circles."""
     dataset_name = "circles"
     model_type = "SVM"
     params = {"kernel": "rbf", "C": 1.0, "gamma": "scale"}
@@ -368,7 +368,18 @@ def run_benchmarks(quick: bool = False, depth_sweep: bool = False) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ml-decision-boundary benchmark harness")
+    parser = argparse.ArgumentParser(
+        prog="ml-decision-boundary.benchmark",
+        description="Standardized benchmark harness for ml-decision-boundary.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python -m benchmarks.run              # Run full benchmark suite
+  python -m benchmarks.run --quick     # Quick smoke test (single model)
+  python -m benchmarks.run --depth-sweep   # Tree depth sensitivity matrix
+  python -m benchmarks.run --no-report # Skip report generation
+        """,
+    )
     parser.add_argument("--quick", action="store_true", help="Run only a single smoke test")
     parser.add_argument("--depth-sweep", action="store_true", help="Run Tree depth sensitivity matrix on all datasets")
     parser.add_argument("--report", action="store_true", help="Generate report (default on)")

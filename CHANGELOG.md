@@ -11,9 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **main.py** — CLI rewrite: add argparse with --help, --quick (smoke test), --list-models, --list-datasets; structured help epilog with examples (PR#20)
 - **CONTRIBUTING.md** — New contributor guide: quick start, P0/P1/P2 quality gates, branch/PR workflow, coding style, Conventional Commits format (PR#20)
 - **main.py (2026-05-05)** — CLI enhancement: add argparse with `--model`, `--dataset`, `--params KEY=VALUE`, `--output`, `--n-samples`, `--noise`, `--seed`, `--resolution`, `--verbose`, `--list-models`; single-experiment mode via `--model SVM --dataset circles`
+- **main.py (2026-05-05 evening)** — Fix CLI single-experiment crash: remove stale `compute_decision_boundary(result, ...)` call where result is ModelResult (not a model); keep only `compute_decision_boundary(trained_model, X)` path
 - **benchmarks/run.py (2026-05-05)** — CLI help improvement: add `prog=` name, epilog examples, run_depth_sweep docstring added
 - **docs/adr/ADR-0002-phase-v1-to-v2.md** — Phase v1→v2 升级判定: v1 DoD 全部完成（pytest 89%, API全覆盖, benchmark标准化, 安全修复, REPRODUCE.md）; v2 进入 Model & Data Expansion 阶段 (PR#18)
 - **spec/phases.md** — 更新：v1 已完成标记, v2 DoD 新增（SPEC.md拆分, CLI改进, ADR-0002）(PR#18)
+- **benchmarks/reports/2026-05-05.json/.md, benchmarks/reports/2026-05-06.json/.md** — 新增每日 benchmark 报告归档（2026-05-05 + 2026-05-06）：JSON + Markdown 双格式，记录 52 个实验（45通过/7失败），平均准确率 0.8237
+- **.github/workflows/ci.yml** — 新增 GitHub Actions CI 流程：P0 compileall + P1 pytest + P2 benchmark smoke，带 pip cache 优化
+- **CONTRIBUTING.md** — 新增贡献者指南：快速开始、P0/P1/P2 质量门槛、分支/PR 规范、commit 格式、benchmark 规范
 - **benchmarks/run.py** — Tree depth sensitivity sweep: `--depth-sweep` flag runs 24 experiments across depth∈{1,2,3,5,10,None} on all datasets. Per-dataset thresholds (DEPTH_TREE_THRESHOLDS) calibrated for shallow tree underperformance. Reports: `benchmarks/reports/depth_sweep_YYYY-MM-DD.json/.md`
 - **research/2026-05-01-tree-depth-sensitivity.md** — Key finding: circles/moons peak at depth=5 then degrade (overfitting); xor needs depth≥5 to break 0.60 threshold (0.46→0.75 jump); blobs saturates at depth=2
 - **REPRODUCE.md** — First reproducibility guide: quick start, core commands, expected baseline results, troubleshooting, CI/reproducibility notes
@@ -108,3 +112,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Directory restructure**: Moved `AGENT_CRON_PLAYBOOK.md`, `DEPENDENCY_POLICY.md`, `REPRODUCE.md` from `spec/` to `docs/`. Created `SPEC.md` as core spec entry point (2026-05-03)
+- **benchmarks/reports/** — 新增每日 benchmark 报告归档（2026-05-05 + 2026-05-06）：JSON + Markdown 双格式，记录 52 个实验结果
+- **.github/workflows/ci.yml** — 新增 GitHub Actions CI 流程：P0 compileall + P1 pytest + P2 benchmark smoke，带 pip cache 优化
+- **CONTRIBUTING.md** — 新增贡献者指南：快速开始、P0/P1/P2 质量门槛、分支/PR 规范、commit 格式、benchmark 规范

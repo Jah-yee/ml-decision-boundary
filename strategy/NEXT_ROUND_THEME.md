@@ -1,7 +1,7 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary 深度维护版
 
 **更新时间：** 2026-05-08 10:11 CST
-**版本：** v4（v3 DoD 首项已完成 ✅）
+**版本：** v5（v3 DoD 首项已完成 ✅，ADR-0003 已创建 ✅）
 **维护人：** 太子
 
 ---

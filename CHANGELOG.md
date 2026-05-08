@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **.github/workflows/ci.yml** — 新增 GitHub Actions CI 流程：P0 compileall + P1 pytest + P2 benchmark smoke，带 pip cache 优化
 - **CONTRIBUTING.md** — 新增贡献者指南：快速开始、P0/P1/P2 质量门槛、分支/PR 规范、commit 格式、benchmark 规范
 - **benchmarks/run.py** — Tree depth sensitivity sweep: `--depth-sweep` flag runs 24 experiments across depth∈{1,2,3,5,10,None} on all datasets. Per-dataset thresholds (DEPTH_TREE_THRESHOLDS) calibrated for shallow tree underperformance. Reports: `benchmarks/reports/depth_sweep_YYYY-MM-DD.json/.md`
+- **benchmarks/reports/depth_sweep_2026-05-08.{json,md}** — Tree depth sensitivity sweep results: 24 experiments, 22 passed, 2 failed (circles/xor shallow depths)
 - **research/2026-05-01-tree-depth-sensitivity.md** — Key finding: circles/moons peak at depth=5 then degrade (overfitting); xor needs depth≥5 to break 0.60 threshold (0.46→0.75 jump); blobs saturates at depth=2
 - **REPRODUCE.md** — First reproducibility guide: quick start, core commands, expected baseline results, troubleshooting, CI/reproducibility notes
 - **strategy/runs/2026-04-30-1440.md** — Afternoon session run log

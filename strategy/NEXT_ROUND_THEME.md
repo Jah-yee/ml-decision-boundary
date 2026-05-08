@@ -1,7 +1,7 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary 深度维护版
 
-**更新时间：** 2026-05-08 10:11 CST
-**版本：** v5（v3 DoD 首项已完成 ✅，ADR-0003 已创建 ✅）
+**版本：** v6（PR#23 fix/ci-smoke-flag 创建，v3 DoD 第2项评估启动）
+**更新时间：** 2026-05-08 21:46 CST
 **维护人：** 太子
 
 ---
@@ -25,32 +25,38 @@
 - [x] CONTRIBUTING.md 完善 ✅ (PR#21, 2026-05-06)
 
 ### v3 DoD（进行中）
-- [x] benchmark 报告 HTML 化 ✅ (PR#22, 2026-05-08: report_html.py + trend charts + daily reports)
+- [x] benchmark 报告 HTML 化 ✅ (PR#22: report_html.py + trend charts + daily reports)
+- [x] ADR-0003 phase v2→v3 升级判定 ✅ (2026-05-08)
 - [ ] 新模型支持或超参数调优实验体系
 - [ ] 新数据集支持
 - [ ] CLI/Web/API 平台化
 
 ---
 
+## 🔍 深度扫描发现（2026-05-08 evening）
+
+### 高优先级
+| 发现 | 来源 | 估计时间 | 修复 |
+|------|------|---------|------|
+| CI P2 step `--smoke` flag 不存在 | 深度扫描 | 5分钟 | PR#23 fix/ci-smoke-flag ✅ |
+
+### 中优先级
+| 发现 | 来源 | 估计时间 |
+|------|------|---------|
+| report_html.py API 文档缺失（`generate_report` vs `generate_html_report`） | 深度扫描 | 10分钟 |
+
+---
+
 ## 🎯 下一轮深度维护方向
 
-### 主攻：v2→v3 阶段升级 ADR
-**来源：** 阶段演进
-**问题：** benchmark HTML 化已完成，触发 v3 入口条件
+### 主攻：CI 验证 + v3 DoD 第2项（新数据集支持）
+**来源：** evening 场发现 PR#23 待 merge + v3 DoD 候选
+**问题：** PR#23 fix/ci-smoke-flag 已创建，需验证 CI 是否通过；新数据集支持是 v3 DoD 高优先级待办
 **工作内容：**
-1. 评审 benchmark HTML 化作为 v3 入口成果
-2. 新建 `docs/adr/ADR-0003-phase-v2-to-v3.md`
-3. 更新 `spec/phases.md` v3 状态
-
-**估计时间：** 30分钟
-
-### 次攻：新数据集支持评估
-**来源：** v2 附加目标
-**问题：** 当前只有 circles / moons / blobs / xor，可扩展更多合成场景
-**工作内容：**
-1. 评估新增数据集的可行性（make_classification 参数）
-2. 添加新的数据集 fixture
-3. 更新 benchmark 矩阵
+1. 检查 PR#23 CI 状态，如通过则 merge
+2. 评估 make_classification 可扩展性
+3. 添加新数据集 fixture（可选：anomaly/sparse/clustered）
+4. 更新 benchmark 矩阵
 
 **估计时间：** 45分钟
 
@@ -64,27 +70,12 @@
 
 **估计时间：** 60分钟
 
----
+### 次攻：report_html.py API 文档修复
+**来源：** 深度扫描中优先级发现
+**问题：** `generate_html_report()` 函数名不存在，实际为 `generate_report(reports_dir, output_dir)`
+**工作内容：** 更新 CONTRIBUTING.md 中 benchmark 命令说明，或添加 `generate_html_report` 作为 alias
 
-## 🔍 深度扫描待办池
-
-### 高优先级
-| 待办 | 来源 | 估计时间 | 分叉 |
-|------|------|---------|------|
-| v2→v3 阶段升级 ADR | 阶段演进 | 30分钟 | #5 |
-| 新数据集支持 | v2 附加目标 | 45分钟 | #2 |
-
-### 中优先级
-| 待办 | 来源 | 估计时间 | 分叉 |
-|------|------|---------|------|
-| 新模型支持 | v2 附加目标 | 60分钟 | #2 |
-| 超参数调优实验 | v2 附加目标 | 45分钟 | #2 |
-| CODEOWNERS 配置 | 社区工程 | 20分钟 | #5 |
-
-### 低优先级
-| 待办 | 来源 | 估计时间 | 分叉 |
-|------|------|---------|------|
-| pip-audit 集成 | 依赖安全 | 20分钟 | #5 |
+**估计时间：** 10分钟
 
 ---
 
@@ -101,25 +92,28 @@
 
 ---
 
-## 🎯 本轮执行总结（2026-05-08 晨间场）
+## 🎯 本轮执行总结（2026-05-08 evening）
 
 **本轮完成：**
-- ✅ benchmark 报告 HTML 化（PR#22: report_html.py + 3 chart types + daily reports）
-- ✅ push 到 GitHub + PR 创建（PR#22）
-- ✅ 修复 GH007 private email 问题（noreply email）
-- ✅ 归档昨日 evening run log（strategy/runs/2026-05-07-2152.md）
+- ✅ 深度扫描发现 CI P2 step 失败根因（`--smoke` vs `--quick` flag）
+- ✅ 创建 PR#23 fix/ci-smoke-flag（1行修复）
+- ✅ 刷新 2026-05-08 benchmark 报告（full-suite: 52 exp, 45/7 pass/fail, avg 0.8237）
+- ✅ 添加 depth sweep 2026-05-08（24 exp, 22 passed）
+- ✅ 更新 strategy/runs/2026-05-08-2146.md
 
-**本轮 commit 历史（3个）：**
-1. `docs(benchmarks): daily report 2026-05-08 + archive prior run log`
-2. `docs(benchmarks): add 2026-05-07 HTML reports (from evening session)`
-3. `docs(benchmarks): add 2026-05-08 trend chart PNGs`
+**本轮 commit 历史（4个）：**
+1. `82c7bc5` docs(benchmarks): refresh 2026-05-08 reports with latest full-suite run
+2. `d3d720d` docs(benchmarks): add depth sweep 2026-05-08 (24 experiments, 22 passed)
+3. `0a09b77` docs(strategy): evening session run log 2026-05-08
+4. `f4cda64` fix(ci): use --quick instead of --smoke for benchmark smoke test（fix/ci-smoke-flag 分支，PR#23）
 
 **时间分配：**
 ```
-扫描 + 规划：10分钟
-P0/P1 验证：15分钟
-报告生成 + push：20分钟
-PR 创建 + 收尾：15分钟
+扫描 + 分析：20分钟
+CI 问题定位：10分钟
+修复（fix/ci-smoke-flag）：10分钟
+报告刷新（full-suite + depth sweep）：25分钟
+Push + PR + 收尾：15分钟
 ```
 
 ---
@@ -127,11 +121,11 @@ PR 创建 + 收尾：15分钟
 ## ⚠️ 本轮注意事项
 
 1. **research 文档不是必做** — 只有真正有发现才写，不要硬造
-2. **多个相关 commit** — 本轮做了3个 commit，避免为"快速闭环"只做一个
+2. **CI 问题分析** — GitHub Actions UI 报告的 failure step 未必是根因（底层 step 被标记为 failure 而非真正失败的 step）
 3. **深度扫描前置** — 先扫描再规划，不要带着预设进项目
 4. **karpathy-claude.md 四原则** — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution
-5. **v3 DoD 首项已完成** — 下一轮可启动 v2→v3 ADR 或继续 v3 附加目标
+5. **v3 DoD 首项 + ADR-0003 已完成** — 下一轮可启动 CI 验证 + v3 DoD 第2项（新数据集/新模型）
 
 ---
 
-**下次更新：** 下一轮 cron 执行后（2026-05-08 evening 或 2026-05-09）
+**下次更新：** 下一轮 cron 执行后（2026-05-09）

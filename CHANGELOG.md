@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+- **docs/adr/ADR-0003-phase-v2-to-v3.md** — Phase v2→v3 升级判定: v2 DoD 全部完成（SPEC.md拆分, CLI改进, GitHub Actions CI, CONTRIBUTING.md完善, benchmark报告HTML化）; v3 进入 Platform 阶段 (PR#22)
+- **benchmarks/report_html.py** — HTML 报告生成器（372行）：支持 accuracy_trend / train_time_trend / summary_trend 三种趋势图，matplotlib dark-theme，自动加载 benchmarks/reports/ 下所有 JSON
+- **benchmarks/run.py** — 新增 `--html` flag：benchmark 结束后自动调用 report_html 生成 HTML + PNG charts
+- **benchmarks/reports/2026-05-07.{html,json,md,*_trend.png}** — 2026-05-07 晚间 session HTML 报告（此前未 commit）
+- **benchmarks/reports/2026-05-08.{html,json,md,*_trend.png}** — 2026-05-08 晨间 session HTML 报告
 - **main.py** — CLI rewrite: add argparse with --help, --quick (smoke test), --list-models, --list-datasets; structured help epilog with examples (PR#20)
 - **CONTRIBUTING.md** — New contributor guide: quick start, P0/P1/P2 quality gates, branch/PR workflow, coding style, Conventional Commits format (PR#20)
 - **main.py (2026-05-05)** — CLI enhancement: add argparse with `--model`, `--dataset`, `--params KEY=VALUE`, `--output`, `--n-samples`, `--noise`, `--seed`, `--resolution`, `--verbose`, `--list-models`; single-experiment mode via `--model SVM --dataset circles`

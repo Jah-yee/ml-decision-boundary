@@ -1,74 +1,36 @@
-# ML Decision Boundary Visualizer
+# Decision boundary visualization
 
-<div align="center">
+A tool for visualizing how machine learning classifiers partition two-dimensional feature space. Train models on synthetic datasets and render their decision boundaries to understand geometric properties of different algorithms.
 
-<a href="https://vercel.com/new/clone?repository-url=https://github.com/Jah-yee/ml-decision-boundary">
-  <img src="https://vercel.com/button" alt="Deploy with Vercel" height="20">
-</a>
-<img src="https://img.shields.io/badge/Python-3.8+-blue.svg">
-<img src="https://img.shields.io/badge/scikit--learn-1.3+-orange.svg">
-<img src="https://img.shields.io/badge/Matplotlib-3.7+-green.svg">
-<img src="https://img.shields.io/badge/License-MIT-yellow.svg">
-<img src="https://img.shields.io/badge/build-passing-green.svg">
-
-</div>
-
----
-
-## 🎯 What is This?
-
-An interactive machine learning visualization tool that reveals **how different ML algorithms partition 2D feature space**. Drop a model on any dataset and watch its decision boundary emerge — revealing strengths, weaknesses, and the geometry of machine learning.
-
-```
+```bash
 python main.py
 ```
 
-```
-📊 Dataset: circles
-  ✅ SVM C=1.0:   acc=0.9200  time=0.084s
-  ✅ RandomForest depth=10: acc=0.9600  time=0.231s
-  ✅ KNN k=15:    acc=0.9100  time=0.011s
+## Overview
 
-📊 Dataset: xor
-  ✅ SVM RBF:     acc=0.7900  time=0.019s
-  ✅ DecisionTree depth=5: acc=1.0000  time=0.003s
-```
+This implementation provides decision boundary visualization for six classification algorithms across four synthetic datasets. Each experiment produces accuracy metrics, timing data, and spatial renderings of the learned decision surfaces.
 
-![Decision Boundary Grid](docs/grid_example.png)
+The tool generates comparative visualizations showing model behavior under parameter variation. All experiments use deterministic seeding for reproducibility.
 
----
+## Supported models
 
-## ✨ Features
+- Support Vector Machine (kernel, C, gamma)
+- Logistic Regression (C)
+- Decision Tree (max_depth, min_samples)
+- Random Forest (n_estimators, max_depth)
+- K-Nearest Neighbors (n_neighbors, weights)
+- Multi-layer Perceptron (hidden_layer_sizes, alpha)
 
-### 🔬 Core Visualization
-- **6 real ML models** — SVM, Logistic Regression, Decision Tree, Random Forest, KNN, Neural Network
-- **4 synthetic datasets** — Circles, Moons, Blobs, XOR (all via `sklearn.datasets`)
-- **Decision boundary rendering** — matplotlib contours + meshgrid
-- **Parameter sweeps** — watch boundaries morph as you tune C, depth, k...
+## Datasets
 
-### 📊 Analysis Tools
-- **Accuracy heatmap** — model × dataset performance at a glance
-- **Training time comparison** — box plots across model types
-- **Parameter effect plots** — side-by-side boundary evolution
-- **JSON export** — structured results for further analysis
+Four synthetic binary classification problems from sklearn.datasets:
 
-### 🌐 Interactive Web Interface
-- Click-to-train, real-time boundary rendering
-- Live parameter sliders
-- Performance metrics dashboard
-- Model comparison charts
+- Circles: Concentric circular decision boundary
+- Moons: Two interleaving crescents
+- Blobs: Linearly separable clusters
+- XOR: Four quadrants requiring non-linear separation
 
-### 🛠️ Engineering
-- Clean module structure — `main.py` + `visualizer.py` + `datasets.py`
-- Type-annotated dataclasses for results
-- Reproducible: seeded random, deterministic outputs
-- Works offline — no internet required for core ML
-
----
-
-## 🚀 Quick Start
-
-### 1. Clone & Install
+## Installation
 
 ```bash
 git clone https://github.com/Jah-yee/ml-decision-boundary.git
@@ -76,203 +38,143 @@ cd ml-decision-boundary
 pip install -r requirements.txt
 ```
 
-### 2. Run CLI Experiments
+Requirements: numpy, matplotlib, scikit-learn (see requirements.txt for versions)
+
+## Usage
+
+### Command line interface
+
+Run the full experiment suite:
 
 ```bash
 python main.py
 ```
 
-Output goes to `output/`:
+Output directory structure:
+
 ```
 output/
-├── accuracy_heatmap.png        # Model × Dataset accuracy heatmap
-├── training_time_boxplot.png   # Training time comparison
-├── best_models_grid.png        # Best model per dataset
-├── SVM_circles_params.png     # Parameter sweep for SVM
-├── Tree_xor_params.png        # Parameter sweep for Tree
-└── experiment_results.json     # Full structured results
+├── accuracy_heatmap.png          # Model vs dataset accuracy matrix
+├── training_time_boxplot.png     # Training time distributions
+├── best_models_grid.png          # Optimal configuration per dataset
+├── SVM_circles_params.png        # Parameter sweep visualizations
+├── Tree_xor_params.png
+└── experiment_results.json       # Structured results data
 ```
 
-### 3. Interactive Web Interface (Real ML Training)
+### Web interface
+
+Local Flask server with real-time model training:
 
 ```bash
 cd web
-pip install -r ../requirements.txt   # includes flask
 python server.py
-# Open http://localhost:5000
+# Navigate to http://localhost:5000
 ```
 
-> **Note:** The Flask server runs real sklearn training — SVM, Trees, KNN, etc. with actual decision boundary computation.
+The server executes sklearn training on POST requests to `/api/train` and returns decision boundary coordinates.
 
-### 4. Standalone HTML Demo
+Static demo (no ML computation):
 
 ```bash
-# Just open in browser — visual demo only, no real ML
 open web/index.html
 ```
 
----
+### Deployment
 
-## 🚀 Quick Deploy to Vercel
+Vercel serverless deployment via `/api/train` and `/api/health` endpoints:
 
-One-click deploy — no configuration needed:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Jah-yee/ml-decision-boundary)
-
-Or via CLI:
 ```bash
-npm i -g vercel
-vercel
+vercel deploy
 ```
 
-**What gets deployed:**
-- `/api/train` — serverless sklearn training endpoint
-- `/api/health` — health check
-- `/` → `web/index.html` — interactive UI (demo mode without real ML, or with serverless backend)
+Configuration in `vercel.json`. The serverless functions execute sklearn training with a 10-second timeout.
 
-**Note:** For real ML in the web UI on Vercel, the serverless `/api/train` endpoint is used. Locally, use the Flask server for real-time training.
-
----
-
-## 📁 Project Structure
+## Project structure
 
 ```
 ml-decision-boundary/
-├── main.py                # CLI entry point + experiment runner
-├── requirements.txt       # Dependencies (numpy, matplotlib, scikit-learn)
-├── run.sh                 # One-liner: bash run.sh
-├── vercel.json            # Vercel deployment config
+├── main.py                    # Experiment runner and CLI entry point
+├── requirements.txt           # Dependencies
 ├── api/
-│   ├── train.py           # Vercel serverless: POST /api/train
-│   └── health.py          # Vercel serverless: GET /api/health
+│   ├── train.py              # Vercel serverless: POST /api/train
+│   └── health.py             # Vercel serverless: GET /api/health
 ├── web/
-│   ├── index.html         # Interactive web UI
-│   └── server.py          # (optional) Flask server for real training
-├── output/                # Generated visualizations
-│   └── experiment_results.json
-├── docs/                  # Screenshots for README
-│   ├── demo.png
-│   ├── grid_example.png
-│   ├── heatmap_example.png
-│   └── param_effect.png
-├── LICENSE
-└── README.md
+│   ├── index.html            # Interactive interface
+│   └── server.py             # Flask development server
+├── output/                   # Generated visualizations and data
+└── docs/                     # Reference images
 ```
 
----
+## Implementation details
 
-## 🎨 Visualizations
+Decision boundaries are computed using meshgrid evaluation at 200x200 resolution. The mesh spans training data bounds with 0.5-unit padding. Models predict on flattened grid coordinates, results reshape to 2D for contour plotting.
 
-| Accuracy Heatmap | Parameter Sweep | Best Models Grid |
-|-----------------|-----------------|-----------------|
-| ![heatmap](docs/heatmap_example.png) | ![params](docs/param_effect.png) | ![grid](docs/grid_example.png) |
+Training uses sklearn defaults with explicit random_state seeding. Timing measured via time.perf_counter() surrounding fit() calls. Accuracy computed on 20% holdout test sets.
 
-| Circles | Moons | XOR |
-|---------|-------|-----|
-| Two concentric circles — SVM's best friend | Two interleaving moons — Tree handles naturally | Classic XOR — tests non-linear capacity |
+Parameter sweeps iterate over predefined configurations. For each, the tool trains the model, computes accuracy, extracts model-specific metadata (support vector count, tree depth, etc.), and stores structured results.
 
----
+## Customization
 
-## 🔬 Models Supported
-
-| Model | Key Parameters | Strengths | Weaknesses |
-|-------|--------------|-----------|------------|
-| **SVM** | kernel, C, gamma | Non-linear separation | Slow on large datasets |
-| **Logistic Regression** | C (regularization) | Probabilities, linear | Struggles with complex boundaries |
-| **Decision Tree** | max_depth, min_samples | Interpretable, fast | Overfits easily |
-| **Random Forest** | n_estimators, max_depth | Robust ensemble | Less interpretable |
-| **KNN** | n_neighbors, weights | Simple, adaptive | Slow at inference |
-| **MLP** | hidden_layer_sizes, alpha | Complex patterns | Hard to tune, slow |
-
----
-
-## 📈 Experiment Results
-
-Run `python main.py` to reproduce:
-
-| Metric | Value |
-|--------|-------|
-| Total experiments | 48 |
-| Best accuracy | 100% (XOR + Decision Tree depth=15) |
-| Fastest model | KNN (~0.001s per fold) |
-| Slowest model | MLP (~0.4s per fold) |
-| Models tested | 6 |
-| Datasets | 4 |
-
-Full results in `output/experiment_results.json`.
-
----
-
-## 🛠️ Customization
-
-### Add a Custom Dataset
+Add a dataset:
 
 ```python
-# In generate_dataset() in main.py
-def my_dataset():
+def custom_dataset():
     from sklearn.datasets import make_classification
-    X, y = make_classification(n_samples=500, n_features=2, 
-                                n_informative=2, n_redundant=0,
-                                n_classes=2, random_state=42)
+    X, y = make_classification(
+        n_samples=500, n_features=2, 
+        n_informative=2, n_redundant=0,
+        n_classes=2, random_state=42
+    )
     return X, y
+
+# Update generate_dataset() in main.py
 ```
 
-### Run a Specific Experiment
+Run single experiment:
 
 ```python
 from main import train_model, generate_dataset
 
 X, y = generate_dataset("circles", n_samples=500)
-result = train_model("SVM", X, y, {"C": 10.0, "gamma": "scale"})
-print(f"Accuracy: {result.accuracy}")
+model, train_time = train_model("SVM", {"C": 10.0, "gamma": "scale"}, X, y)
+accuracy = model.score(X, y)
 ```
 
-### Add a New Model
+Extend model set:
 
 ```python
-# In train_model() in main.py
 from sklearn.ensemble import GradientBoostingClassifier
 
-models = {
-    # ... existing ...
-    "GradientBoosting": GradientBoostingClassifier(**params)
-}
+# Add to models dict in train_model()
+"GradientBoosting": lambda: GradientBoostingClassifier(**params)
 ```
 
----
+## Results
 
-## 📦 Requirements
+Running `python main.py` executes 48 experiments (6 models × 4 datasets × 2-3 parameter configurations each).
 
-```
-numpy>=1.24.0
-matplotlib>=3.7.0
-scikit-learn>=1.3.0
-```
+Typical outcomes:
+- XOR + Decision Tree (depth=15): 100% accuracy
+- Circles + SVM (RBF kernel): ~95% accuracy
+- Fastest: KNN (~0.001s)
+- Slowest: MLP (~0.4s)
 
----
+Full results stored in `output/experiment_results.json` with accuracy, timing, and model metadata.
 
-## 🎓 Educational Use
+## Educational applications
 
-This tool is ideal for:
+This tool demonstrates:
+- Decision boundary geometry for different model classes
+- Overfitting behavior (deep trees memorizing training data)
+- Hyperparameter effects on learned surfaces
+- Model selection based on problem structure
+- Trade-offs between accuracy and computational cost
 
-- **ML courses** — visual demos of decision boundaries
-- **Understanding overfitting** — watch deep trees memorize training data
-- **Hyperparameter intuition** — see C/gamma/depth effects in real-time
-- **Model selection** — compare model geometry on the same data
-- **Portfolio projects** — clean code + real ML + polished UI
+Useful for teaching classification fundamentals, parameter tuning intuition, and visual debugging of model behavior.
 
----
+## License
 
-## 📝 License
+MIT License. See LICENSE file.
 
-MIT License — free to use, modify, and distribute. See [LICENSE](LICENSE).
-
----
-
-<div align="center">
-
-Built with 🧠 for ML visualization
-
-*Questions? Open an issue on GitHub*
-
-</div>
+Copyright (c) 2024

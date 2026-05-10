@@ -4,9 +4,6 @@
 #
 #    pip-compile --output-file=requirements.lock requirements.txt
 #
---index-url http://mirrors.tencentyun.com/pypi/simple
---trusted-host mirrors.tencentyun.com
-
 blinker==1.9.0
     # via flask
 click==8.3.3

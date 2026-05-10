@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **api/train.py** — 统一错误响应格式: 新增 `code` 字段 (DATASET_UNKNOWN/MODEL_UNKNOWN/TRAINING_ERROR/VALIDATION_ERROR), 500错误消息 sanitize 为 'Internal training error'，不再泄露内部路径 (PR#21, 2026-05-10)
+- **requirements.lock** — 移除 Tencent pip mirror 配置 (--index-url / --trusted-host)，解决 CI 依赖安装失败问题 (PR#24, 2026-05-10)
+
+### Fixed
+
+- **CI 持续失败 (待解决)** — PR#21/#24 merge 后 master CI 仍然在 "Install dependencies" step 失败。根因分析: requirements.lock 已清理 mirror，但 CI runner 环境可能存在 pip 缓存或网络问题。需要进一步调查 runner 环境和 pip 配置。
+
+### Changed
+
+- **PR#22 仍在 open** — `fix/report-html-ts-bug` 分支仍包含 `--smoke` (应为 `--quick`)，CI 会失败。PR 包含 29 个文件 (HTML报告 + benchmark工具 + ADR-0003)。需要合并 master 后手动修复 ci.yml。
+
+---
+
+## [v2.0.0] - 2026-05-08
+
+### Added
+
 - **docs/adr/ADR-0003-phase-v2-to-v3.md** — Phase v2→v3 升级判定: v2 DoD 全部完成（SPEC.md拆分, CLI改进, GitHub Actions CI, CONTRIBUTING.md完善, benchmark报告HTML化）; v3 进入 Platform 阶段 (PR#22)
 - **benchmarks/report_html.py** — HTML 报告生成器（372行）：支持 accuracy_trend / train_time_trend / summary_trend 三种趋势图，matplotlib dark-theme，自动加载 benchmarks/reports/ 下所有 JSON
 - **benchmarks/run.py** — 新增 `--html` flag：benchmark 结束后自动调用 report_html 生成 HTML + PNG charts

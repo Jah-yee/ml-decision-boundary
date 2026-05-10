@@ -65,4 +65,4 @@ jobs:
 
       - name: P2 — Benchmark smoke
         run: |
-          python3 benchmarks/run.py --smoke
+          python3 benchmarks/run.py --quick

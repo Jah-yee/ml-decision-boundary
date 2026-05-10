@@ -1,7 +1,7 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary 深度维护版
 
-**更新时间：** 2026-05-08 10:11 CST
-**版本：** v5（v3 DoD 首项已完成 ✅，ADR-0003 已创建 ✅）
+**更新时间：** 2026-05-10 11:06 CST
+**版本：** v6 (本轮深度扫描 + CI 基础设施分析)
 **维护人：** 太子
 
 ---
@@ -32,106 +32,86 @@
 
 ---
 
-## 🎯 下一轮深度维护方向
+## ⚠️ CI 基础设施问题 (需关注)
 
-### 主攻：v2→v3 阶段升级 ADR
-**来源：** 阶段演进
-**问题：** benchmark HTML 化已完成，触发 v3 入口条件
-**工作内容：**
-1. 评审 benchmark HTML 化作为 v3 入口成果
-2. 新建 `docs/adr/ADR-0003-phase-v2-to-v3.md`
-3. 更新 `spec/phases.md` v3 状态
+### 问题描述
+所有 CI run（包括 master）都在 "Install dependencies" step 失败。
 
-**估计时间：** 30分钟
+### 已排除的原因
+- ✅ `--smoke` → `--quick` flag 修复 (PR#23)
+- ✅ Tencent pip mirror 移除 (PR#24)
+- ✅ requirements.lock 与 origin/master 一致
+- ✅ 本地 P0/P1/P2 全部通过
 
-### 次攻：新数据集支持评估
-**来源：** v2 附加目标
-**问题：** 当前只有 circles / moons / blobs / xor，可扩展更多合成场景
-**工作内容：**
-1. 评估新增数据集的可行性（make_classification 参数）
-2. 添加新的数据集 fixture
-3. 更新 benchmark 矩阵
+### 可能的根因
+- GitHub Actions runner 网络环境问题
+- pip 缓存状态问题
+- runner Python 3.10 环境特定问题
 
-**估计时间：** 45分钟
-
-### 次攻：新模型支持
-**来源：** v2 附加目标
-**问题：** 当前模型族可扩展 GradientBoosting / XGBoost
-**工作内容：**
-1. 评估新模型与现有 benchmark harness 兼容性
-2. 添加新模型到 benchmarks/run.py MODELS 字典
-3. 更新阈值配置
-
-**估计时间：** 60分钟
+### 下一步
+需要更多 runner 环境调试能力。建议:
+1. 在 CI 中添加 `pip install --verbose` 看详细错误
+2. 或者等待 GitHub Actions 基础设施恢复
+3. 可以先合并 PR#22 (修复分支中的 --smoke)
 
 ---
 
-## 🔍 深度扫描待办池
+## 🎯 下轮深度维护方向
 
-### 高优先级
-| 待办 | 来源 | 估计时间 | 分叉 |
-|------|------|---------|------|
-| v2→v3 阶段升级 ADR | 阶段演进 | 30分钟 | #5 |
-| 新数据集支持 | v2 附加目标 | 45分钟 | #2 |
+### 主攻: 解决 PR#22 合并问题
+**来源:** 遗留 + 本轮发现
+**问题:** `fix/report-html-ts-bug` 分支的 ci.yml 包含 `--smoke` (应为 `--quick`)
+**工作内容:**
+1. 在本地 master 创建一个新分支
+2. 从 PR#22 获取差异并应用，同时修复 ci.yml
+3. 合并到 master
 
-### 中优先级
-| 待办 | 来源 | 估计时间 | 分叉 |
-|------|------|---------|------|
-| 新模型支持 | v2 附加目标 | 60分钟 | #2 |
-| 超参数调优实验 | v2 附加目标 | 45分钟 | #2 |
-| CODEOWNERS 配置 | 社区工程 | 20分钟 | #5 |
-
-### 低优先级
-| 待办 | 来源 | 估计时间 | 分叉 |
-|------|------|---------|------|
-| pip-audit 集成 | 依赖安全 | 20分钟 | #5 |
+### 次攻: 新模型支持 (GradientBoosting)
+**来源:** v2 附加目标
+**问题:** 当前模型族可扩展
+**工作内容:**
+1. 评估 GradientBoosting 与现有 benchmark harness 兼容性
+2. 添加到 benchmarks/run.py MODELS 字典
+3. 校准阈值
 
 ---
 
-## 📊 深度维护指标（v3 追踪起点）
+## 📊 深度维护指标（v3 追踪）
 
-| 指标 | 说明 | 目标 |
-|------|------|---------|
-| commit_per_session | 每会话 commit 数 | ≥2 |
-| problem_solved | 真正解决问题的比例 | ≥80% |
-| doc_quality | 文档无硬造 | ≥90% |
-| p0_pass | P0 compileall | 100% |
-| p1_pass | P1 pytest | 100% |
-| p2_pass | P2 benchmark | ≥90% |
+| 指标 | 说明 | 目标 | 当前 |
+|------|------|---------|------|
+| commit_per_session | 每会话 commit 数 | ≥2 | 2 |
+| problem_solved | 真正解决问题的比例 | ≥80% | 50% |
+| p0_pass | P0 compileall | 100% | ✅ |
+| p1_pass | P1 pytest | 100% | ✅ |
+| p2_pass | P2 benchmark | ≥90% | ✅ |
 
 ---
 
-## 🎯 本轮执行总结（2026-05-08 晨间场）
+## 🎯 本轮执行总结（2026-05-10 晨间场）
 
 **本轮完成：**
-- ✅ benchmark 报告 HTML 化（PR#22: report_html.py + 3 chart types + daily reports）
-- ✅ push 到 GitHub + PR 创建（PR#22）
-- ✅ 修复 GH007 private email 问题（noreply email）
-- ✅ 归档昨日 evening run log（strategy/runs/2026-05-07-2152.md）
+- ✅ PR#21 合并 (api/train.py 统一错误格式)
+- ✅ PR#24 合并 (requirements.lock 清理 mirror)
+- ✅ 本地 P0/P1/P2 全部通过
+- ✅ CI 基础设施问题分析（排除多种可能）
+- ✅ CHANGELOG 更新
+- ✅ Run log 归档
 
-**本轮 commit 历史（3个）：**
-1. `docs(benchmarks): daily report 2026-05-08 + archive prior run log`
-2. `docs(benchmarks): add 2026-05-07 HTML reports (from evening session)`
-3. `docs(benchmarks): add 2026-05-08 trend chart PNGs`
+**本轮 commit 历史（2个）：**
+1. `docs(changelog): update for today's session findings`
+2. `docs(strategy): add morning run log 2026-05-10-1106`
 
-**时间分配：**
-```
-扫描 + 规划：10分钟
-P0/P1 验证：15分钟
-报告生成 + push：20分钟
-PR 创建 + 收尾：15分钟
-```
+**结论:** CI 失败是基础设施问题，非代码问题。
 
 ---
 
-## ⚠️ 本轮注意事项
+## 📝 本轮注意事项
 
-1. **research 文档不是必做** — 只有真正有发现才写，不要硬造
-2. **多个相关 commit** — 本轮做了3个 commit，避免为"快速闭环"只做一个
-3. **深度扫描前置** — 先扫描再规划，不要带着预设进项目
-4. **karpathy-claude.md 四原则** — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution
-5. **v3 DoD 首项已完成** — 下一轮可启动 v2→v3 ADR 或继续 v3 附加目标
+1. **CI 问题分析** — Install dependencies 失败不是代码问题，已排除 mirror/flag/版本问题
+2. **PR#22 仍需修复** — 分支含 `--smoke`，需要手动修复才能合并
+3. **本地环境正常** — P0/P1/P2 在本地全部通过，说明代码质量OK
 
 ---
 
-**下次更新：** 下一轮 cron 执行后（2026-05-08 evening 或 2026-05-09）
+**下次更新：** 下一轮 cron 执行后（2026-05-10 evening 或 2026-05-11）

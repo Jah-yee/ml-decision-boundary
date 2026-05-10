@@ -1,0 +1,29 @@
+{
+  "results": [
+    {
+      "smoke_test": true,
+      "dataset": "circles",
+      "model": "SVM",
+      "params": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      },
+      "accuracy": 0.79,
+      "train_time": 0.0032772570848464966,
+      "wall_time": 0.30545773496851325,
+      "passed": true
+    }
+  ],
+  "summary": {
+    "smoke_test": true,
+    "dataset": "circles",
+    "model": "SVM",
+    "accuracy": 0.79,
+    "train_time": 0.0032772570848464966,
+    "wall_time": 0.30545773496851325,
+    "passed": true,
+    "threshold": 0.7
+  },
+  "timestamp": "2026-05-05T21:58:43.150888"
+}

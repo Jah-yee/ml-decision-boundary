@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benchmark Report — ml-decision-boundary</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --text: #e0e3f0;
+    --muted: #8b8fa8;
+    --accent: #61afef;
+    --green: #98c379;
+    --red: #e06c75;
+    --yellow: #e5c07b;
+    font-size: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
+  header { margin-bottom: 2rem; }
+  h1 { color: var(--accent); font-size: 1.8rem; }
+  h2 { color: var(--text); margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-size: 1.2rem; }
+  .meta { color: var(--muted); font-size: 0.85rem; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; }
+  .card-value { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+  .card-label { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+  th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--surface); color: var(--accent); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  tr:hover td { background: rgba(97,175,239,0.05); }
+  code { background: var(--surface); padding: 0.1em 0.4em; border-radius: 4px; font-size: 0.85em; }
+  img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+  .chart-full { margin-bottom: 1rem; }
+  @media (max-width: 768px) { .chart-section { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>📊 Benchmark Report — ml-decision-boundary</h1>
+  <p class="meta">Latest run: <strong>2026-05-06</strong> &nbsp;|&nbsp; Total reports: 7 &nbsp;|&nbsp; Full suite: 2 &nbsp;|&nbsp; Smoke: 5</p>
+</header>
+
+<h2>📈 Summary Cards</h2>
+
+        <div class="cards">
+          <div class="card">
+            <div class="card-value">45/52</div>
+            <div class="card-label">Experiments Passed (Latest)</div>
+          </div>
+          <div class="card">
+            <div class="card-value">82.4%</div>
+            <div class="card-label">Avg Accuracy (Latest)</div>
+          </div>
+          <div class="card">
+            <div class="card-value" style="color:green">
+              +0.0%
+            </div>
+            <div class="card-label">Accuracy Δ vs Prior</div>
+          </div>
+          <div class="card">
+            <div class="card-value" style="color:green">
+              +0
+            </div>
+            <div class="card-label">Pass Count Δ vs Prior</div>
+          </div>
+        </div>
+        
+
+<h2>📋 Latest Results (2026-05-06)</h2>
+<table>
+  <thead><tr><th>Dataset</th><th>Model</th><th>Accuracy</th><th>Train Time</th><th>Status</th></tr></thead>
+  <tbody>
+  
+        <tr>
+          <td>blobs</td>
+          <td><code>KNN</code></td>
+          <td>1.0000</td>
+          <td>0.0006s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>KNN</code></td>
+          <td>1.0000</td>
+          <td>0.0007s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>KNN</code></td>
+          <td>1.0000</td>
+          <td>0.0007s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>LR</code></td>
+          <td>1.0000</td>
+          <td>0.0056s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>MLP</code></td>
+          <td>1.0000</td>
+          <td>0.1224s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>MLP</code></td>
+          <td>1.0000</td>
+          <td>0.6516s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>RF</code></td>
+          <td>1.0000</td>
+          <td>0.0570s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>RF</code></td>
+          <td>1.0000</td>
+          <td>0.1154s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>SVM</code></td>
+          <td>1.0000</td>
+          <td>0.0015s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>SVM</code></td>
+          <td>1.0000</td>
+          <td>0.0015s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>SVM</code></td>
+          <td>1.0000</td>
+          <td>0.0012s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>Tree</code></td>
+          <td>1.0000</td>
+          <td>0.0010s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>blobs</td>
+          <td><code>Tree</code></td>
+          <td>1.0000</td>
+          <td>0.0009s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>KNN</code></td>
+          <td>0.6800</td>
+          <td>0.0006s</td>
+          <td>❌</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>KNN</code></td>
+          <td>0.7100</td>
+          <td>0.0005s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>KNN</code></td>
+          <td>0.7600</td>
+          <td>0.0005s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>LR</code></td>
+          <td>0.3600</td>
+          <td>0.0016s</td>
+          <td>❌</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>MLP</code></td>
+          <td>0.7800</td>
+          <td>0.2063s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>MLP</code></td>
+          <td>0.7700</td>
+          <td>1.1955s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>RF</code></td>
+          <td>0.7500</td>
+          <td>0.0434s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>RF</code></td>
+          <td>0.7700</td>
+          <td>0.0945s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>SVM</code></td>
+          <td>0.7900</td>
+          <td>0.0032s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>SVM</code></td>
+          <td>0.7600</td>
+          <td>0.0037s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>SVM</code></td>
+          <td>0.4300</td>
+          <td>0.0030s</td>
+          <td>❌</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>Tree</code></td>
+          <td>0.7000</td>
+          <td>0.0010s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>circles</td>
+          <td><code>Tree</code></td>
+          <td>0.6800</td>
+          <td>0.0014s</td>
+          <td>❌</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>KNN</code></td>
+          <td>0.8800</td>
+          <td>0.0005s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>KNN</code></td>
+          <td>0.9100</td>
+          <td>0.0005s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>KNN</code></td>
+          <td>0.8700</td>
+          <td>0.0005s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>LR</code></td>
+          <td>0.8500</td>
+          <td>0.0016s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>MLP</code></td>
+          <td>0.8900</td>
+          <td>0.6193s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>MLP</code></td>
+          <td>0.9000</td>
+          <td>2.4513s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>RF</code></td>
+          <td>0.9100</td>
+          <td>0.0436s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>RF</code></td>
+          <td>0.8800</td>
+          <td>0.0858s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>SVM</code></td>
+          <td>0.8700</td>
+          <td>0.0018s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>SVM</code></td>
+          <td>0.8900</td>
+          <td>0.0019s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>SVM</code></td>
+          <td>0.8500</td>
+          <td>0.0021s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>Tree</code></td>
+          <td>0.8900</td>
+          <td>0.0009s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>moons</td>
+          <td><code>Tree</code></td>
+          <td>0.8200</td>
+          <td>0.0010s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>KNN</code></td>
+          <td>0.7800</td>
+          <td>0.0007s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>KNN</code></td>
+          <td>0.8200</td>
+          <td>0.0007s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>KNN</code></td>
+          <td>0.7800</td>
+          <td>0.0006s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>LR</code></td>
+          <td>0.5900</td>
+          <td>0.0019s</td>
+          <td>❌</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>MLP</code></td>
+          <td>0.8100</td>
+          <td>0.1571s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>MLP</code></td>
+          <td>0.8300</td>
+          <td>1.2983s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>RF</code></td>
+          <td>0.7600</td>
+          <td>0.0643s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>RF</code></td>
+          <td>0.7700</td>
+          <td>0.1312s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>SVM</code></td>
+          <td>0.7600</td>
+          <td>0.0043s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>SVM</code></td>
+          <td>0.8000</td>
+          <td>0.0049s</td>
+          <td>✅</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>SVM</code></td>
+          <td>0.5900</td>
+          <td>0.0055s</td>
+          <td>❌</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>Tree</code></td>
+          <td>0.4600</td>
+          <td>0.0012s</td>
+          <td>❌</td>
+        </tr>
+        <tr>
+          <td>xor</td>
+          <td><code>Tree</code></td>
+          <td>0.7300</td>
+          <td>0.0016s</td>
+          <td>✅</td>
+        </tr>
+  </tbody>
+</table>
+
+<h2>📉 Accuracy Trend by Dataset</h2>
+<div class="chart-full">
+  <img src="2026-05-08_accuracy_trend.png" alt="Accuracy trend" loading="lazy">
+</div>
+
+<h2>⏱ Training Time Trend (log scale)</h2>
+<div class="chart-full">
+  <img src="2026-05-08_train_time_trend.png" alt="Train time trend" loading="lazy">
+</div>
+
+<h2>📊 Suite Summary Trend</h2>
+<div class="chart-full">
+  <img src="2026-05-08_summary_trend.png" alt="Summary trend" loading="lazy">
+</div>
+
+<h2>📁 Report History</h2>
+<table>
+  <thead><tr><th>Date</th><th>Type</th><th>Experiments</th><th>Passed</th><th>Avg Accuracy</th><th>Avg Train Time</th><th>Status</th></tr></thead>
+  <tbody>
+  <tr><td>2026-05-08</td><td>Smoke</td><td>circles</td><td>SVM</td><td>0.7900</td><td>—</td><td>✅</td></tr><tr><td>2026-05-07</td><td>Smoke</td><td>circles</td><td>SVM</td><td>0.7900</td><td>—</td><td>✅</td></tr><tr><td>2026-05-06</td><td>Full</td><td>52</td><td>45</td><td>0.8237</td><td>0.1423s</td><td>⚠️</td></tr><tr><td>2026-05-05</td><td>Smoke</td><td>circles</td><td>SVM</td><td>0.7900</td><td>—</td><td>✅</td></tr><tr><td>2026-04-30</td><td>Smoke</td><td>circles</td><td>SVM</td><td>0.7900</td><td>—</td><td>✅</td></tr><tr><td>2026-04-29</td><td>Full</td><td>52</td><td>45</td><td>0.8237</td><td>0.1147s</td><td>⚠️</td></tr><tr><td>2026-04-28</td><td>Smoke</td><td>circles</td><td>SVM</td><td>0.7900</td><td>—</td><td>✅</td></tr>
+  </tbody>
+</table>
+
+<footer style="margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--muted);font-size:0.8rem">
+  <p>Generated by ml-decision-boundary benchmark HTML reporter &nbsp;|&nbsp; <code>python -m benchmarks.report_html</code></p>
+</footer>
+</div>
+</body>
+</html>

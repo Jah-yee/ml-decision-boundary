@@ -1,0 +1,610 @@
+{
+  "results": [
+    {
+      "dataset": "circles",
+      "model": "SVM",
+      "params": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      },
+      "accuracy": 0.79,
+      "train_time": 0.0032192550133913755,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "SVM",
+      "params": {
+        "kernel": "rbf",
+        "C": 10.0,
+        "gamma": "scale"
+      },
+      "accuracy": 0.76,
+      "train_time": 0.0036515758838504553,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "SVM",
+      "params": {
+        "kernel": "linear",
+        "C": 1.0
+      },
+      "accuracy": 0.43,
+      "train_time": 0.0029744699131697416,
+      "passed": false
+    },
+    {
+      "dataset": "circles",
+      "model": "LR",
+      "params": {
+        "C": 1.0
+      },
+      "accuracy": 0.36,
+      "train_time": 0.001618906855583191,
+      "passed": false
+    },
+    {
+      "dataset": "circles",
+      "model": "Tree",
+      "params": {
+        "max_depth": 3
+      },
+      "accuracy": 0.7,
+      "train_time": 0.0009541618637740612,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "Tree",
+      "params": {
+        "max_depth": 10
+      },
+      "accuracy": 0.68,
+      "train_time": 0.0013818019069731236,
+      "passed": false
+    },
+    {
+      "dataset": "circles",
+      "model": "RF",
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      },
+      "accuracy": 0.75,
+      "train_time": 0.04337575985118747,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "RF",
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      },
+      "accuracy": 0.77,
+      "train_time": 0.09451459208503366,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 3
+      },
+      "accuracy": 0.68,
+      "train_time": 0.0005717489402741194,
+      "passed": false
+    },
+    {
+      "dataset": "circles",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 7
+      },
+      "accuracy": 0.71,
+      "train_time": 0.0005251888651400805,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 15
+      },
+      "accuracy": 0.76,
+      "train_time": 0.0005073889624327421,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "MLP",
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      },
+      "accuracy": 0.78,
+      "train_time": 0.2062890671659261,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "MLP",
+      "params": {
+        "hidden_layer_sizes": [
+          100,
+          50
+        ],
+        "alpha": 0.001
+      },
+      "accuracy": 0.77,
+      "train_time": 1.1955150309950113,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "SVM",
+      "params": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      },
+      "accuracy": 0.87,
+      "train_time": 0.0018415320664644241,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "SVM",
+      "params": {
+        "kernel": "rbf",
+        "C": 10.0,
+        "gamma": "scale"
+      },
+      "accuracy": 0.89,
+      "train_time": 0.0019017511513084173,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "SVM",
+      "params": {
+        "kernel": "linear",
+        "C": 1.0
+      },
+      "accuracy": 0.85,
+      "train_time": 0.0021026579197496176,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "LR",
+      "params": {
+        "C": 1.0
+      },
+      "accuracy": 0.85,
+      "train_time": 0.0016431661788374186,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "Tree",
+      "params": {
+        "max_depth": 3
+      },
+      "accuracy": 0.89,
+      "train_time": 0.0008761121425777674,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "Tree",
+      "params": {
+        "max_depth": 10
+      },
+      "accuracy": 0.82,
+      "train_time": 0.0010096300393342972,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "RF",
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      },
+      "accuracy": 0.91,
+      "train_time": 0.043629775987938046,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "RF",
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      },
+      "accuracy": 0.88,
+      "train_time": 0.08582939999178052,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 3
+      },
+      "accuracy": 0.88,
+      "train_time": 0.0005222000181674957,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 7
+      },
+      "accuracy": 0.91,
+      "train_time": 0.0004940801300108433,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 15
+      },
+      "accuracy": 0.87,
+      "train_time": 0.0005338690243661404,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "MLP",
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      },
+      "accuracy": 0.89,
+      "train_time": 0.6193022141233087,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "MLP",
+      "params": {
+        "hidden_layer_sizes": [
+          100,
+          50
+        ],
+        "alpha": 0.001
+      },
+      "accuracy": 0.9,
+      "train_time": 2.4512562279123813,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "SVM",
+      "params": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      },
+      "accuracy": 1.0,
+      "train_time": 0.0015000889543443918,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "SVM",
+      "params": {
+        "kernel": "rbf",
+        "C": 10.0,
+        "gamma": "scale"
+      },
+      "accuracy": 1.0,
+      "train_time": 0.0015181079506874084,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "SVM",
+      "params": {
+        "kernel": "linear",
+        "C": 1.0
+      },
+      "accuracy": 1.0,
+      "train_time": 0.0012400439009070396,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "LR",
+      "params": {
+        "C": 1.0
+      },
+      "accuracy": 1.0,
+      "train_time": 0.005611575907096267,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "Tree",
+      "params": {
+        "max_depth": 3
+      },
+      "accuracy": 1.0,
+      "train_time": 0.00102140917442739,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "Tree",
+      "params": {
+        "max_depth": 10
+      },
+      "accuracy": 1.0,
+      "train_time": 0.0009284710977226496,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "RF",
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      },
+      "accuracy": 1.0,
+      "train_time": 0.05698298406787217,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "RF",
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      },
+      "accuracy": 1.0,
+      "train_time": 0.11539480998180807,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 3
+      },
+      "accuracy": 1.0,
+      "train_time": 0.0005878079682588577,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 7
+      },
+      "accuracy": 1.0,
+      "train_time": 0.0006773360073566437,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 15
+      },
+      "accuracy": 1.0,
+      "train_time": 0.0006936360150575638,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "MLP",
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      },
+      "accuracy": 1.0,
+      "train_time": 0.12240205891430378,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "MLP",
+      "params": {
+        "hidden_layer_sizes": [
+          100,
+          50
+        ],
+        "alpha": 0.001
+      },
+      "accuracy": 1.0,
+      "train_time": 0.6515542881097645,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "SVM",
+      "params": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      },
+      "accuracy": 0.76,
+      "train_time": 0.0043133520521223545,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "SVM",
+      "params": {
+        "kernel": "rbf",
+        "C": 10.0,
+        "gamma": "scale"
+      },
+      "accuracy": 0.8,
+      "train_time": 0.004891921998932958,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "SVM",
+      "params": {
+        "kernel": "linear",
+        "C": 1.0
+      },
+      "accuracy": 0.59,
+      "train_time": 0.0055213680025190115,
+      "passed": false
+    },
+    {
+      "dataset": "xor",
+      "model": "LR",
+      "params": {
+        "C": 1.0
+      },
+      "accuracy": 0.59,
+      "train_time": 0.0018890020437538624,
+      "passed": false
+    },
+    {
+      "dataset": "xor",
+      "model": "Tree",
+      "params": {
+        "max_depth": 3
+      },
+      "accuracy": 0.46,
+      "train_time": 0.0011562258005142212,
+      "passed": false
+    },
+    {
+      "dataset": "xor",
+      "model": "Tree",
+      "params": {
+        "max_depth": 10
+      },
+      "accuracy": 0.73,
+      "train_time": 0.001557687995955348,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "RF",
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      },
+      "accuracy": 0.76,
+      "train_time": 0.0643324158154428,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "RF",
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      },
+      "accuracy": 0.77,
+      "train_time": 0.13115834002383053,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 3
+      },
+      "accuracy": 0.78,
+      "train_time": 0.0006916751153767109,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 7
+      },
+      "accuracy": 0.82,
+      "train_time": 0.0007112061139196157,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "KNN",
+      "params": {
+        "n_neighbors": 15
+      },
+      "accuracy": 0.78,
+      "train_time": 0.000598828075453639,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "MLP",
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      },
+      "accuracy": 0.81,
+      "train_time": 0.15711379400454462,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "MLP",
+      "params": {
+        "hidden_layer_sizes": [
+          100,
+          50
+        ],
+        "alpha": 0.001
+      },
+      "accuracy": 0.83,
+      "train_time": 1.2983023771084845,
+      "passed": true
+    }
+  ],
+  "summary": {
+    "smoke_test": false,
+    "total_experiments": 52,
+    "passed": 45,
+    "failed": 7,
+    "errors": 0,
+    "best_accuracy": 1.0,
+    "worst_accuracy": 0.36,
+    "avg_accuracy": 0.8236538461538461,
+    "avg_train_time": 0.14227677648439288,
+    "by_dataset": {
+      "circles": {
+        "count": 13,
+        "avg_acc": 0.6876923076923076
+      },
+      "moons": {
+        "count": 13,
+        "avg_acc": 0.8776923076923077
+      },
+      "blobs": {
+        "count": 13,
+        "avg_acc": 1.0
+      },
+      "xor": {
+        "count": 13,
+        "avg_acc": 0.7292307692307692
+      }
+    }
+  },
+  "timestamp": "2026-05-06T09:50:02.834430"
+}

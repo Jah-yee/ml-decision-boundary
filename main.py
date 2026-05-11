@@ -18,7 +18,7 @@ import argparse
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import GaussianNB
@@ -95,6 +95,7 @@ def list_models():
         "KNN": "K-Nearest Neighbors",
         "MLP": "Multi-Layer Perceptron",
         "NB": "Gaussian Naive Bayes",
+        "GB": "Gradient Boosting Classifier",
     }
     datasets = {
         "circles": "Interleaved circles (sklearn.make_circles)",
@@ -207,6 +208,7 @@ def train_model(model_type: str, params: dict, X_train, y_train) -> Tuple:
         "KNN": lambda: KNeighborsClassifier(**params),
         "MLP": lambda: MLPClassifier(**params, random_state=42, max_iter=2000),
         "NB": lambda: GaussianNB(**params),
+        "GB": lambda: GradientBoostingClassifier(**params, random_state=42),
     }
 
     if model_type not in models:

@@ -1,0 +1,387 @@
+{
+  "results": [
+    {
+      "dataset": "circles",
+      "model": "Tree",
+      "params": {
+        "max_depth": 1
+      },
+      "max_depth": 1,
+      "actual_tree_depth": 1,
+      "accuracy": 0.6,
+      "threshold": 0.4,
+      "train_time": 0.0012563478667289019,
+      "wall_time": 0.09907012805342674,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "Tree",
+      "params": {
+        "max_depth": 2
+      },
+      "max_depth": 2,
+      "actual_tree_depth": 2,
+      "accuracy": 0.65,
+      "threshold": 0.45,
+      "train_time": 0.001078180968761444,
+      "wall_time": 0.005355500150471926,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "Tree",
+      "params": {
+        "max_depth": 3
+      },
+      "max_depth": 3,
+      "actual_tree_depth": 3,
+      "accuracy": 0.7,
+      "threshold": 0.5,
+      "train_time": 0.0012090280652046204,
+      "wall_time": 0.005830131005495787,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "Tree",
+      "params": {
+        "max_depth": 5
+      },
+      "max_depth": 5,
+      "actual_tree_depth": 5,
+      "accuracy": 0.74,
+      "threshold": 0.55,
+      "train_time": 0.0013988851569592953,
+      "wall_time": 0.006007709074765444,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "Tree",
+      "params": {
+        "max_depth": 10
+      },
+      "max_depth": 10,
+      "actual_tree_depth": 10,
+      "accuracy": 0.68,
+      "threshold": 0.6,
+      "train_time": 0.0015146820805966854,
+      "wall_time": 0.005736883031204343,
+      "passed": true
+    },
+    {
+      "dataset": "circles",
+      "model": "Tree",
+      "params": {},
+      "max_depth": null,
+      "actual_tree_depth": 15,
+      "accuracy": 0.66,
+      "threshold": 0.7,
+      "train_time": 0.001791047165170312,
+      "wall_time": 0.006411900976672769,
+      "passed": false
+    },
+    {
+      "dataset": "moons",
+      "model": "Tree",
+      "params": {
+        "max_depth": 1
+      },
+      "max_depth": 1,
+      "actual_tree_depth": 1,
+      "accuracy": 0.84,
+      "threshold": 0.45,
+      "train_time": 0.0009302131365984678,
+      "wall_time": 0.005129954079166055,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "Tree",
+      "params": {
+        "max_depth": 2
+      },
+      "max_depth": 2,
+      "actual_tree_depth": 2,
+      "accuracy": 0.89,
+      "threshold": 0.55,
+      "train_time": 0.0010349908843636513,
+      "wall_time": 0.005518367979675531,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "Tree",
+      "params": {
+        "max_depth": 3
+      },
+      "max_depth": 3,
+      "actual_tree_depth": 3,
+      "accuracy": 0.89,
+      "threshold": 0.6,
+      "train_time": 0.0011561179999262094,
+      "wall_time": 0.005536857061088085,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "Tree",
+      "params": {
+        "max_depth": 5
+      },
+      "max_depth": 5,
+      "actual_tree_depth": 5,
+      "accuracy": 0.9,
+      "threshold": 0.65,
+      "train_time": 0.0012438870035111904,
+      "wall_time": 0.005514536984264851,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "Tree",
+      "params": {
+        "max_depth": 10
+      },
+      "max_depth": 10,
+      "actual_tree_depth": 10,
+      "accuracy": 0.82,
+      "threshold": 0.68,
+      "train_time": 0.0013418849557638168,
+      "wall_time": 0.0055760168470442295,
+      "passed": true
+    },
+    {
+      "dataset": "moons",
+      "model": "Tree",
+      "params": {},
+      "max_depth": null,
+      "actual_tree_depth": 12,
+      "accuracy": 0.82,
+      "threshold": 0.7,
+      "train_time": 0.001364234834909439,
+      "wall_time": 0.0056444338988512754,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "Tree",
+      "params": {
+        "max_depth": 1
+      },
+      "max_depth": 1,
+      "actual_tree_depth": 1,
+      "accuracy": 0.6,
+      "threshold": 0.7,
+      "train_time": 0.0007503959350287914,
+      "wall_time": 0.004509706981480122,
+      "passed": false
+    },
+    {
+      "dataset": "blobs",
+      "model": "Tree",
+      "params": {
+        "max_depth": 2
+      },
+      "max_depth": 2,
+      "actual_tree_depth": 2,
+      "accuracy": 1.0,
+      "threshold": 0.8,
+      "train_time": 0.0009633430745452642,
+      "wall_time": 0.005226843059062958,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "Tree",
+      "params": {
+        "max_depth": 3
+      },
+      "max_depth": 3,
+      "actual_tree_depth": 2,
+      "accuracy": 1.0,
+      "threshold": 0.85,
+      "train_time": 0.0009975309949368238,
+      "wall_time": 0.005309570813551545,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "Tree",
+      "params": {
+        "max_depth": 5
+      },
+      "max_depth": 5,
+      "actual_tree_depth": 2,
+      "accuracy": 1.0,
+      "threshold": 0.88,
+      "train_time": 0.0009495830163359642,
+      "wall_time": 0.005265392130240798,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "Tree",
+      "params": {
+        "max_depth": 10
+      },
+      "max_depth": 10,
+      "actual_tree_depth": 2,
+      "accuracy": 1.0,
+      "threshold": 0.9,
+      "train_time": 0.0009881921578198671,
+      "wall_time": 0.005339959869161248,
+      "passed": true
+    },
+    {
+      "dataset": "blobs",
+      "model": "Tree",
+      "params": {},
+      "max_depth": null,
+      "actual_tree_depth": 2,
+      "accuracy": 1.0,
+      "threshold": 0.9,
+      "train_time": 0.001082208938896656,
+      "wall_time": 0.005575485993176699,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "Tree",
+      "params": {
+        "max_depth": 1
+      },
+      "max_depth": 1,
+      "actual_tree_depth": 1,
+      "accuracy": 0.47,
+      "threshold": 0.4,
+      "train_time": 0.0009575819130986929,
+      "wall_time": 0.004750862019136548,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "Tree",
+      "params": {
+        "max_depth": 2
+      },
+      "max_depth": 2,
+      "actual_tree_depth": 2,
+      "accuracy": 0.49,
+      "threshold": 0.45,
+      "train_time": 0.0010349319782108068,
+      "wall_time": 0.004766382044181228,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "Tree",
+      "params": {
+        "max_depth": 3
+      },
+      "max_depth": 3,
+      "actual_tree_depth": 3,
+      "accuracy": 0.46,
+      "threshold": 0.45,
+      "train_time": 0.0011569180060178041,
+      "wall_time": 0.004802020965144038,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "Tree",
+      "params": {
+        "max_depth": 5
+      },
+      "max_depth": 5,
+      "actual_tree_depth": 5,
+      "accuracy": 0.75,
+      "threshold": 0.6,
+      "train_time": 0.0012431559152901173,
+      "wall_time": 0.004742762073874474,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "Tree",
+      "params": {
+        "max_depth": 10
+      },
+      "max_depth": 10,
+      "actual_tree_depth": 10,
+      "accuracy": 0.73,
+      "threshold": 0.65,
+      "train_time": 0.0016598689835518599,
+      "wall_time": 0.005685125011950731,
+      "passed": true
+    },
+    {
+      "dataset": "xor",
+      "model": "Tree",
+      "params": {},
+      "max_depth": null,
+      "actual_tree_depth": 11,
+      "accuracy": 0.75,
+      "threshold": 0.7,
+      "train_time": 0.00167685910128057,
+      "wall_time": 0.005763012915849686,
+      "passed": true
+    }
+  ],
+  "summary": {
+    "total_experiments": 24,
+    "passed": 22,
+    "by_dataset": {
+      "circles": {
+        "total": 6,
+        "passed": 5,
+        "accuracies": {
+          "1": 0.6,
+          "2": 0.65,
+          "3": 0.7,
+          "5": 0.74,
+          "10": 0.68,
+          "null": 0.66
+        }
+      },
+      "moons": {
+        "total": 6,
+        "passed": 6,
+        "accuracies": {
+          "1": 0.84,
+          "2": 0.89,
+          "3": 0.89,
+          "5": 0.9,
+          "10": 0.82,
+          "null": 0.82
+        }
+      },
+      "blobs": {
+        "total": 6,
+        "passed": 5,
+        "accuracies": {
+          "1": 0.6,
+          "2": 1.0,
+          "3": 1.0,
+          "5": 1.0,
+          "10": 1.0,
+          "null": 1.0
+        }
+      },
+      "xor": {
+        "total": 6,
+        "passed": 6,
+        "accuracies": {
+          "1": 0.47,
+          "2": 0.49,
+          "3": 0.46,
+          "5": 0.75,
+          "10": 0.73,
+          "null": 0.75
+        }
+      }
+    }
+  },
+  "timestamp": "2026-05-08T21:53:07.119833"
+}

@@ -49,6 +49,10 @@ MODELS = {
         {"hidden_layer_sizes": (50,), "alpha": 0.001},
         {"hidden_layer_sizes": (100, 50), "alpha": 0.001},
     ],
+    "GB": [
+        {"n_estimators": 100, "max_depth": 3, "learning_rate": 0.1},
+        {"n_estimators": 200, "max_depth": 5, "learning_rate": 0.05},
+    ],
 }
 
 DATASETS = ["circles", "moons", "blobs", "xor"]

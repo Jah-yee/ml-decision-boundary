@@ -33,7 +33,7 @@ markupsafe==3.0.3
     #   werkzeug
 matplotlib==3.10.9
     # via -r requirements.txt
-numpy==2.4.4
+numpy==2.2.6
     # via
     #   -r requirements.txt
     #   contourpy

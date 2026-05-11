@@ -31,7 +31,7 @@ markupsafe==3.0.3
     #   flask
     #   jinja2
     #   werkzeug
-matplotlib==3.10.9
+matplotlib==3.9.4
     # via -r requirements.txt
 numpy==2.2.6
     # via
@@ -56,9 +56,9 @@ pytest==9.0.3
     # via -r requirements.txt
 python-dateutil==2.9.0.post0
     # via matplotlib
-scikit-learn==1.8.0
+scikit-learn==1.7.2
     # via -r requirements.txt
-scipy==1.17.1
+scipy==1.9.3
     # via scikit-learn
 six==1.17.0
     # via python-dateutil

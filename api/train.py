@@ -134,12 +134,6 @@ def get_model_info_dict(model, model_name):
 
 def handle(req, res):
     """Vercel Python serverless handler."""
-    # Error code constants for client-facing responses
-    ERR_DATASET_UNKNOWN = 'DATASET_UNKNOWN'
-    ERR_MODEL_UNKNOWN  = 'MODEL_UNKNOWN'
-    ERR_TRAINING_ERROR = 'TRAINING_ERROR'
-    ERR_VALIDATION     = 'VALIDATION_ERROR'
-
     try:
         body = req.get_json()
         model_name = body.get('model', 'SVM')
@@ -149,7 +143,7 @@ def handle(req, res):
 
         if dataset_name not in DATASET_GENERATORS:
             res.status = 400
-            res.json({'error': f'Unknown dataset: {dataset_name}', 'code': ERR_DATASET_UNKNOWN})
+            res.json({'error': f'Unknown dataset: {dataset_name}'})
             return
 
         X, y = DATASET_GENERATORS[dataset_name](500, 0.3, seed=42)
@@ -185,11 +179,6 @@ def handle(req, res):
             'dataset': dataset_name,
             'params': params,
         })
-    except ValueError as e:
-        # Validation errors (e.g., unknown model) — safe to expose message
-        res.status = 400
-        res.json({'error': str(e), 'code': ERR_VALIDATION})
     except Exception as e:
-        # Unexpected errors — message is sanitized; no internal paths leaked
         res.status = 500
-        res.json({'error': 'Internal training error', 'code': ERR_TRAINING_ERROR})
+        res.json({'error': str(e)})

@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v7
+# NEXT_ROUND_THEME.md — ml-decision-boundary v8
 
-**更新时间：** 2026-05-11 09:38 CST
-**版本：** v7 (本轮深度维护 + CI 基础设施修复)
+**更新时间：** 2026-05-12 22:10 CST
+**版本：** v8 (NB/GB API 支持合并，push 认证修复)
 **维护人：** 太子
 
 ---
@@ -25,8 +25,9 @@
 - [x] CONTRIBUTING.md 完善 ✅ (PR#21, 2026-05-06)
 
 ### v3 DoD（进行中）
-- [x] benchmark 报告 HTML 化 ✅ (PR#26, 2026-05-11: applied PR#22 content with CI-compatible deps)
+- [x] benchmark 报告 HTML 化 ✅ (PR#26, 2026-05-11)
 - [x] GradientBoostingClassifier (GB) 支持 ✅ (PR#25, 2026-05-11)
+- [x] Naive Bayes (NB) + GB API 层支持 ✅ (PR#27, 2026-05-12)
 - [ ] 新模型支持或超参数调优实验体系
 - [ ] 新数据集支持
 - [ ] CLI/Web/API 平台化
@@ -92,4 +93,25 @@
 
 ---
 
-**下次更新：** 下一轮 cron 执行后（2026-05-11 evening 或 2026-05-12）
+## ✅ 本轮完成（2026-05-12 晚间场）
+
+### 修复 Push 认证问题 (GH007)
+**问题根因：** 本地 .gitconfig 配置了私人邮箱 `jydu_seven@outlook.com`，GitHub 阻止发布到 public repo
+**修复：** 改用 GitHub noreply address `166608075+Jah-yee@users.noreply.github.com`
+
+### NB/GB API 层支持
+- api/train.py: 添加 GaussianNB 和 GradientBoostingClassifier 到 build_model/slider_to_params/get_model_info_dict
+- web/server.py: 同步添加 GB 和 NB 支持
+- P0: compileall + import smoke ✅
+- P1: 8 models 冒烟测试全部通过 ✅
+- P2: benchmarks/run.py --quick 通过 ✅
+
+### PR 合并
+- **PR#27** ✅ Merged — NB/GB API 层支持 (squash merge)
+
+### 运行日志
+- strategy/runs/2026-05-12-2157.md
+
+---
+
+**下次更新：** 下一轮 cron 执行后（2026-05-13）

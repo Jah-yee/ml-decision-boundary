@@ -15,9 +15,10 @@ from flask import Flask, request, jsonify, send_from_directory
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import train_test_split
 
 app = Flask(__name__, static_folder='.', static_url_path='')
@@ -65,6 +66,8 @@ def build_model(model_name, params):
         'RF':   lambda: RandomForestClassifier(**params, random_state=42),
         'KNN':  lambda: KNeighborsClassifier(**params),
         'MLP':  lambda: MLPClassifier(**params, random_state=42, max_iter=500),
+        'NB':   lambda: GaussianNB(**params),
+        'GB':   lambda: GradientBoostingClassifier(**params, random_state=42),
     }
     if model_name not in factories:
         raise ValueError(f"Unknown model: {model_name}")
@@ -127,6 +130,10 @@ def get_model_info_dict(model, model_name):
         info['Layer Sizes'] = str(model.hidden_layer_sizes)
     elif model_name == 'LR':
         info['Converged'] = model.n_iter_[0] if hasattr(model, 'n_iter_') else '?'
+    elif model_name == 'GB':
+        info['Num Estimators'] = model.n_estimators
+        info['Max Depth'] = model.max_depth
+        info['Learning Rate'] = model.learning_rate
     return info
 
 # ── Boundary grid ────────────────────────────────────────────────────────────

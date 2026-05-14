@@ -1,7 +1,7 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v8
 
-**更新时间：** 2026-05-12 22:10 CST
-**版本：** v8 (NB/GB API 支持合并，push 认证修复)
+**更新时间：** 2026-05-14 09:42 CST
+**版本：** v9 (ET/AB 模型支持合并，PR#28)
 **维护人：** 太子
 
 ---
@@ -28,8 +28,9 @@
 - [x] benchmark 报告 HTML 化 ✅ (PR#26, 2026-05-11)
 - [x] GradientBoostingClassifier (GB) 支持 ✅ (PR#25, 2026-05-11)
 - [x] Naive Bayes (NB) + GB API 层支持 ✅ (PR#27, 2026-05-12)
-- [ ] 新模型支持或超参数调优实验体系
+- [x] ExtraTrees (ET) + AdaBoost (AB) 支持 ✅ (PR#28, 2026-05-14)
 - [ ] 新数据集支持
+- [ ] 超参数调优实验体系
 - [ ] CLI/Web/API 平台化
 
 ---
@@ -93,6 +94,23 @@
 
 ---
 
+## ✅ 本轮完成（2026-05-14 晨间场）
+
+### ET/AB 模型支持
+- api/train.py: 添加 ExtraTrees (ET) 和 AdaBoost (AB) 到 build_model/slider_to_params/get_model_info_dict
+- web/server.py: 同步添加 ET 和 AB 支持
+- P0: compileall + import smoke ✅
+- P1: 100 tests passed (82.89s) ✅
+- P2: benchmarks/quick pass (SVM circles acc=0.79) ✅
+
+### PR 合并
+- **PR#28** ✅ Merged — ET/AB 模型支持 (squash merge)
+
+### 运行日志
+- strategy/runs/2026-05-14-0942.md
+
+---
+
 ## ✅ 本轮完成（2026-05-12 晚间场）
 
 ### 修复 Push 认证问题 (GH007)
@@ -114,4 +132,8 @@
 
 ---
 
-**下次更新：** 下一轮 cron 执行后（2026-05-13）
+## ✅ 本轮完成（2026-05-11 晨间场）
+
+### CI 基础设施根本修复
+**问题根因：** requirements.lock 中依赖版本超出 GitHub Actions runner Python 3.10 支持范围
+**修复：** 降级所有 CI 不兼容的包版本

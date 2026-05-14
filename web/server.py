@@ -15,7 +15,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, AdaBoostClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import GaussianNB
@@ -68,6 +68,8 @@ def build_model(model_name, params):
         'MLP':  lambda: MLPClassifier(**params, random_state=42, max_iter=500),
         'NB':   lambda: GaussianNB(**params),
         'GB':   lambda: GradientBoostingClassifier(**params, random_state=42),
+        'ET':   lambda: ExtraTreesClassifier(**params, random_state=42),
+        'AB':   lambda: AdaBoostClassifier(**params, random_state=42, algorithm='SAMME'),
     }
     if model_name not in factories:
         raise ValueError(f"Unknown model: {model_name}")
@@ -109,6 +111,22 @@ def slider_to_params(model_name, p1, p2):
         alpha = n2 * 0.1                      # 0 → 0.1
         return {'hidden_layer_sizes': (hidden,), 'alpha': alpha}
 
+    elif model_name == 'GB':
+        n_estimators = int(n1 * 190 + 10)   # 10 → 200
+        max_depth = max(1, int(n2 * 19))     # 1 → 20
+        learning_rate = 0.05 + n2 * 0.15     # 0.05 → 0.20
+        return {'n_estimators': n_estimators, 'max_depth': max_depth, 'learning_rate': learning_rate}
+
+    elif model_name == 'ET':
+        n_estimators = int(n1 * 190 + 10)   # 10 → 200
+        max_depth = max(1, int(n2 * 19))     # 1 → 20
+        return {'n_estimators': n_estimators, 'max_depth': max_depth}
+
+    elif model_name == 'AB':
+        n_estimators = int(n1 * 190 + 10)   # 10 → 200
+        learning_rate = 0.1 + n2 * 1.9     # 0.1 → 2.0
+        return {'n_estimators': n_estimators, 'learning_rate': learning_rate}
+
     return {}
 
 def get_model_info_dict(model, model_name):
@@ -133,6 +151,12 @@ def get_model_info_dict(model, model_name):
     elif model_name == 'GB':
         info['Num Estimators'] = model.n_estimators
         info['Max Depth'] = model.max_depth
+        info['Learning Rate'] = model.learning_rate
+    elif model_name == 'ET':
+        info['Num Trees'] = len(model.estimators_)
+        info['Max Depth'] = max(e.get_depth() for e in model.estimators_)
+    elif model_name == 'AB':
+        info['Num Estimators'] = model.n_estimators
         info['Learning Rate'] = model.learning_rate
     return info
 

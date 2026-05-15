@@ -53,6 +53,17 @@ MODELS = {
         {"n_estimators": 100, "max_depth": 3, "learning_rate": 0.1},
         {"n_estimators": 200, "max_depth": 5, "learning_rate": 0.05},
     ],
+    "NB": [
+        {},
+    ],
+    "ET": [
+        {"n_estimators": 100, "max_depth": 10},
+        {"n_estimators": 200, "max_depth": 15},
+    ],
+    "AB": [
+        {"n_estimators": 50, "learning_rate": 1.0},
+        {"n_estimators": 100, "learning_rate": 1.0},
+    ],
 }
 
 DATASETS = ["circles", "moons", "blobs", "xor"]

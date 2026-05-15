@@ -18,7 +18,7 @@ import argparse
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, AdaBoostClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import GaussianNB
@@ -42,7 +42,7 @@ Examples:
     )
     parser.add_argument(
         "--model", "-m",
-        choices=["SVM", "LR", "Tree", "RF", "KNN", "MLP", "NB"],
+        choices=["SVM", "LR", "Tree", "RF", "KNN", "MLP", "NB", "GB", "ET", "AB"],
         help="Model type to run (default: all)",
     )
     parser.add_argument(
@@ -96,6 +96,8 @@ def list_models():
         "MLP": "Multi-Layer Perceptron",
         "NB": "Gaussian Naive Bayes",
         "GB": "Gradient Boosting Classifier",
+        "ET": "Extra Trees Classifier",
+        "AB": "AdaBoost Classifier",
     }
     datasets = {
         "circles": "Interleaved circles (sklearn.make_circles)",
@@ -150,6 +152,7 @@ class ModelResult:
     n_layers: Optional[int] = None
     n_trees: Optional[int] = None
     max_depth: Optional[int] = None
+    n_estimators: Optional[int] = None
 
 
 def generate_dataset(dataset_name: str, n_samples: int = 500, noise: float = 0.3, seed: int = 42) -> Tuple:
@@ -209,6 +212,8 @@ def train_model(model_type: str, params: dict, X_train, y_train) -> Tuple:
         "MLP": lambda: MLPClassifier(**params, random_state=42, max_iter=2000),
         "NB": lambda: GaussianNB(**params),
         "GB": lambda: GradientBoostingClassifier(**params, random_state=42),
+        "ET": lambda: ExtraTreesClassifier(**params, random_state=42),
+        "AB": lambda: AdaBoostClassifier(**params, random_state=42, algorithm='SAMME'),
     }
 
     if model_type not in models:
@@ -234,6 +239,14 @@ def get_model_info(model, model_type: str) -> dict:
         info["max_depth"] = max(e.get_depth() for e in model.estimators_)
     elif model_type == "MLP":
         info["n_layers"] = len(model.hidden_layer_sizes)
+    elif model_type == "GB":
+        info["n_estimators"] = model.n_estimators
+        info["max_depth"] = model.max_depth
+    elif model_type == "ET":
+        info["n_estimators"] = len(model.estimators_)
+        info["max_depth"] = max(e.get_depth() for e in model.estimators_)
+    elif model_type == "AB":
+        info["n_estimators"] = model.n_estimators
     return info
 
 
@@ -345,6 +358,18 @@ def run_all_experiments():
             {"hidden_layer_sizes": (50,), "alpha": 0.001},
             {"hidden_layer_sizes": (100, 50), "alpha": 0.001},
             {"hidden_layer_sizes": (50, 50, 50), "alpha": 0.01},
+        ],
+        "GB": [
+            {"n_estimators": 100, "max_depth": 3, "learning_rate": 0.1},
+            {"n_estimators": 200, "max_depth": 5, "learning_rate": 0.05},
+        ],
+        "ET": [
+            {"n_estimators": 100, "max_depth": 10},
+            {"n_estimators": 200, "max_depth": 15},
+        ],
+        "AB": [
+            {"n_estimators": 50, "learning_rate": 1.0},
+            {"n_estimators": 100, "learning_rate": 1.0},
         ],
     }
 

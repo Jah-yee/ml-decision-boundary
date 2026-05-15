@@ -66,7 +66,7 @@ MODELS = {
     ],
 }
 
-DATASETS = ["circles", "moons", "blobs", "xor"]
+DATASETS = ["circles", "moons", "blobs", "xor", "s_curve"]
 
 # Thresholds for regression detection (accuracy must be >= this)
 ACCURACY_THRESHOLDS = {

@@ -47,11 +47,23 @@ def make_xor(n, noise, seed):
     return X, y
 
 
+def make_s_curve(n, _noise, seed):
+    from sklearn.datasets import make_s_curve as sk_s_curve
+    from sklearn.preprocessing import KBinsDiscretizer
+    X, y = sk_s_curve(n_samples=n, noise=0.0, random_state=seed)
+    # Project 3D S-curve to 2D (keep first two dimensions for decision boundary)
+    # y is continuous — bin it into 2 classes for binary classification
+    kbd = KBinsDiscretizer(n_bins=2, encode='ordinal', strategy='quantile')
+    y_bin = kbd.fit_transform(y.reshape(-1, 1)).ravel().astype(int)
+    return X[:, :2], y_bin
+
+
 DATASET_GENERATORS = {
     'circles': lambda n, noise, seed: make_circles(n, noise, seed),
     'moons':    lambda n, noise, seed: make_moons(n, noise, seed),
     'blobs':    lambda n, noise, seed: make_blobs(n, seed),
     'xor':      lambda n, noise, seed: make_xor(n, noise, seed),
+    's_curve':  lambda n, noise, seed: make_s_curve(n, noise, seed),
 }
 
 

@@ -34,3 +34,8 @@ Thumbs.db
 output/*.png
 output/*.json
 !output/.gitkeep
+
+# Daily benchmark reports (auto-generated, don't track)
+benchmarks/reports/*.json
+benchmarks/reports/*.md
+!benchmarks/reports/.gitkeep

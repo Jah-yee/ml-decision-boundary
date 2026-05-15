@@ -47,7 +47,7 @@ Examples:
     )
     parser.add_argument(
         "--dataset", "-d",
-        choices=["circles", "moons", "blobs", "xor"],
+        choices=["circles", "moons", "blobs", "xor", "s_curve"],
         help="Dataset to use (default: all)",
     )
     parser.add_argument(
@@ -104,6 +104,7 @@ def list_models():
         "moons": "Semicircle moons (sklearn.make_moons)",
         "blobs": "Gaussian blobs (sklearn.make_blobs, 3 centers)",
         "xor": "XOR-style nonlinear pattern",
+        "s_curve": "S-curve manifold (sklearn.make_s_curve, 3D projected to 2D)",
     }
     print("Available models:")
     for name, desc in models.items():
@@ -164,6 +165,7 @@ def generate_dataset(dataset_name: str, n_samples: int = 500, noise: float = 0.3
         "moons": lambda: make_moons(n_samples, noise, seed),
         "blobs": lambda: make_blobs(n_samples, seed),
         "xor": lambda: make_xor(n_samples, noise, seed),
+        "s_curve": lambda: make_s_curve(n_samples, noise, seed),
     }
 
     if dataset_name not in datasets:
@@ -197,6 +199,17 @@ def make_xor(n, noise, seed):
     # Add noise
     X += np.random.randn(n, 2) * noise
     return X, y
+
+
+def make_s_curve(n, _noise, seed):
+    from sklearn.datasets import make_s_curve as sk_s_curve
+    from sklearn.preprocessing import KBinsDiscretizer
+    X, y = sk_s_curve(n_samples=n, noise=0.0, random_state=seed)
+    # Project 3D S-curve to 2D (keep first two dimensions for decision boundary)
+    # y is continuous — bin it into 2 classes for binary classification
+    kbd = KBinsDiscretizer(n_bins=2, encode='ordinal', strategy='quantile')
+    y_bin = kbd.fit_transform(y.reshape(-1, 1)).ravel().astype(int)
+    return X[:, :2], y_bin
 
 
 def train_model(model_type: str, params: dict, X_train, y_train) -> Tuple:

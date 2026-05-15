@@ -1,7 +1,7 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v8
 
 **更新时间：** 2026-05-14 09:42 CST
-**版本：** v9 (ET/AB 模型支持合并，PR#28)
+**版本：** v10 (s_curve dataset 支持，PR#31)
 **维护人：** 太子
 
 ---
@@ -29,7 +29,7 @@
 - [x] GradientBoostingClassifier (GB) 支持 ✅ (PR#25, 2026-05-11)
 - [x] Naive Bayes (NB) + GB API 层支持 ✅ (PR#27, 2026-05-12)
 - [x] ExtraTrees (ET) + AdaBoost (AB) 支持 ✅ (PR#28, 2026-05-14)
-- [ ] 新数据集支持
+- [x] 新数据集支持 ✅ (PR#31, 2026-05-15) — s_curve (sklearn.make_s_curve projected to 2D)
 - [ ] 超参数调优实验体系
 - [ ] CLI/Web/API 平台化
 

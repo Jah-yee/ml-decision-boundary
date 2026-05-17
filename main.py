@@ -340,7 +340,7 @@ def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42) 
 
 def run_all_experiments():
     """Run comprehensive experiments"""
-    datasets = ["circles", "moons", "blobs", "xor"]
+    datasets = ["circles", "moons", "blobs", "xor", "s_curve"]
     models = {
         "SVM": [
             {"kernel": "rbf", "C": 1.0, "gamma": "scale"},

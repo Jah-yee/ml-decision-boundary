@@ -1,7 +1,7 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v8
 
-**更新时间：** 2026-05-14 09:42 CST
-**版本：** v10 (s_curve dataset 支持，PR#31)
+**更新时间：** 2026-05-17 09:52 CST
+**版本：** v11 (hyperparam sweep infrastructure + s_curve benchmark, PR#34)
 **维护人：** 太子
 
 ---
@@ -29,8 +29,9 @@
 - [x] GradientBoostingClassifier (GB) 支持 ✅ (PR#25, 2026-05-11)
 - [x] Naive Bayes (NB) + GB API 层支持 ✅ (PR#27, 2026-05-12)
 - [x] ExtraTrees (ET) + AdaBoost (AB) 支持 ✅ (PR#28, 2026-05-14)
-- [x] 新数据集支持 ✅ (PR#31, 2026-05-15) — s_curve (sklearn.make_s_curve projected to 2D)
-- [ ] 超参数调优实验体系
+- [x] 新数据集 s_curve 支持 ✅ (PR#31, 2026-05-15)
+- [x] 超参调优实验体系基础设施 ✅ (PR#34, 2026-05-17)
+- [ ] 完整 hyperparam sweep 运行 + CI 集成
 - [ ] CLI/Web/API 平台化
 
 ---
@@ -61,36 +62,42 @@
 
 ---
 
-## 🎯 下轮深度维护方向
+## ✅ 本轮完成（2026-05-17 晨间场）
 
-### 主攻: v3 DoD 剩余项
-1. **新模型支持** — 评估更多模型（ExtraTrees, AdaBoost, etc.）
-2. **新数据集支持** — 添加更多数据集变体
-3. **平台化** — CLI/Web/API 标准化
+### 超参调优实验体系基础设施落地
+**问题根因：** `run_hyperparam_sweep()` + `hyperparam_config.py` 已在 feature 分支存在，但从未合并使用；s_curve 数据集已合并但未加入 benchmark 阈值体系
 
-### 次攻: CI 缓存优化
-- 验证新 pip cache 机制是否命中
-- 监控 CI 执行时间变化
+### 新增内容
+- `benchmarks/hyperparam_config.py`: SWEEP_GRIDS / BASELINE_CONFIGS / SWEEP_DATASETS / REGRESSION_THRESHOLD
+- `benchmarks/run.py`: `run_hyperparam_sweep()` + `write_hyperparam_report()` + `--hyperparam-sweep` CLI flag
+- `benchmarks/run.py`: s_curve 加入 DATASETS / ACCURACY_THRESHOLDS(0.55) / DEPTH_TREE_THRESHOLDS
+- `main.py`: `run_all_experiments()` 加入 s_curve
+- `generate_summary()` 新增 `total_datasets` / `total_models` 字段
 
----
+### s_curve 阈值标定（实验数据）
+| 模型 | s_curve acc | 备注 |
+|------|-------------|------|
+| SVM | 0.66 | 最高 |
+| LR | 0.65 | |
+| Tree d=1 | 0.66 | depth sweep 最优 |
+| RF | 0.55 | |
+| KNN | 0.51 | 最低 |
 
-## 📊 深度维护指标（v3 追踪）
+### PR 合并
+- **PR#34** ✅ Created — 超参调优实验体系基础设施 + s_curve 整合
 
-| 指标 | 说明 | 目标 | 当前 |
-|------|------|---------|------|
-| commit_per_session | 每会话 commit 数 | ≥2 | 4 |
-| problem_solved | 真正解决问题的比例 | ≥80% | 80% |
-| p0_pass | P0 compileall | 100% | ✅ |
-| p1_pass | P1 pytest | 100% | ✅ |
-| p2_pass | P2 benchmark | ≥90% | ✅ |
+### 通过层级
+- P0: compileall ✅ / import smoke ✅
+- P1: 57 tests passed (test_api_train/contract + test_main + test_benchmarks_main/run) ✅
+- P2: quick smoke SVM circles acc=0.79 >= 0.70 ✅
 
----
+### 运行日志
+- strategy/runs/2026-05-17-0952.md
 
-## 📝 本轮注意事项
-
-1. **requirements.lock 必须用 pip-compile 在目标 Python 版本生成** — 本地 Python 3.12 与 CI Python 3.10 版本差异导致包版本溢出
-2. **PR#22 迁移方式** — 从 origin/fix/report-html-ts-bug 手动提取内容，创建新分支应用，自建 PR 合并
-3. **CI 环境变量** — `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` 可在 workflow 文件中提前避免 Node.js 20 停用警告
+### 下轮待办
+1. 运行完整 hyperparam sweep 验证
+2. 将 hyperparam sweep 集成到 CI
+3. 继续 v3 DoD: CLI/Web/API 平台化
 
 ---
 

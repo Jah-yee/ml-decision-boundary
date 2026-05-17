@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v8
+# NEXT_ROUND_THEME.md — ml-decision-boundary v13
 
-**更新时间：** 2026-05-17 10:05 CST
-**版本：** v12 (v3 DoD 冲刺 — 平台化入口，PR#34 merged)
+**更新时间：** 2026-05-17 22:05 CST
+**版本：** v13 (安全修复 + v3 DoD 冲刺平台化)
 **维护人：** 太子
 
 ---
@@ -31,120 +31,29 @@
 - [x] ExtraTrees (ET) + AdaBoost (AB) 支持 ✅ (PR#28, 2026-05-14)
 - [x] 新数据集 s_curve 支持 ✅ (PR#31, 2026-05-15)
 - [x] 超参调优实验体系基础设施 ✅ (PR#34, 2026-05-17)
+- [x] 安全修复：web server traceback 暴露 ✅ (PR#35, 2026-05-17)
 - [ ] **CLI/Web/API 平台化** ← v3 唯一剩余项
 
 ### v3 升级判定
-**当前状态**: 5/6 完成，超参调优实验体系 + s_curve 数据集均已落地
+**当前状态**: 6/7 完成（hyperparam sweep infra + s_curve + 安全修复）
 **剩余项**: CLI/Web/API 平台化（需要更多工作才能完成）
 **升级到 v4 入口条件**: CLI/Web/API 平台化完成 + ADR-0004
 
 ---
 
-## ✅ 本轮完成（2026-05-11 晨间场）
+## ✅ 本轮完成（2026-05-17 晚间场）
 
-### CI 基础设施根本修复
-**问题根因：** requirements.lock 中依赖版本超出 GitHub Actions runner Python 3.10 支持范围
-**修复：** 降级所有 CI 不兼容的包版本
+### 安全修复：web server traceback 暴露
+**问题**: `web/server.py` 的 `/train` 端点错误处理暴露完整 traceback，泄露内部路径、依赖版本等敏感信息
+**修复**: 移除 `traceback.format_exc()`，仅返回 `str(e)`
+**PR**: PR#35 ✅ Created + Pushed
 
-| 包 | 旧版本 | 新版本 | 原因 |
-|----|--------|--------|------|
-| matplotlib | 3.10.9 | 3.7.5 | 3.10+ requires Python ≥3.11 |
-| scipy | 1.17.1 | 1.11.4 | 1.17+ requires Python ≥3.11 |
-| scikit-learn | 1.8.0 | 1.7.2 | 1.8+ requires Python ≥3.11 |
-| contourpy | 1.3.3 | 1.3.2 | 1.3.3 requires Python ≥3.11 |
-| numpy | 2.4.4 | 1.26.4 | 2.4+ requires Python ≥3.11 |
-
-### PR 合并
-- **PR#25** ✅ Merged — GradientBoostingClassifier (GB) 支持
-- **PR#26** ✅ Merged — Backport of PR#22 (HTML reports + depth sweep) with fixed requirements.lock
-- **PR#22** 🔴 Closed — 内容已迁移到 PR#26
-
-### CI 改进
-- 迁移 `actions/setup-python@v5` 内置 pip cache（移除 `actions/cache@v4`）
-- 添加 `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` 环境变量（避免 Node.js 20 弃用警告）
-- 添加 `persist-credentials: false` 到 checkout（安全最佳实践）
-
----
-
-## ✅ 本轮完成（2026-05-17 晨间场）
-
-### 超参调优实验体系基础设施落地
-**问题根因：** `run_hyperparam_sweep()` + `hyperparam_config.py` 已在 feature 分支存在，但从未合并使用；s_curve 数据集已合并但未加入 benchmark 阈值体系
-
-### 新增内容
-- `benchmarks/hyperparam_config.py`: SWEEP_GRIDS / BASELINE_CONFIGS / SWEEP_DATASETS / REGRESSION_THRESHOLD
-- `benchmarks/run.py`: `run_hyperparam_sweep()` + `write_hyperparam_report()` + `--hyperparam-sweep` CLI flag
-- `benchmarks/run.py`: s_curve 加入 DATASETS / ACCURACY_THRESHOLDS(0.55) / DEPTH_TREE_THRESHOLDS
-- `main.py`: `run_all_experiments()` 加入 s_curve
-- `generate_summary()` 新增 `total_datasets` / `total_models` 字段
-
-### s_curve 阈值标定（实验数据）
-| 模型 | s_curve acc | 备注 |
-|------|-------------|------|
-| SVM | 0.66 | 最高 |
-| LR | 0.65 | |
-| Tree d=1 | 0.66 | depth sweep 最优 |
-| RF | 0.55 | |
-| KNN | 0.51 | 最低 |
-
-### PR 合并
-- **PR#34** ✅ Created — 超参调优实验体系基础设施 + s_curve 整合
-
-### 通过层级
-- P0: compileall ✅ / import smoke ✅
-- P1: 57 tests passed (test_api_train/contract + test_main + test_benchmarks_main/run) ✅
-- P2: quick smoke SVM circles acc=0.79 >= 0.70 ✅
-
-### 运行日志
-- strategy/runs/2026-05-17-0952.md
+### Hyperparam sweep 完整运行
+- Total: 228 | Passed: 206 | Regressions: 22
+- Avg accuracy: 0.8161
+- 回归项分析：gamma=0.01 对 SVM 在 circles/xor 上造成显著 accuracy drop（预期行为）
 
 ### 下轮待办
-1. 运行完整 hyperparam sweep 验证
-2. 将 hyperparam sweep 集成到 CI
-3. 继续 v3 DoD: CLI/Web/API 平台化
-
----
-
-## ✅ 本轮完成（2026-05-14 晨间场）
-
-### ET/AB 模型支持
-- api/train.py: 添加 ExtraTrees (ET) 和 AdaBoost (AB) 到 build_model/slider_to_params/get_model_info_dict
-- web/server.py: 同步添加 ET 和 AB 支持
-- P0: compileall + import smoke ✅
-- P1: 100 tests passed (82.89s) ✅
-- P2: benchmarks/quick pass (SVM circles acc=0.79) ✅
-
-### PR 合并
-- **PR#28** ✅ Merged — ET/AB 模型支持 (squash merge)
-
-### 运行日志
-- strategy/runs/2026-05-14-0942.md
-
----
-
-## ✅ 本轮完成（2026-05-12 晚间场）
-
-### 修复 Push 认证问题 (GH007)
-**问题根因：** 本地 .gitconfig 配置了私人邮箱 `jydu_seven@outlook.com`，GitHub 阻止发布到 public repo
-**修复：** 改用 GitHub noreply address `166608075+Jah-yee@users.noreply.github.com`
-
-### NB/GB API 层支持
-- api/train.py: 添加 GaussianNB 和 GradientBoostingClassifier 到 build_model/slider_to_params/get_model_info_dict
-- web/server.py: 同步添加 GB 和 NB 支持
-- P0: compileall + import smoke ✅
-- P1: 8 models 冒烟测试全部通过 ✅
-- P2: benchmarks/run.py --quick 通过 ✅
-
-### PR 合并
-- **PR#27** ✅ Merged — NB/GB API 层支持 (squash merge)
-
-### 运行日志
-- strategy/runs/2026-05-12-2157.md
-
----
-
-## ✅ 本轮完成（2026-05-11 晨间场）
-
-### CI 基础设施根本修复
-**问题根因：** requirements.lock 中依赖版本超出 GitHub Actions runner Python 3.10 支持范围
-**修复：** 降级所有 CI 不兼容的包版本
+1. 继续 v3 DoD: CLI/Web/API 平台化
+2. web/server.py make_blobs 与 main.py 一致性修复（次优先级）
+3. REPRODUCE.md 更新最后验证日期

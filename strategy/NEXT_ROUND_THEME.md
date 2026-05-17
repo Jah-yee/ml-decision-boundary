@@ -1,7 +1,7 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v8
 
-**更新时间：** 2026-05-17 09:52 CST
-**版本：** v11 (hyperparam sweep infrastructure + s_curve benchmark, PR#34)
+**更新时间：** 2026-05-17 10:05 CST
+**版本：** v12 (v3 DoD 冲刺 — 平台化入口，PR#34 merged)
 **维护人：** 太子
 
 ---
@@ -24,15 +24,19 @@
 - [x] GitHub Actions CI 配置 ✅ (PR#21, 2026-05-06)
 - [x] CONTRIBUTING.md 完善 ✅ (PR#21, 2026-05-06)
 
-### v3 DoD（进行中）
+### v3 DoD（进行中，剩余1项）
 - [x] benchmark 报告 HTML 化 ✅ (PR#26, 2026-05-11)
 - [x] GradientBoostingClassifier (GB) 支持 ✅ (PR#25, 2026-05-11)
 - [x] Naive Bayes (NB) + GB API 层支持 ✅ (PR#27, 2026-05-12)
 - [x] ExtraTrees (ET) + AdaBoost (AB) 支持 ✅ (PR#28, 2026-05-14)
 - [x] 新数据集 s_curve 支持 ✅ (PR#31, 2026-05-15)
 - [x] 超参调优实验体系基础设施 ✅ (PR#34, 2026-05-17)
-- [ ] 完整 hyperparam sweep 运行 + CI 集成
-- [ ] CLI/Web/API 平台化
+- [ ] **CLI/Web/API 平台化** ← v3 唯一剩余项
+
+### v3 升级判定
+**当前状态**: 5/6 完成，超参调优实验体系 + s_curve 数据集均已落地
+**剩余项**: CLI/Web/API 平台化（需要更多工作才能完成）
+**升级到 v4 入口条件**: CLI/Web/API 平台化完成 + ADR-0004
 
 ---
 

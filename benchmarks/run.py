@@ -20,6 +20,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from main import generate_dataset, train_model, run_experiment, run_all_experiments, save_results
+from benchmarks.hyperparam_config import SWEEP_GRIDS, BASELINE_CONFIGS, SWEEP_DATASETS, REGRESSION_THRESHOLD
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
@@ -74,6 +75,7 @@ ACCURACY_THRESHOLDS = {
     "moons": 0.70,
     "blobs": 0.90,
     "xor": 0.60,
+    "s_curve": 0.55,
 }
 
 # Tree depth sweep configuration: depths to test across all datasets
@@ -94,7 +96,152 @@ DEPTH_TREE_THRESHOLDS = {
     "xor": {
         1: 0.40, 2: 0.45, 3: 0.45, 5: 0.60, 10: 0.65, None: 0.70,
     },
+    "s_curve": {
+        1: 0.45, 2: 0.45, 3: 0.50, 5: 0.55, 10: 0.60, None: 0.60,
+    },
 }
+
+
+# ── Hyperparameter Sweep ───────────────────────────────────────────────────────
+
+def run_hyperparam_sweep() -> list:
+    """Run hyperparameter sweep across all models and sweep datasets.
+
+    Compares each sweep config against the BASELINE_CONFIGS.
+    Reports regression when sweep accuracy < baseline - REGRESSION_THRESHOLD.
+    """
+    results = []
+    for model_name in SWEEP_GRIDS:
+        grid = SWEEP_GRIDS[model_name]
+        baseline_params = BASELINE_CONFIGS.get(model_name, {})
+        baseline_accs = {}
+
+        # Run baseline across sweep datasets
+        for ds in SWEEP_DATASETS:
+            try:
+                result = run_experiment(ds, model_name, baseline_params)
+                baseline_accs[ds] = result.accuracy
+            except Exception:
+                baseline_accs[ds] = None
+
+        # Run each config in the sweep grid
+        for params in grid:
+            for ds in SWEEP_DATASETS:
+                try:
+                    result = run_experiment(ds, model_name, params)
+                    baseline_acc = baseline_accs.get(ds)
+                    is_regression = (
+                        baseline_acc is not None
+                        and result.accuracy < baseline_acc * (1 - REGRESSION_THRESHOLD)
+                    )
+                    results.append({
+                        "dataset": ds,
+                        "model": model_name,
+                        "params": params,
+                        "accuracy": result.accuracy,
+                        "train_time": result.train_time,
+                        "baseline_accuracy": baseline_acc,
+                        "is_regression": is_regression,
+                        "passed": not is_regression,
+                    })
+                except Exception as e:
+                    results.append({
+                        "dataset": ds,
+                        "model": model_name,
+                        "params": params,
+                        "accuracy": None,
+                        "train_time": None,
+                        "baseline_accuracy": baseline_accs.get(ds),
+                        "error": str(e),
+                        "is_regression": False,
+                        "passed": False,
+                    })
+
+    return results
+
+
+def write_hyperparam_report(output_dir: Path, results: list) -> tuple:
+    """Write hyperparameter sweep results: JSON + MD."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y-%m-%d")
+    json_path = output_dir / f"hyperparam_sweep_{ts}.json"
+    md_path = output_dir / f"hyperparam_sweep_{ts}.md"
+
+    total = len(results)
+    regressions = sum(1 for r in results if r.get("is_regression", False))
+    passed = sum(1 for r in results if r.get("passed", False))
+    accuracies = [r["accuracy"] for r in results if r.get("accuracy") is not None]
+
+    summary = {
+        "total_experiments": total,
+        "passed": passed,
+        "regressions": regressions,
+        "avg_accuracy": sum(accuracies) / len(accuracies) if accuracies else None,
+        "best_by_model": {},
+        "best_by_dataset": {},
+    }
+
+    for model_name in SWEEP_GRIDS:
+        model_results = [r for r in results if r["model"] == model_name and r.get("accuracy") is not None]
+        if model_results:
+            best = max(model_results, key=lambda r: r["accuracy"])
+            summary["best_by_model"][model_name] = {
+                "params": best["params"],
+                "accuracy": best["accuracy"],
+                "dataset": best["dataset"],
+            }
+
+    for ds in SWEEP_DATASETS:
+        ds_results = [r for r in results if r["dataset"] == ds and r.get("accuracy") is not None]
+        if ds_results:
+            summary["best_by_dataset"][ds] = {
+                "avg_acc": sum(r["accuracy"] for r in ds_results) / len(ds_results),
+                "best_model": max(ds_results, key=lambda r: r["accuracy"])["model"],
+            }
+
+    with open(json_path, "w") as f:
+        json.dump({"results": results, "summary": summary, "timestamp": datetime.now().isoformat()}, f, indent=2)
+
+    s = summary
+    regression_pct = int(REGRESSION_THRESHOLD * 100)
+    md_lines = [
+        f"# Hyperparameter Sweep Report — {ts}",
+        "",
+        f"**Total experiments**: {total} | **Passed**: {passed} | **Regressions**: {regressions}",
+        f"**Avg accuracy**: {s['avg_accuracy']:.4f}" if s["avg_accuracy"] else "",
+        "",
+        f"## Regressions (sweep worse than baseline by >{regression_pct}%)",
+        "",
+    ]
+    reg_results = [r for r in results if r.get("is_regression", False)]
+    if reg_results:
+        md_lines += [
+            "| Dataset | Model | Params | Sweep acc | Baseline acc | Regression |",
+            "|---------|-------|--------|-----------|--------------|------------|",
+        ]
+        for r in reg_results:
+            baseline_str = f"{r['baseline_accuracy']:.4f}" if r.get("baseline_accuracy") is not None else "—"
+            md_lines.append(
+                f"| {r['dataset']} | {r['model']} | {r['params']} | "
+                f"{r['accuracy']:.4f} | {baseline_str} | ⚠️ |"
+            )
+    else:
+        md_lines.append("No regressions detected. ✅")
+
+    md_lines += [
+        "",
+        "## Best Config per Model",
+        "",
+        "| Model | Best params | Dataset | Accuracy |",
+        "|-------|-------------|---------|----------|",
+    ]
+    for model_name, info in summary.get("best_by_model", {}).items():
+        md_lines.append(
+            f"| {model_name} | {info['params']} | {info['dataset']} | {info['accuracy']:.4f} |"
+        )
+
+    md_path.write_text("\n".join(md_lines))
+    return str(json_path), str(md_path)
 
 
 def run_quick_benchmark() -> dict:
@@ -290,6 +437,8 @@ def generate_summary(results: list, smoke_test: bool = False) -> dict:
             }
             for ds in DATASETS
         },
+        "total_datasets": len(DATASETS),
+        "total_models": len(MODELS),
     }
 
 
@@ -352,13 +501,27 @@ def write_report(output_dir: Path, results: list, summary: dict) -> tuple:
     return str(json_path), str(md_path)
 
 
-def run_benchmarks(quick: bool = False, depth_sweep: bool = False) -> dict:
+def run_benchmarks(quick: bool = False, depth_sweep: bool = False, hyperparam_sweep: bool = False) -> dict:
     """Main entry point: run benchmarks and return summary dict.
 
     Args:
         quick: Run only a single smoke test.
         depth_sweep: Run Tree depth sensitivity matrix across all datasets.
+        hyperparam_sweep: Run hyperparameter sweep across all models and datasets.
     """
+    if hyperparam_sweep:
+        print("🔬 Running hyperparameter sweep...")
+        results = run_hyperparam_sweep()
+        report_dir = Path(__file__).parent / "reports"
+        json_path, md_path = write_hyperparam_report(report_dir, results)
+        total = len(results)
+        regressions = sum(1 for r in results if r.get("is_regression", False))
+        passed = sum(1 for r in results if r.get("passed", False))
+        print(f"  Total: {total} | Passed: {passed} | Regressions: {regressions}")
+        print(f"  Reports: {json_path} + {md_path}")
+        return {"results": results, "total_experiments": total, "passed": passed, "regressions": regressions,
+               "json_report": json_path, "md_report": md_path}
+
     if depth_sweep:
         print("🌲 Running Tree depth sensitivity sweep...")
         results = run_depth_sweep()
@@ -392,14 +555,20 @@ Examples:
   python -m benchmarks.run              # Run full benchmark suite
   python -m benchmarks.run --quick     # Quick smoke test (single model)
   python -m benchmarks.run --depth-sweep   # Tree depth sensitivity matrix
+  python -m benchmarks.run --hyperparam-sweep   # Hyperparameter sweep
   python -m benchmarks.run --no-report # Skip report generation
         """,
     )
     parser.add_argument("--quick", action="store_true", help="Run only a single smoke test")
     parser.add_argument("--depth-sweep", action="store_true", help="Run Tree depth sensitivity matrix on all datasets")
+    parser.add_argument("--hyperparam-sweep", action="store_true", help="Run hyperparameter sweep across all models and datasets")
     parser.add_argument("--report", action="store_true", help="Generate report (default on)")
     parser.add_argument("--no-report", action="store_true", help="Skip report generation")
     args = parser.parse_args()
+
+    if args.hyperparam_sweep:
+        summary = run_benchmarks(hyperparam_sweep=True)
+        return 0 if summary["passed"] > 0 else 1
 
     if args.depth_sweep:
         summary = run_benchmarks(depth_sweep=True)

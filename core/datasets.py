@@ -23,9 +23,7 @@ def make_moons(n, noise, seed):
 def make_blobs(n, seed):
     from sklearn.datasets import make_blobs
     X, y = make_blobs(n_samples=n, centers=3, random_state=seed, cluster_std=1.5)
-    # Binary classification: keep only first two clusters
-    mask = y < 2
-    return X[mask], y[mask]
+    return X, y
 
 
 def make_xor(n, noise, seed):

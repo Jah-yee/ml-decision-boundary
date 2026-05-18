@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v13
+# NEXT_ROUND_THEME.md — ml-decision-boundary v14
 
-**更新时间：** 2026-05-17 22:05 CST
-**版本：** v13 (安全修复 + v3 DoD 冲刺平台化)
+**更新时间：** 2026-05-18 09:55 CST
+**版本：** v14 (core/ 模块提取 + 代码去重，平台化实质性推进)
 **维护人：** 太子
 
 ---
@@ -32,28 +32,40 @@
 - [x] 新数据集 s_curve 支持 ✅ (PR#31, 2026-05-15)
 - [x] 超参调优实验体系基础设施 ✅ (PR#34, 2026-05-17)
 - [x] 安全修复：web server traceback 暴露 ✅ (PR#35, 2026-05-17)
-- [ ] **CLI/Web/API 平台化** ← v3 唯一剩余项
+- [x] **CLI/Web/API 平台化（代码去重）** ✅ (PR#36, 2026-05-18)
+- [ ] **CLI/Web/API 平台化（剩余项）** ← v3 唯一剩余项
 
 ### v3 升级判定
-**当前状态**: 6/7 完成（hyperparam sweep infra + s_curve + 安全修复）
-**剩余项**: CLI/Web/API 平台化（需要更多工作才能完成）
+**当前状态**: 7/8 完成
+**剩余项**: CLI/Web/API 平台化剩余项（见下轮待办）
 **升级到 v4 入口条件**: CLI/Web/API 平台化完成 + ADR-0004
 
 ---
 
-## ✅ 本轮完成（2026-05-17 晚间场）
+## ✅ 本轮完成（2026-05-18 早间场）
 
-### 安全修复：web server traceback 暴露
-**问题**: `web/server.py` 的 `/train` 端点错误处理暴露完整 traceback，泄露内部路径、依赖版本等敏感信息
-**修复**: 移除 `traceback.format_exc()`，仅返回 `str(e)`
-**PR**: PR#35 ✅ Created + Pushed
 
-### Hyperparam sweep 完整运行
-- Total: 228 | Passed: 206 | Regressions: 22
-- Avg accuracy: 0.8161
-- 回归项分析：gamma=0.01 对 SVM 在 circles/xor 上造成显著 accuracy drop（预期行为）
+### PR#36: core/ 模块提取 + 代码去重
+**问题**: api/train.py 和 web/server.py 重复定义了9个相同函数（数据集生成器、模型工厂、参数转换等），共约360行重复代码。更存在静默bug：web/server.py的make_blobs接受3参数调用但只使用2参数。
+
+**修复**:
+- 新建 `core/datasets.py` (56行) — 5个数据集生成器集中管理
+- 新建 `core/train_utils.py` (163行) — 4个ML工具函数集中管理
+- api/train.py 从 ~224行 → 63行（移除160行重复代码）
+- web/server.py 从 ~271行 → 100行（移除171行重复代码）
+- 总计：+250行 / -361行
+
+**关联v3 DoD**: CLI/Web/API 平台化 ✅（去重部分）
+
+### 发现的剩余语义差异
+**blobs数据集返回类别数不一致**:
+- main.py: make_blobs(n, seed) → 2类（mask=y<2筛选）
+- web/api: make_blobs(n, noise, seed) → 3类（noise被忽略，筛选被移除）
+- 原因: DATASET_GENERATORS lambda中blobs的noise参数被静默忽略，导致行为与main.py不同
+- 状态: 已记录，下轮需决定是否统一
 
 ### 下轮待办
-1. 继续 v3 DoD: CLI/Web/API 平台化
-2. web/server.py make_blobs 与 main.py 一致性修复（次优先级）
-3. REPRODUCE.md 更新最后验证日期
+1. v3 DoD剩余项: CLI/Web/API 平台化完整收尾
+2. blobs语义差异修复（决定是否让web/api返回2类）
+3. ADR-0004 创建（v3平台化正式ADR）
+4. REPRODUCE.md 更新最后验证日期

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **core/datasets.py** — Shared dataset generators (make_circles/make_moons/make_blobs/make_xor/make_s_curve); consolidated from api/train.py + web/server.py
+- **core/train_utils.py** — Shared ML utilities (build_model/slider_to_params/compute_boundary_grid/get_model_info_dict); consolidated from api/train.py + web/server.py
+- **api/train.py** — Refactored to import from core/; removed ~160 lines of duplication; removed unused matplotlib import
+- **web/server.py** — Refactored to import from core/; removed ~220 lines of duplication; all three entry points now consistent
+
 - **web/server.py** — Security fix: remove traceback.format_exc() from /train error handler to prevent internal path/dependency exposure (#35)
 
 ### Added

@@ -20,9 +20,9 @@ def make_moons(n, noise, seed):
     return X, y
 
 
-def make_blobs(n, seed):
+def make_blobs(n, _noise, seed):
     from sklearn.datasets import make_blobs
-    X, y = make_blobs(n_samples=n, centers=3, random_state=seed, cluster_std=1.5)
+    X, y = make_blobs(n_samples=n, centers=2, random_state=seed, cluster_std=1.5)
     return X, y
 
 
@@ -48,7 +48,7 @@ def make_s_curve(n, _noise, seed):
 DATASET_GENERATORS = {
     'circles': lambda n, noise, seed: make_circles(n, noise, seed),
     'moons':    lambda n, noise, seed: make_moons(n, noise, seed),
-    'blobs':    lambda n, noise, seed: make_blobs(n, seed),
+    'blobs':    lambda n, noise, seed: make_blobs(n, noise, seed),
     'xor':      lambda n, noise, seed: make_xor(n, noise, seed),
     's_curve':  lambda n, noise, seed: make_s_curve(n, noise, seed),
 }

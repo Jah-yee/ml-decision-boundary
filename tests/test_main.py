@@ -119,13 +119,13 @@ class TestDatasetEdgeCases:
         np.testing.assert_array_almost_equal(X1, X2)
         np.testing.assert_array_equal(y1, y2)
 
-    def test_blobs_multiclass(self):
-        """blobs generates 3-cluster multi-class dataset"""
+    def test_blobs_binary(self):
+        """blobs generates 2-cluster binary dataset"""
         X, y = generate_dataset("blobs", n_samples=300, seed=42)
         assert X.shape == (300, 2)
         assert y.shape == (300,)
-        # blobs from sklearn make_blobs with 3 centers returns {0,1,2}
-        assert set(np.unique(y)) <= {0, 1, 2}
+        # blobs from sklearn make_blobs with 2 centers returns {0,1}
+        assert set(np.unique(y)) <= {0, 1}
 
     def test_dataset_noise_is_applied(self):
         """circles with high noise should have more variance than low noise"""

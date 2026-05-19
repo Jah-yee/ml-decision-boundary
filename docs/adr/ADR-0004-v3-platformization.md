@@ -1,7 +1,7 @@
 # ADR-0004 — v3 平台化决策：core/ 模块提取
 
 **日期**: 2026-05-19
-**状态**: Proposed (pending PR#36 merge)
+**状态**: Accepted (PR#36 merged 2026-05-19)
 **决策者**: Jah-yee <jydu_seven@outlook.com>
 
 ---

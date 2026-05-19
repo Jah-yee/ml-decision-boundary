@@ -3,173 +3,18 @@ Vercel serverless function: /api/train
 Exposes the ML training endpoint for the interactive web interface.
 """
 
-import matplotlib
-matplotlib.use('Agg')  # headless backend for serverless
-import matplotlib.pyplot as plt
-
 import time
 import numpy as np
 
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, AdaBoostClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import train_test_split
 
-
-def make_circles(n, noise, seed):
-    from sklearn.datasets import make_circles as sk_circles
-    X, y = sk_circles(n_samples=n, noise=noise, random_state=seed, factor=0.5)
-    return X, y
-
-
-def make_moons(n, noise, seed):
-    from sklearn.datasets import make_moons as sk_moons
-    X, y = sk_moons(n_samples=n, noise=noise, random_state=seed)
-    return X, y
-
-
-def make_blobs(n, seed):
-    from sklearn.datasets import make_blobs
-    X, y = make_blobs(n_samples=n, centers=3, random_state=seed, cluster_std=1.5)
-    mask = y < 2
-    return X[mask], y[mask]
-
-
-def make_xor(n, noise, seed):
-    np.random.seed(seed)
-    X = np.random.randn(n, 2)
-    y = ((X[:, 0] > 0) ^ (X[:, 1] > 0)).astype(int)
-    X += np.random.randn(n, 2) * noise
-    return X, y
-
-
-def make_s_curve(n, _noise, seed):
-    from sklearn.datasets import make_s_curve as sk_s_curve
-    from sklearn.preprocessing import KBinsDiscretizer
-    X, y = sk_s_curve(n_samples=n, noise=0.0, random_state=seed)
-    # Project 3D S-curve to 2D (keep first two dimensions for decision boundary)
-    # y is continuous — bin it into 2 classes for binary classification
-    kbd = KBinsDiscretizer(n_bins=2, encode='ordinal', strategy='quantile')
-    y_bin = kbd.fit_transform(y.reshape(-1, 1)).ravel().astype(int)
-    return X[:, :2], y_bin
-
-
-DATASET_GENERATORS = {
-    'circles': lambda n, noise, seed: make_circles(n, noise, seed),
-    'moons':    lambda n, noise, seed: make_moons(n, noise, seed),
-    'blobs':    lambda n, noise, seed: make_blobs(n, seed),
-    'xor':      lambda n, noise, seed: make_xor(n, noise, seed),
-    's_curve':  lambda n, noise, seed: make_s_curve(n, noise, seed),
-}
-
-
-def build_model(model_name, params):
-    factories = {
-        'SVM':  lambda: SVC(**params, random_state=42),
-        'LR':   lambda: LogisticRegression(**params, random_state=42, max_iter=1000),
-        'Tree': lambda: DecisionTreeClassifier(**params, random_state=42),
-        'RF':   lambda: RandomForestClassifier(**params, random_state=42),
-        'KNN':  lambda: KNeighborsClassifier(**params),
-        'MLP':  lambda: MLPClassifier(**params, random_state=42, max_iter=2000),
-        'NB':   lambda: GaussianNB(**params),
-        'GB':   lambda: GradientBoostingClassifier(**params, random_state=42),
-        'ET':   lambda: ExtraTreesClassifier(**params, random_state=42),
-        'AB':   lambda: AdaBoostClassifier(**params, random_state=42, algorithm='SAMME'),
-    }
-    if model_name not in factories:
-        raise ValueError(f'Unknown model: {model_name}')
-    return factories[model_name]()
-
-
-def slider_to_params(model_name, p1, p2):
-    n1 = p1 / 100.0
-    n2 = p2 / 100.0
-
-    if model_name == 'SVM':
-        C = 10 ** (n1 * 3 - 1)
-        gamma_opts = ['scale', 'auto', 0.01, 0.1, 1.0, 10.0]
-        gamma = gamma_opts[min(int(n2 * 5), 5)]
-        return {'kernel': 'rbf', 'C': C, 'gamma': gamma}
-    elif model_name == 'LR':
-        C = 10 ** (n1 * 3 - 1)
-        return {'C': C}
-    elif model_name == 'Tree':
-        max_depth = max(1, int(n1 * 20))
-        min_samples = int(n2 * 20) + 2
-        return {'max_depth': max_depth, 'min_samples_split': min_samples}
-    elif model_name == 'RF':
-        n_estimators = int(n1 * 190 + 10)
-        max_depth = max(1, int(n2 * 19))
-        return {'n_estimators': n_estimators, 'max_depth': max_depth}
-    elif model_name == 'KNN':
-        k = max(1, int(n1 * 49 + 1))
-        return {'n_neighbors': k}
-    elif model_name == 'MLP':
-        hidden = max(10, int(n1 * 190 + 10))
-        alpha = n2 * 0.1
-        return {'hidden_layer_sizes': (hidden,), 'alpha': alpha}
-    elif model_name == 'GB':
-        n_estimators = int(n1 * 190 + 10)    # 10 -> 200
-        max_depth = max(1, int(n2 * 19))       # 1 -> 20
-        learning_rate = 0.05 + n2 * 0.15     # 0.05 -> 0.20
-        return {'n_estimators': n_estimators, 'max_depth': max_depth, 'learning_rate': learning_rate}
-    elif model_name == 'ET':
-        n_estimators = int(n1 * 190 + 10)   # 10 -> 200
-        max_depth = max(1, int(n2 * 19))     # 1 -> 20
-        return {'n_estimators': n_estimators, 'max_depth': max_depth}
-    elif model_name == 'AB':
-        n_estimators = int(n1 * 190 + 10)   # 10 -> 200
-        learning_rate = 0.1 + n2 * 1.9     # 0.1 -> 2.0
-        return {'n_estimators': n_estimators, 'learning_rate': learning_rate}
-    return {}
-
-
-def compute_boundary_grid(model, X_train, resolution=40):
-    x_min, x_max = X_train[:, 0].min() - 0.5, X_train[:, 0].max() + 0.5
-    y_min, y_max = X_train[:, 1].min() - 0.5, X_train[:, 1].max() + 0.5
-    xx, yy = np.meshgrid(
-        np.linspace(x_min, x_max, resolution),
-        np.linspace(y_min, y_max, resolution)
-    )
-    Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
-    Z = Z.reshape(xx.shape)
-    return xx, yy, Z.astype(float)
-
-
-def get_model_info_dict(model, model_name):
-    info = {}
-    if model_name == 'SVM':
-        info['Support Vectors'] = int(len(model.support_vectors_))
-        info['Kernel'] = 'RBF'
-    elif model_name == 'Tree':
-        info['Tree Depth'] = model.get_depth()
-        info['Leaves'] = model.get_n_leaves()
-    elif model_name == 'RF':
-        info['Num Trees'] = len(model.estimators_)
-        info['Max Depth'] = max(e.get_depth() for e in model.estimators_)
-    elif model_name == 'KNN':
-        info['K Value'] = model.n_neighbors
-        info['Algorithm'] = 'auto'
-    elif model_name == 'MLP':
-        info['Layers'] = len(model.hidden_layer_sizes)
-        info['Layer Sizes'] = str(model.hidden_layer_sizes)
-    elif model_name == 'LR':
-        info['Converged'] = model.n_iter_[0] if hasattr(model, 'n_iter_') else '?'
-    elif model_name == 'GB':
-        info['Num Estimators'] = model.n_estimators
-        info['Max Depth'] = model.max_depth
-        info['Learning Rate'] = model.learning_rate
-    elif model_name == 'ET':
-        info['Num Trees'] = len(model.estimators_)
-        info['Max Depth'] = max(e.get_depth() for e in model.estimators_)
-    elif model_name == 'AB':
-        info['Num Estimators'] = model.n_estimators
-        info['Learning Rate'] = model.learning_rate
-    return info
+from core.datasets import DATASET_GENERATORS
+from core.train_utils import (
+    build_model,
+    slider_to_params,
+    compute_boundary_grid,
+    get_model_info_dict,
+)
 
 
 def handle(req, res):

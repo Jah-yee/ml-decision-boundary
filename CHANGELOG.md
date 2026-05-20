@@ -53,16 +53,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **benchmarks/reports/2026-04-29.json** — Restored from smoke (21-line truncated) to full 52-experiment output; pipeline now writes smoke to `YYYY-MM-DD` date of execution
 
+### v4 Progress (2026-05-20 Morning)
+- **REPRODUCE.md** — Comprehensive rewrite (8777 bytes): platform arch (core/ module), P0/P1/P2 quality gates, Tree depth findings, full benchmark table, troubleshooting (commit 59358c8)
+- **CI depth-sweep job** — Added to .github/workflows/ci.yml: runs Tree depth sensitivity matrix on every push, uploads report artifact, 30-day retention (commit 59358c8)
+- **Full benchmark**: 100 exp / 89 passed / 11 expected-fail (reproducible)
+- **Depth sweep**: 30 exp / 27 passed (circles 5/6, moons 6/6, blobs 6/6, xor 6/6, s_curve 4/6)
+- **Quality gates**: P0 compileall ✅ / P1 100 tests ✅ / P2 benchmark smoke ✅
+
 ### Metrics
-- pytest: **100/100** passed (84.97s, verified 2026-05-04 22:30)
+- pytest: **100/100** passed (verified 2026-05-20)
 - TOTAL coverage: **89%** (maintained)
-- Full benchmark suite: **52 exp, 45 passed, 7 expected-fail** (reproducible baseline)
-- Open PRs: **1** (#21 — API error unification)
-- Merged PRs: **3** (#18 ADR-0002, #19 spec split, #20 CLI improvements)
+- Full benchmark suite: **100 exp, 89 passed, 11 expected-fail** (reproducible baseline)
 
----
-
-## ["2026-04-29"]
 
 ### Added
 - **tests/test_benchmarks_run.py** — 7 new tests for benchmarks/run.py: run_quick_benchmark (smoke + threshold), generate_summary (smoke/full/empty), write_report (files + markdown)

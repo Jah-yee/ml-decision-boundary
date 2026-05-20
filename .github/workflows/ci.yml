@@ -93,3 +93,36 @@ jobs:
           name: depth-sweep-report
           path: benchmarks/reports/depth_sweep_*.json
           retention-days: 30
+
+  hyperparam-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.lock'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.lock
+
+      - name: Hyperparameter sweep regression detection
+        run: |
+          python3 benchmarks/run.py --hyperparam-sweep --hyperparam-baseline benchmarks/hyperparam_baseline.json
+        # Fails if regressions > 0 (any sweep config drops >5% vs stored best-known baseline)
+
+      - name: Upload hyperparam sweep report
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyperparam-sweep-report
+          path: benchmarks/reports/hyperparam_sweep_*.json
+          retention-days: 30

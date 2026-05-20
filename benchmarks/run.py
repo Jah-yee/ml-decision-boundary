@@ -104,32 +104,45 @@ DEPTH_TREE_THRESHOLDS = {
 
 # ── Hyperparameter Sweep ───────────────────────────────────────────────────────
 
-def run_hyperparam_sweep() -> list:
+def run_hyperparam_sweep(baseline_path: str | None = None) -> list:
     """Run hyperparameter sweep across all models and sweep datasets.
 
-    Compares each sweep config against the BASELINE_CONFIGS.
-    Reports regression when sweep accuracy < baseline - REGRESSION_THRESHOLD.
+    Compares each sweep config against the best-known baseline for that
+    (model, dataset) pair.  Baseline is loaded from baseline_path if provided;
+    otherwise uses the best accuracy seen so far in the sweep grids.
+
+    Regression = current config more than REGRESSION_THRESHOLD fraction
+    below the best known baseline for the same (model, dataset).
+
+    Use benchmarks/reports/hyperparam_baseline.json as baseline_path
+    for stable CI regression detection (current best known accuracy).
     """
+    # Load baseline if provided
+    if baseline_path:
+        with open(baseline_path) as f:
+            baseline_data = json.load(f)
+        baseline_accs = {
+            tuple(k.split("|")): v["accuracy"]
+            for k, v in baseline_data["baseline"].items()
+        }
+    else:
+        baseline_accs = {}
+
     results = []
     for model_name in SWEEP_GRIDS:
         grid = SWEEP_GRIDS[model_name]
-        baseline_params = BASELINE_CONFIGS.get(model_name, {})
-        baseline_accs = {}
-
-        # Run baseline across sweep datasets
-        for ds in SWEEP_DATASETS:
-            try:
-                result = run_experiment(ds, model_name, baseline_params)
-                baseline_accs[ds] = result.accuracy
-            except Exception:
-                baseline_accs[ds] = None
-
-        # Run each config in the sweep grid
         for params in grid:
             for ds in SWEEP_DATASETS:
                 try:
                     result = run_experiment(ds, model_name, params)
-                    baseline_acc = baseline_accs.get(ds)
+                    key = (model_name, ds)
+
+                    # Update inline baseline if no baseline file
+                    if baseline_path is None:
+                        if key not in baseline_accs or result.accuracy > baseline_accs[key]:
+                            baseline_accs[key] = result.accuracy
+
+                    baseline_acc = baseline_accs.get(key)
                     is_regression = (
                         baseline_acc is not None
                         and result.accuracy < baseline_acc * (1 - REGRESSION_THRESHOLD)
@@ -151,7 +164,7 @@ def run_hyperparam_sweep() -> list:
                         "params": params,
                         "accuracy": None,
                         "train_time": None,
-                        "baseline_accuracy": baseline_accs.get(ds),
+                        "baseline_accuracy": baseline_accs.get((model_name, ds)),
                         "error": str(e),
                         "is_regression": False,
                         "passed": False,
@@ -501,17 +514,19 @@ def write_report(output_dir: Path, results: list, summary: dict) -> tuple:
     return str(json_path), str(md_path)
 
 
-def run_benchmarks(quick: bool = False, depth_sweep: bool = False, hyperparam_sweep: bool = False) -> dict:
+def run_benchmarks(quick: bool = False, depth_sweep: bool = False,
+                  hyperparam_sweep: bool = False, baseline_path: str | None = None) -> dict:
     """Main entry point: run benchmarks and return summary dict.
 
     Args:
         quick: Run only a single smoke test.
         depth_sweep: Run Tree depth sensitivity matrix across all datasets.
         hyperparam_sweep: Run hyperparameter sweep across all models and datasets.
+        baseline_path: Path to hyperparam_baseline.json for regression detection.
     """
     if hyperparam_sweep:
         print("🔬 Running hyperparameter sweep...")
-        results = run_hyperparam_sweep()
+        results = run_hyperparam_sweep(baseline_path=baseline_path)
         report_dir = Path(__file__).parent / "reports"
         json_path, md_path = write_hyperparam_report(report_dir, results)
         total = len(results)
@@ -562,13 +577,17 @@ Examples:
     parser.add_argument("--quick", action="store_true", help="Run only a single smoke test")
     parser.add_argument("--depth-sweep", action="store_true", help="Run Tree depth sensitivity matrix on all datasets")
     parser.add_argument("--hyperparam-sweep", action="store_true", help="Run hyperparameter sweep across all models and datasets")
+    parser.add_argument("--hyperparam-baseline", metavar="PATH", default=None,
+                        help="Path to hyperparam_baseline.json for CI regression detection")
     parser.add_argument("--report", action="store_true", help="Generate report (default on)")
     parser.add_argument("--no-report", action="store_true", help="Skip report generation")
     args = parser.parse_args()
 
     if args.hyperparam_sweep:
-        summary = run_benchmarks(hyperparam_sweep=True)
-        return 0 if summary["passed"] > 0 else 1
+        summary = run_benchmarks(hyperparam_sweep=True, baseline_path=args.hyperparam_baseline)
+        regressions = summary.get("regressions", 0)
+        print(f"  Regressions detected: {regressions}")
+        return 1 if regressions > 0 else 0
 
     if args.depth_sweep:
         summary = run_benchmarks(depth_sweep=True)

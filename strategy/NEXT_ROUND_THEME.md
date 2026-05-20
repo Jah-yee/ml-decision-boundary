@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v15 (v4 start)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v16 (v4 work)
 
-**更新时间：** 2026-05-19 22:30 CST
-**版本：** v15 (v4 启动：Reproducibility & Robustness)
+**更新时间：** 2026-05-20 09:47 CST
+**版本：** v16 (v4 进行中：REPRODUCE.md 全面更新 + depth-sweep CI 集成)
 **维护人：** 太子
 
 ---
@@ -36,16 +36,49 @@
 - [x] **CLI/Web/API 平台化（剩余项：blobs 2类修复）** ✅ (commit 5678e4f, 2026-05-19)
 - [x] ADR-0004 v3 平台化决策 ✅ (2026-05-19)
 
-### v4 DoD（待细化）
-- [ ] **v4 DoD 项目由 v4 第一轮 cron 细化**
-- [ ] 候选：REPRODUCE.md 全面更新
-- [ ] 候选：Tree depth 敏感性测试矩阵正式集成到 CI
-- [ ] 候选：超参 sweep 阈值回归检测自动化
-- [ ] 候选：平台化后的边界情况测试覆盖
+### v4 DoD（进行中，2026-05-20）
+- [x] REPRODUCE.md v4 update — ✅ (commit 59358c8, 8777 bytes 全面重写)
+- [x] Tree depth sensitivity matrix CI integration — ✅ (depth-sweep job added to ci.yml)
+- [ ] 超参 sweep 阈值回归检测自动化 — 待集成CI
+- [ ] 平台化后边界情况测试覆盖 — 待细化
 
 ### v4 升级判定
-**当前状态**: 9/9 完成 ✅
+**当前状态**: 9/9 v3 完成 ✅ | 2/4 v4 完成
 **升级到 v4**: ADR-0005 Accepted (2026-05-19)
+
+---
+
+## ✅ 本轮完成（2026-05-20 上午场）
+
+### v4 首轮完成（2/4 DoD items）
+
+**REPRODUCE.md 全面重写**（commit 59358c8）
+- 从 ~2KB 扩展到 ~9KB
+- 平台架构（core/ 模块说明，所有入口统一）
+- P0/P1/P2 质量门命令体系
+- Tree depth findings（数据矩阵：circles/moons peak at d=5, xor breakthrough at d≥5, blobs saturates at d=2）
+- 完整预期结果表（~89/100 pass）
+- 故障排查章节
+- CI/Reproducibility 说明
+
+**CI depth-sweep job 添加**（commit 59358c8）
+- `.github/workflows/ci.yml` 新增 `depth-sweep` job
+- 每次 push 运行 `python3 benchmarks/run.py --depth-sweep`
+- 上传 report artifact，30天retention
+- Timeout 15 min
+
+### P0/P1/P2 全通过
+- P0: compileall 无错误 ✅
+- P1: 100 tests passed in 109.38s ✅
+- P2: benchmark --quick (0.79 vs 0.70 threshold) ✅
+
+### Full benchmark 可复现
+- 100 exp, 89 passed, 11 expected-fail
+- 11 failures: circles+linear-kernel SVM/LR, xor+Tree(d=3)/NB/AB, s_curve+KNN(d=3) 等
+
+### Depth sweep 可复现
+- 30 exp, 27 passed
+- circles 5/6, moons 6/6, blobs 6/6, xor 6/6, s_curve 4/6
 
 ---
 
@@ -79,25 +112,24 @@
 
 v4 的核心目标是确保平台化后的代码在各种边界条件下都能稳定运行，并提供完善的可复现性保证。
 
-### v4 候选方向（待第一轮 cron 细化）
-1. **REPRODUCE.md 全面更新** — 包含所有 benchmark 命令、预期输出、CI 状态
-2. **Tree depth 敏感性测试矩阵正式集成到 CI** — 回归检测
-3. **超参 sweep 阈值回归检测自动化** — 确保新 PR 不破坏已知阈值
-4. **平台化后边界情况测试覆盖** — 不同 noise level、different seeds、不同模型组合
-5. **ADR-0005 正式记录 v3 完成**
+### v4 DoD 清单（已细化）
+1. **REPRODUCE.md 全面更新** — 包含所有 benchmark 命令、预期输出、CI 状态 ✅ (2026-05-20)
+2. **Tree depth 敏感性测试矩阵正式集成到 CI** — 回归检测 ✅ (2026-05-20)
+3. **超参 sweep 阈值回归检测自动化** — 确保新 PR 不破坏已知阈值（待集成CI）
+4. **平台化后边界情况测试覆盖** — 不同 noise level、different seeds、不同模型组合（待细化）
 
 ---
 
 ## 🔥 Multi-Agent 决策
 
-- v3→v4 升级是一次性治理任务，不需要多子代理
-- v4 第一个功能循环时再考虑并行化
+- v4 DoD items 已由第一轮 cron 细化
+- 超参 sweep CI 集成 + boundary case 测试 可并行推进（考虑 spawn 子代理）
 
 ---
 
 ## 下轮待办
-1. [ ] v4 DoD 细化（v4 第一轮 cron）
-2. [ ] REPRODUCE.md 全面更新（当前 v4 启动后第一项）
-3. [ ] Tree depth 敏感性测试矩阵集成 CI
-4. [ ] 超参 sweep 阈值回归检测自动化
-5. [ ] ADR-0005 merge 到 master
+1. [x] v4 DoD 细化（2026-05-20 已完成前2项）
+2. [x] REPRODUCE.md 全面更新 ✅
+3. [x] Tree depth 敏感性测试矩阵集成 CI ✅
+4. [ ] 超参 sweep 阈值回归检测自动化（集成到 CI）
+5. [ ] 平台化后边界情况测试覆盖

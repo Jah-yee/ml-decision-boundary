@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **web/server.py** — Security fix: remove traceback.format_exc() from /train error handler to prevent internal path/dependency exposure (#35)
 
+- **benchmarks/run.py** — Fix: stored_baseline (from JSON) vs inline_baseline (live) — prevents live-best-vs-itself regression comparison; exit code 1 on regressions > 0
+- **tests/test_boundary_cases.py** — 116 new tests: noise extremes, seed stability, unexplored dataset×model combos, model edge params, small-sample boundary, high-noise stress test
+
 ### Added
 
 - **benchmarks/hyperparam_config.py** — Hyperparameter sweep configuration: SWEEP_GRIDS (per-model param grids), BASELINE_CONFIGS (baseline defaults), SWEEP_DATASETS, REGRESSION_THRESHOLD (5%% accuracy drop = regression)

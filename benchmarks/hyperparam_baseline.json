@@ -1,7 +1,7 @@
 {
-  "generated": "2026-05-23T02:20:00",
+  "generated": "2026-05-24T22:01:12",
   "threshold": 0.05,
-  "note": "Best accuracy per (model,dataset) from current environment (hyperparam_sweep_2026-05-22.json). Updated to fix cross-environment precision differences.",
+  "note": "Best accuracy per (model,dataset) from current environment sweep. Regenerated to align with current environment precision.",
   "baseline": {
     "SVM|circles": {
       "accuracy": 0.8,

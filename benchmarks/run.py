@@ -137,6 +137,7 @@ def run_hyperparam_sweep(baseline_path: str | None = None) -> list:
     results = []
     for model_name in SWEEP_GRIDS:
         grid = SWEEP_GRIDS[model_name]
+        baseline_params = BASELINE_CONFIGS.get(model_name, {})
         for params in grid:
             for ds in SWEEP_DATASETS:
                 try:
@@ -148,10 +149,14 @@ def run_hyperparam_sweep(baseline_path: str | None = None) -> list:
                         if key not in inline_baseline or result.accuracy > inline_baseline[key]:
                             inline_baseline[key] = result.accuracy
 
-                    # Regression = live result significantly worse than the stored baseline
-                    baseline_acc = stored_baseline.get(key)
+                    # Regression detection: only applies to baseline configs (exact param match).
+                    # Non-baseline configs (different hyperparams) are expected to differ and
+                    # are excluded from regression checks entirely.
+                    is_baseline_config = (params == baseline_params)
+                    baseline_acc = stored_baseline.get(key) if is_baseline_config else None
                     is_regression = (
-                        baseline_acc is not None
+                        is_baseline_config
+                        and baseline_acc is not None
                         and result.accuracy < baseline_acc * (1 - REGRESSION_THRESHOLD)
                     )
                     results.append({

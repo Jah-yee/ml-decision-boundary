@@ -1,21 +1,21 @@
 {
-  "generated": "2026-05-24T22:01:12",
+  "generated": "2026-05-24T22:27:52",
   "threshold": 0.05,
-  "note": "Best accuracy per (model,dataset) from current environment sweep. Regenerated to align with current environment precision.",
+  "note": "Best known accuracy per (model, dataset) pair with BASELINE_CONFIGS params. CI regression fails if baseline config accuracy < stored baseline * (1 - threshold). Non-baseline configs are excluded from regression checks.",
   "baseline": {
     "SVM|circles": {
-      "accuracy": 0.8,
+      "accuracy": 0.79,
       "params": {
         "kernel": "rbf",
-        "C": 0.1,
+        "C": 1.0,
         "gamma": "scale"
       }
     },
     "SVM|moons": {
-      "accuracy": 0.89,
+      "accuracy": 0.87,
       "params": {
         "kernel": "rbf",
-        "C": 10.0,
+        "C": 1.0,
         "gamma": "scale"
       }
     },
@@ -23,22 +23,22 @@
       "accuracy": 1.0,
       "params": {
         "kernel": "rbf",
-        "C": 0.1,
+        "C": 1.0,
         "gamma": "scale"
       }
     },
     "SVM|xor": {
-      "accuracy": 0.8,
+      "accuracy": 0.76,
       "params": {
         "kernel": "rbf",
-        "C": 10.0,
+        "C": 1.0,
         "gamma": "scale"
       }
     },
     "LR|circles": {
-      "accuracy": 0.43,
+      "accuracy": 0.36,
       "params": {
-        "C": 0.01
+        "C": 1.0
       }
     },
     "LR|moons": {
@@ -50,43 +50,43 @@
     "LR|blobs": {
       "accuracy": 1.0,
       "params": {
-        "C": 0.01
+        "C": 1.0
       }
     },
     "LR|xor": {
       "accuracy": 0.59,
       "params": {
-        "C": 0.1
+        "C": 1.0
       }
     },
     "Tree|circles": {
-      "accuracy": 0.74,
+      "accuracy": 0.7,
       "params": {
-        "max_depth": 5
+        "max_depth": 3
       }
     },
     "Tree|moons": {
-      "accuracy": 0.9,
+      "accuracy": 0.89,
       "params": {
-        "max_depth": 5
+        "max_depth": 3
       }
     },
     "Tree|blobs": {
       "accuracy": 1.0,
       "params": {
-        "max_depth": 1
+        "max_depth": 3
       }
     },
     "Tree|xor": {
-      "accuracy": 0.75,
+      "accuracy": 0.46,
       "params": {
-        "max_depth": 5
+        "max_depth": 3
       }
     },
     "RF|circles": {
-      "accuracy": 0.78,
+      "accuracy": 0.75,
       "params": {
-        "n_estimators": 10,
+        "n_estimators": 50,
         "max_depth": 5
       }
     },
@@ -100,39 +100,39 @@
     "RF|blobs": {
       "accuracy": 1.0,
       "params": {
-        "n_estimators": 10,
+        "n_estimators": 50,
         "max_depth": 5
       }
     },
     "RF|xor": {
-      "accuracy": 0.78,
+      "accuracy": 0.76,
       "params": {
-        "n_estimators": 10,
+        "n_estimators": 50,
         "max_depth": 5
       }
     },
     "KNN|circles": {
-      "accuracy": 0.77,
+      "accuracy": 0.68,
       "params": {
-        "n_neighbors": 31
+        "n_neighbors": 3
       }
     },
     "KNN|moons": {
-      "accuracy": 0.91,
+      "accuracy": 0.88,
       "params": {
-        "n_neighbors": 7
+        "n_neighbors": 3
       }
     },
     "KNN|blobs": {
       "accuracy": 1.0,
       "params": {
-        "n_neighbors": 1
+        "n_neighbors": 3
       }
     },
     "KNN|xor": {
-      "accuracy": 0.82,
+      "accuracy": 0.78,
       "params": {
-        "n_neighbors": 7
+        "n_neighbors": 3
       }
     },
     "MLP|circles": {
@@ -141,17 +141,16 @@
         "hidden_layer_sizes": [
           50
         ],
-        "alpha": 0.0001
+        "alpha": 0.001
       }
     },
     "MLP|moons": {
-      "accuracy": 0.91,
+      "accuracy": 0.89,
       "params": {
         "hidden_layer_sizes": [
-          100,
           50
         ],
-        "alpha": 0.01
+        "alpha": 0.001
       }
     },
     "MLP|blobs": {
@@ -160,31 +159,30 @@
         "hidden_layer_sizes": [
           50
         ],
-        "alpha": 0.0001
+        "alpha": 0.001
       }
     },
     "MLP|xor": {
-      "accuracy": 0.83,
+      "accuracy": 0.81,
       "params": {
         "hidden_layer_sizes": [
-          100,
           50
         ],
         "alpha": 0.001
       }
     },
     "GB|circles": {
-      "accuracy": 0.79,
+      "accuracy": 0.78,
       "params": {
-        "n_estimators": 50,
+        "n_estimators": 100,
         "max_depth": 3,
         "learning_rate": 0.1
       }
     },
     "GB|moons": {
-      "accuracy": 0.91,
+      "accuracy": 0.9,
       "params": {
-        "n_estimators": 50,
+        "n_estimators": 100,
         "max_depth": 3,
         "learning_rate": 0.1
       }
@@ -192,17 +190,17 @@
     "GB|blobs": {
       "accuracy": 1.0,
       "params": {
-        "n_estimators": 50,
+        "n_estimators": 100,
         "max_depth": 3,
         "learning_rate": 0.1
       }
     },
     "GB|xor": {
-      "accuracy": 0.78,
+      "accuracy": 0.77,
       "params": {
-        "n_estimators": 200,
+        "n_estimators": 100,
         "max_depth": 3,
-        "learning_rate": 0.05
+        "learning_rate": 0.1
       }
     },
     "NB|circles": {
@@ -222,59 +220,59 @@
       "params": {}
     },
     "ET|circles": {
-      "accuracy": 0.79,
+      "accuracy": 0.77,
       "params": {
         "n_estimators": 100,
-        "max_depth": 5
+        "max_depth": 10
       }
     },
     "ET|moons": {
-      "accuracy": 0.9,
+      "accuracy": 0.88,
       "params": {
-        "n_estimators": 200,
+        "n_estimators": 100,
         "max_depth": 10
       }
     },
     "ET|blobs": {
       "accuracy": 1.0,
       "params": {
-        "n_estimators": 50,
+        "n_estimators": 100,
         "max_depth": 10
       }
     },
     "ET|xor": {
-      "accuracy": 0.82,
+      "accuracy": 0.79,
       "params": {
-        "n_estimators": 200,
+        "n_estimators": 100,
         "max_depth": 10
       }
     },
     "AB|circles": {
-      "accuracy": 0.76,
+      "accuracy": 0.75,
       "params": {
-        "n_estimators": 100,
+        "n_estimators": 50,
         "learning_rate": 1.0
       }
     },
     "AB|moons": {
       "accuracy": 0.89,
       "params": {
-        "n_estimators": 25,
-        "learning_rate": 0.5
+        "n_estimators": 50,
+        "learning_rate": 1.0
       }
     },
     "AB|blobs": {
       "accuracy": 1.0,
       "params": {
-        "n_estimators": 25,
-        "learning_rate": 0.5
+        "n_estimators": 50,
+        "learning_rate": 1.0
       }
     },
     "AB|xor": {
-      "accuracy": 0.56,
+      "accuracy": 0.55,
       "params": {
         "n_estimators": 50,
-        "learning_rate": 0.5
+        "learning_rate": 1.0
       }
     }
   }

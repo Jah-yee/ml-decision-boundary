@@ -70,21 +70,20 @@
 
 ---
 
-## 当前阶段: v4 — Reproducibility & Robustness
+## 当前阶段: v5 — Automation & Documentation (规划中)
 
 **入口条件**: v3 DoD 全部完成 ✅ + ADR-0004 Accepted + ADR-0005 Accepted
 
 **本阶段 DoD**:
 - [x] ADR-0005: Phase v3 → v4 升级判定 ✅ (2026-05-19)
-- [ ] v4 DoD 项目（待第一轮 cron 细化）
+- [x] v4 DoD 项目（全部完成 ✅）
+  - [x] REPRODUCE.md v4 update ✅ (2026-05-20)
+  - [x] Tree depth sensitivity matrix CI integration ✅ (2026-05-20)
+  - [x] Hyperparam sweep regression detection automation ✅ (PR#37, 2026-05-24)
+  - [x] Platform boundary case test coverage ✅ (PR#37, 2026-05-24)
+- [x] ADR-0006: Phase v4 → v5 升级判定 ✅ (2026-05-25)
 
-### v4 DoD items (in progress, 2026-05-20)
-- [ ] Tree depth sensitivity matrix CI integration (depth-sweep job added to ci.yml)
-- [ ] REPRODUCE.md v4 update — platform arch + tree depth findings + full benchmark table
-- [ ] Hyperparam sweep threshold regression detection automation
-- [ ] Platform化后边界情况测试覆盖
-
-**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 进行中**
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 进行中**
 
 ---
 

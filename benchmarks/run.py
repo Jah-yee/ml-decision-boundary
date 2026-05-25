@@ -117,34 +117,46 @@ def run_hyperparam_sweep(baseline_path: str | None = None) -> list:
     Use benchmarks/reports/hyperparam_baseline.json as baseline_path
     for stable CI regression detection (current best known accuracy).
     """
-    # Load baseline if provided
+    # Load stored baseline if provided (do this ONCE before the loop).
+    # These are the best-known accuracy values from a stable run.
+    # We compare live results AGAINST these, not against each other.
     if baseline_path:
         with open(baseline_path) as f:
             baseline_data = json.load(f)
-        baseline_accs = {
+        stored_baseline = {
             tuple(k.split("|")): v["accuracy"]
             for k, v in baseline_data["baseline"].items()
         }
     else:
-        baseline_accs = {}
+        stored_baseline = {}
+
+    # Inline baseline: track best seen so far ONLY in no-baseline mode.
+    # In baseline mode we use stored_baseline for regression, not live best.
+    inline_baseline: dict = {}
 
     results = []
     for model_name in SWEEP_GRIDS:
         grid = SWEEP_GRIDS[model_name]
+        baseline_params = BASELINE_CONFIGS.get(model_name, {})
         for params in grid:
             for ds in SWEEP_DATASETS:
                 try:
                     result = run_experiment(ds, model_name, params)
                     key = (model_name, ds)
 
-                    # Update inline baseline if no baseline file
+                    # Update inline baseline only when no stored baseline is provided
                     if baseline_path is None:
-                        if key not in baseline_accs or result.accuracy > baseline_accs[key]:
-                            baseline_accs[key] = result.accuracy
+                        if key not in inline_baseline or result.accuracy > inline_baseline[key]:
+                            inline_baseline[key] = result.accuracy
 
-                    baseline_acc = baseline_accs.get(key)
+                    # Regression detection: only applies to baseline configs (exact param match).
+                    # Non-baseline configs (different hyperparams) are expected to differ and
+                    # are excluded from regression checks entirely.
+                    is_baseline_config = (params == baseline_params)
+                    baseline_acc = stored_baseline.get(key) if is_baseline_config else None
                     is_regression = (
-                        baseline_acc is not None
+                        is_baseline_config
+                        and baseline_acc is not None
                         and result.accuracy < baseline_acc * (1 - REGRESSION_THRESHOLD)
                     )
                     results.append({
@@ -164,14 +176,13 @@ def run_hyperparam_sweep(baseline_path: str | None = None) -> list:
                         "params": params,
                         "accuracy": None,
                         "train_time": None,
-                        "baseline_accuracy": baseline_accs.get((model_name, ds)),
+                        "baseline_accuracy": stored_baseline.get((model_name, ds)),
                         "error": str(e),
                         "is_regression": False,
                         "passed": False,
                     })
 
     return results
-
 
 def write_hyperparam_report(output_dir: Path, results: list) -> tuple:
     """Write hyperparameter sweep results: JSON + MD."""

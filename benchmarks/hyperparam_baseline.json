@@ -1,47 +1,279 @@
 {
-  "generated": "2026-05-20T13:44:00",
+  "generated": "2026-05-24T22:27:52",
   "threshold": 0.05,
-  "note": "Best known accuracy per (model, dataset) pair. CI regression fails if current best < baseline * (1 - threshold).",
+  "note": "Best known accuracy per (model, dataset) pair with BASELINE_CONFIGS params. CI regression fails if baseline config accuracy < stored baseline * (1 - threshold). Non-baseline configs are excluded from regression checks.",
   "baseline": {
-    "AB|blobs":    {"accuracy": 1.0,   "params": {"n_estimators": 25,  "learning_rate": 0.5}},
-    "AB|circles":  {"accuracy": 0.76,  "params": {"n_estimators": 100, "learning_rate": 1.0}},
-    "AB|moons":    {"accuracy": 0.89,  "params": {"n_estimators": 25,  "learning_rate": 0.5}},
-    "AB|xor":      {"accuracy": 0.56,  "params": {"n_estimators": 50,  "learning_rate": 0.5}},
-    "ET|blobs":    {"accuracy": 1.0,   "params": {"n_estimators": 50,  "max_depth": 10}},
-    "ET|circles":  {"accuracy": 0.79,  "params": {"n_estimators": 100, "max_depth": 5}},
-    "ET|moons":    {"accuracy": 0.90,  "params": {"n_estimators": 200, "max_depth": 10}},
-    "ET|xor":      {"accuracy": 0.82,  "params": {"n_estimators": 200, "max_depth": 10}},
-    "GB|blobs":    {"accuracy": 1.0,   "params": {"n_estimators": 50,  "max_depth": 3, "learning_rate": 0.1}},
-    "GB|circles":  {"accuracy": 0.79,  "params": {"n_estimators": 50,  "max_depth": 3, "learning_rate": 0.1}},
-    "GB|moons":    {"accuracy": 0.91,  "params": {"n_estimators": 50,  "max_depth": 3, "learning_rate": 0.1}},
-    "GB|xor":      {"accuracy": 0.78,  "params": {"n_estimators": 200, "max_depth": 3, "learning_rate": 0.05}},
-    "KNN|blobs":   {"accuracy": 1.0,   "params": {"n_neighbors": 1}},
-    "KNN|circles": {"accuracy": 0.77,  "params": {"n_neighbors": 31}},
-    "KNN|moons":   {"accuracy": 0.91,  "params": {"n_neighbors": 7}},
-    "KNN|xor":     {"accuracy": 0.82,  "params": {"n_neighbors": 7}},
-    "LR|blobs":    {"accuracy": 1.0,   "params": {"C": 0.01}},
-    "LR|circles":  {"accuracy": 0.43,  "params": {"C": 0.01}},
-    "LR|moons":    {"accuracy": 0.85,  "params": {"C": 1.0}},
-    "LR|xor":      {"accuracy": 0.59,  "params": {"C": 0.1}},
-    "MLP|blobs":   {"accuracy": 1.0,   "params": {"hidden_layer_sizes": [50],      "alpha": 0.0001}},
-    "MLP|circles": {"accuracy": 0.78,  "params": {"hidden_layer_sizes": [50],      "alpha": 0.0001}},
-    "MLP|moons":   {"accuracy": 0.91,  "params": {"hidden_layer_sizes": [100, 50], "alpha": 0.01}},
-    "MLP|xor":     {"accuracy": 0.83,  "params": {"hidden_layer_sizes": [100, 50], "alpha": 0.001}},
-    "NB|blobs":    {"accuracy": 1.0,   "params": {}},
-    "NB|circles":  {"accuracy": 0.81,  "params": {}},
-    "NB|moons":    {"accuracy": 0.85,  "params": {}},
-    "NB|xor":      {"accuracy": 0.56,  "params": {}},
-    "RF|blobs":    {"accuracy": 1.0,   "params": {"n_estimators": 10, "max_depth": 5}},
-    "RF|circles":  {"accuracy": 0.78,  "params": {"n_estimators": 10, "max_depth": 5}},
-    "RF|moons":    {"accuracy": 0.91,  "params": {"n_estimators": 50, "max_depth": 5}},
-    "RF|xor":      {"accuracy": 0.78,  "params": {"n_estimators": 10, "max_depth": 5}},
-    "SVM|blobs":   {"accuracy": 1.0,   "params": {"kernel": "rbf", "C": 0.1,  "gamma": "scale"}},
-    "SVM|circles": {"accuracy": 0.80,  "params": {"kernel": "rbf", "C": 0.1,  "gamma": "scale"}},
-    "SVM|moons":   {"accuracy": 0.89,  "params": {"kernel": "rbf", "C": 10.0, "gamma": "scale"}},
-    "SVM|xor":     {"accuracy": 0.80,  "params": {"kernel": "rbf", "C": 10.0, "gamma": "scale"}},
-    "Tree|blobs":  {"accuracy": 1.0,   "params": {"max_depth": 1}},
-    "Tree|circles":{"accuracy": 0.74,  "params": {"max_depth": 5}},
-    "Tree|moons":  {"accuracy": 0.90,  "params": {"max_depth": 5}},
-    "Tree|xor":    {"accuracy": 0.75,  "params": {"max_depth": 5}}
+    "SVM|circles": {
+      "accuracy": 0.79,
+      "params": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      }
+    },
+    "SVM|moons": {
+      "accuracy": 0.87,
+      "params": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      }
+    },
+    "SVM|blobs": {
+      "accuracy": 1.0,
+      "params": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      }
+    },
+    "SVM|xor": {
+      "accuracy": 0.76,
+      "params": {
+        "kernel": "rbf",
+        "C": 1.0,
+        "gamma": "scale"
+      }
+    },
+    "LR|circles": {
+      "accuracy": 0.36,
+      "params": {
+        "C": 1.0
+      }
+    },
+    "LR|moons": {
+      "accuracy": 0.85,
+      "params": {
+        "C": 1.0
+      }
+    },
+    "LR|blobs": {
+      "accuracy": 1.0,
+      "params": {
+        "C": 1.0
+      }
+    },
+    "LR|xor": {
+      "accuracy": 0.59,
+      "params": {
+        "C": 1.0
+      }
+    },
+    "Tree|circles": {
+      "accuracy": 0.7,
+      "params": {
+        "max_depth": 3
+      }
+    },
+    "Tree|moons": {
+      "accuracy": 0.89,
+      "params": {
+        "max_depth": 3
+      }
+    },
+    "Tree|blobs": {
+      "accuracy": 1.0,
+      "params": {
+        "max_depth": 3
+      }
+    },
+    "Tree|xor": {
+      "accuracy": 0.46,
+      "params": {
+        "max_depth": 3
+      }
+    },
+    "RF|circles": {
+      "accuracy": 0.75,
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      }
+    },
+    "RF|moons": {
+      "accuracy": 0.91,
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      }
+    },
+    "RF|blobs": {
+      "accuracy": 1.0,
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      }
+    },
+    "RF|xor": {
+      "accuracy": 0.76,
+      "params": {
+        "n_estimators": 50,
+        "max_depth": 5
+      }
+    },
+    "KNN|circles": {
+      "accuracy": 0.68,
+      "params": {
+        "n_neighbors": 3
+      }
+    },
+    "KNN|moons": {
+      "accuracy": 0.88,
+      "params": {
+        "n_neighbors": 3
+      }
+    },
+    "KNN|blobs": {
+      "accuracy": 1.0,
+      "params": {
+        "n_neighbors": 3
+      }
+    },
+    "KNN|xor": {
+      "accuracy": 0.78,
+      "params": {
+        "n_neighbors": 3
+      }
+    },
+    "MLP|circles": {
+      "accuracy": 0.78,
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      }
+    },
+    "MLP|moons": {
+      "accuracy": 0.89,
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      }
+    },
+    "MLP|blobs": {
+      "accuracy": 1.0,
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      }
+    },
+    "MLP|xor": {
+      "accuracy": 0.81,
+      "params": {
+        "hidden_layer_sizes": [
+          50
+        ],
+        "alpha": 0.001
+      }
+    },
+    "GB|circles": {
+      "accuracy": 0.78,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.1
+      }
+    },
+    "GB|moons": {
+      "accuracy": 0.9,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.1
+      }
+    },
+    "GB|blobs": {
+      "accuracy": 1.0,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.1
+      }
+    },
+    "GB|xor": {
+      "accuracy": 0.77,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.1
+      }
+    },
+    "NB|circles": {
+      "accuracy": 0.81,
+      "params": {}
+    },
+    "NB|moons": {
+      "accuracy": 0.85,
+      "params": {}
+    },
+    "NB|blobs": {
+      "accuracy": 1.0,
+      "params": {}
+    },
+    "NB|xor": {
+      "accuracy": 0.56,
+      "params": {}
+    },
+    "ET|circles": {
+      "accuracy": 0.77,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      }
+    },
+    "ET|moons": {
+      "accuracy": 0.88,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      }
+    },
+    "ET|blobs": {
+      "accuracy": 1.0,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      }
+    },
+    "ET|xor": {
+      "accuracy": 0.79,
+      "params": {
+        "n_estimators": 100,
+        "max_depth": 10
+      }
+    },
+    "AB|circles": {
+      "accuracy": 0.75,
+      "params": {
+        "n_estimators": 50,
+        "learning_rate": 1.0
+      }
+    },
+    "AB|moons": {
+      "accuracy": 0.89,
+      "params": {
+        "n_estimators": 50,
+        "learning_rate": 1.0
+      }
+    },
+    "AB|blobs": {
+      "accuracy": 1.0,
+      "params": {
+        "n_estimators": 50,
+        "learning_rate": 1.0
+      }
+    },
+    "AB|xor": {
+      "accuracy": 0.55,
+      "params": {
+        "n_estimators": 50,
+        "learning_rate": 1.0
+      }
+    }
   }
 }

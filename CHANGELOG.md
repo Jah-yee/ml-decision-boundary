@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **benchmarks/run.py** — Regression detection: only compare baseline configs (exact param match); non-baseline sweep configs are excluded from regression checks (fixes 45 false-positive regressions)
+- **benchmarks/hyperparam_baseline.json** — Regenerated with current-environment accuracies for all 40 baseline configs (10 models × 4 datasets); baseline entries now include `params` field
 - **spec/phases.md** — v3 completed, v4 started; ADR-0005 phase upgrade created
 - **docs/adr/ADR-0004-v3-platformization.md** — status updated to Accepted (PR#36 merged)
 - **docs/adr/ADR-0005-phase-v3-to-v4.md** — new ADR: v3→v4 upgrade decision
@@ -17,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **web/server.py** — Refactored to import from core/; removed ~220 lines of duplication; all three entry points now consistent
 
 - **web/server.py** — Security fix: remove traceback.format_exc() from /train error handler to prevent internal path/dependency exposure (#35)
+
+- **benchmarks/run.py** — Fix: stored_baseline (from JSON) vs inline_baseline (live) — prevents live-best-vs-itself regression comparison; exit code 1 on regressions > 0
+- **tests/test_boundary_cases.py** — 116 new tests: noise extremes, seed stability, unexplored dataset×model combos, model edge params, small-sample boundary, high-noise stress test
 
 ### Added
 

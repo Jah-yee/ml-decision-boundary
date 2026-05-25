@@ -144,3 +144,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **benchmarks/reports/** — 新增每日 benchmark 报告归档（2026-05-05 + 2026-05-06）：JSON + Markdown 双格式，记录 52 个实验结果
 - **.github/workflows/ci.yml** — 新增 GitHub Actions CI 流程：P0 compileall + P1 pytest + P2 benchmark smoke，带 pip cache 优化
 - **CONTRIBUTING.md** — 新增贡献者指南：快速开始、P0/P1/P2 质量门槛、分支/PR 规范、commit 格式、benchmark 规范
+
+## [Unreleased] — 2026-05-25 Evening
+
+### Added
+- **scripts/generate_changelog.py** — Conventional commit parser: reads git log, outputs Keep a Changelog formatted entries. Supports `--since/--from/--dry-run/--output`. Integrates with CI or release workflow.
+- **docs/adr/ADR-0007-v5-dod.md** — v5 Automation & Documentation phase DoD proposal: 3 candidate items (CHANGELOG automation, pip-audit security CI, README/SPEC.md consistency check)
+
+### Changed
+- **CONTRIBUTING.md** — P1 pytest expected count updated to 216 (was 100), P2 command corrected to `python3 -m benchmarks --quick`
+- **REPRODUCE.md** — Last verified date bumped to 2026-05-25, Expected pytest count updated to 216 passed
+- **PR#35 closed** — fix/web-error-traceback-leak: fix already in master (commit 06f663b via PR#37), PR closed as duplicate
+
+### v5 Phase Started
+- v4 Reproducibility & Robustness completed (ADR-0006, 2026-05-25)
+- v5 Automation & Documentation phase initiated
+- ADR-0007: v5 DoD 细化 proposal created (3 items)

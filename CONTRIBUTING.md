@@ -32,8 +32,8 @@ pytest tests/ -q
 | 层级 | 命令 | 通过标准 |
 |------|------|---------|
 | **P0** | `python3 -m py_compile $(find . -name "*.py" -not -path "*/test*" -not -path "*/.pip-packages/*")` | 无错误 |
-| **P1** | `pytest tests/ -q --tb=short` | 100% pass |
-| **P2** | `python3 benchmarks/run.py --smoke` | Accuracy >= threshold |
+| **P1** | `python3 -m pytest tests/ -q --tb=short` | 100% pass (216 tests, verified 2026-05-25) |
+| **P2** | `python3 -m benchmarks --quick` | Accuracy >= threshold |
 
 > **注意**: 本地验证后再提交，CI 失败会影响所有协作者。
 

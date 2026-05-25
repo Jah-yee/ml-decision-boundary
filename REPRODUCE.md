@@ -2,7 +2,7 @@
 
 Quick reference for reproducing experiments and benchmarks in this repository.
 
-**Last verified**: 2026-05-20 (v4 Reproducibility & Robustness phase)
+**Last verified**: 2026-05-25 (v5 Automation & Documentation phase)
 
 ---
 
@@ -30,7 +30,7 @@ python3 -m py_compile $(find . -name "*.py" -not -path "*/test*" -not -path "*/.
 
 # P1 — Unit tests
 pytest tests/ -q --tb=short
-# Expected: 100 passed (verified 2026-05-20)
+# Expected: 216 passed (verified 2026-05-25)
 
 # P2 — Benchmark smoke (CI gate)
 python3 -m benchmarks --quick
@@ -258,4 +258,4 @@ python3 -c "from core.datasets import DATASET_GENERATORS; from core.train_utils 
 
 ---
 
-*Last verified: 2026-05-20*
+*Last verified: 2026-05-25*

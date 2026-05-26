@@ -88,8 +88,38 @@ pytest>=7.0.0       # 测试框架
 
 ---
 
-## 6. 待办（与依赖相关）
+## 6. 安全审计
+
+### 6.1 pip-audit 集成
+
+v5 阶段（2026-05-26）起，依赖安全审计已集成到 CI pipeline：
+
+- **CI job**: `security-audit`（`.github/workflows/ci.yml`）
+- **工具**: `pip-audit -r requirements.lock`
+- **频率**: 每次 push 和 PR merge 时自动运行
+- **阈值**: CI 必须通过（发现漏洞则 job 失败）
+
+### 6.2 已知可接受漏洞（2026-05-26）
+
+pip-audit 可能报告系统级依赖漏洞（如 `cryptography`, `jinja2` 的传递依赖），以下情况可接受：
+
+1. 漏洞来自 `requirements.lock` 中未声明的传递依赖
+2. 漏洞已在 [OSV](https://osv.dev/) 标记为不影响本项目用途
+3. 修复会导致 `pip-compile` 破坏性变更（需评审）
+
+### 6.3 本地审计
+
+```bash
+python3 scripts/security_audit.py
+```
+
+⚠️ 本地审计会扫描整个 Python 环境（包括系统包），结果可能比 CI 更严格。以 CI 结论为准。
+
+---
+
+## 7. 待办（与依赖相关）
 
 - [ ] 评估 sklearn 1.3+ 的 `MLPClassifier` max_iter 默认值变化（已在本仓库设为 2000）
 - [x] 添加 `pip-compile` 或 `pip-lock` 流程（防止传递依赖隐性升级）✅ (2026-05-02)
+- [x] 集成 pip-audit 到 CI 安全审计 ✅ (2026-05-26)
 - [ ] 监控 Vercel cold start 时间（当前 < 3s，若超 10s 需砍 matplotlib）

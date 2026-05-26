@@ -1,7 +1,7 @@
 # ADR-0007 — v5 DoD 细化：Automation & Documentation
 
 **日期**: 2026-05-25
-**状态**: Proposed
+**状态**: Accepted
 **决策者**: 太子
 
 ---

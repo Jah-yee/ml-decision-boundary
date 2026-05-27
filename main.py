@@ -4,6 +4,28 @@ ML Decision Boundary Visualizer
 Real-time visualization of how different ML models partition feature space
 """
 
+# Re-exported from core for backward compatibility with tests/ and benchmarks/
+# The canonical implementations live in core/datasets.py and core/train_utils.py
+
+from core.datasets import (
+    make_circles,
+    make_moons,
+    make_blobs,
+    make_xor,
+    make_s_curve,
+    DATASET_GENERATORS,
+)
+from core.train_utils import (
+    build_model,
+    slider_to_params,
+    compute_boundary_grid,
+    get_model_info_dict,
+)
+
+# Import sklearn directly for main.py-only helpers (visualization, experiment orchestration)
+from sklearn.datasets import make_circles as sk_circles, make_moons as sk_moons, make_blobs as sk_blobs, make_s_curve as sk_s_curve
+from sklearn.preprocessing import KBinsDiscretizer
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -157,59 +179,13 @@ class ModelResult:
 
 
 def generate_dataset(dataset_name: str, n_samples: int = 500, noise: float = 0.3, seed: int = 42) -> Tuple:
-    """Generate synthetic classification datasets"""
-    np.random.seed(seed)
+    """Generate synthetic classification datasets.
 
-    datasets = {
-        "circles": lambda: make_circles(n_samples, noise, seed),
-        "moons": lambda: make_moons(n_samples, noise, seed),
-        "blobs": lambda: make_blobs(n_samples, noise, seed),
-        "xor": lambda: make_xor(n_samples, noise, seed),
-        "s_curve": lambda: make_s_curve(n_samples, noise, seed),
-    }
-
-    if dataset_name not in datasets:
+    Delegates to the canonical implementations in core/datasets.py.
+    """
+    if dataset_name not in DATASET_GENERATORS:
         raise ValueError(f"Unknown dataset: {dataset_name}")
-
-    return datasets[dataset_name]()
-
-
-def make_circles(n, noise, seed):
-    from sklearn.datasets import make_circles as sk_circles
-    X, y = sk_circles(n_samples=n, noise=noise, random_state=seed, factor=0.5)
-    return X, y
-
-
-def make_moons(n, noise, seed):
-    from sklearn.datasets import make_moons as sk_moons
-    X, y = sk_moons(n_samples=n, noise=noise, random_state=seed)
-    return X, y
-
-
-def make_blobs(n, _noise, seed):
-    from sklearn.datasets import make_blobs
-    X, y = make_blobs(n_samples=n, centers=2, random_state=seed, cluster_std=1.5)
-    return X, y
-
-
-def make_xor(n, noise, seed):
-    np.random.seed(seed)
-    X = np.random.randn(n, 2)
-    y = ((X[:, 0] > 0) ^ (X[:, 1] > 0)).astype(int)
-    # Add noise
-    X += np.random.randn(n, 2) * noise
-    return X, y
-
-
-def make_s_curve(n, _noise, seed):
-    from sklearn.datasets import make_s_curve as sk_s_curve
-    from sklearn.preprocessing import KBinsDiscretizer
-    X, y = sk_s_curve(n_samples=n, noise=0.0, random_state=seed)
-    # Project 3D S-curve to 2D (keep first two dimensions for decision boundary)
-    # y is continuous — bin it into 2 classes for binary classification
-    kbd = KBinsDiscretizer(n_bins=2, encode='ordinal', strategy='quantile')
-    y_bin = kbd.fit_transform(y.reshape(-1, 1)).ravel().astype(int)
-    return X[:, :2], y_bin
+    return DATASET_GENERATORS[dataset_name](n_samples, noise, seed)
 
 
 def train_model(model_type: str, params: dict, X_train, y_train) -> Tuple:

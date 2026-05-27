@@ -7,15 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **scripts/generate_changelog.py** — Conventional commit parser: reads git log, outputs Keep-a-Changelog format; supports --since/--from/--dry-run/--output
-- **scripts/check_readme_consistency.py** — README/SPEC.md consistency checker: validates CLI args, models, datasets, quickstart commands against code
-- **scripts/security_audit.py** — pip-audit wrapper for local security auditing
-- **docs/adr/ADR-0007-v5-dod.md** — v5 DoD proposal: 3 items (CHANGELOG auto, pip-audit CI, README consistency)
-
 ### Changed
 
+- **main.py** — delegate dataset generation to `core/datasets.py`; removed 5 local function copies (`make_circles/moons/blobs/xor/s_curve`), now calls `DATASET_GENERATORS` dispatcher directly; backward compatibility preserved for tests/ and benchmarks/
 - **docs/DEPENDENCY_POLICY.md** — Added Section 6: pip-audit integration, known acceptable vulns, local audit guide
 - **ADR-0007-v5-dod.md** — Status: Proposed → Accepted (v5 DoD items 1-3 all implemented)
 

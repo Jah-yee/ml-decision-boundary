@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **scripts/generate_changelog.py** — Conventional commit parser: reads git log, outputs Keep-a-Changelog format; supports --since/--from/--dry-run/--output
+- **scripts/check_readme_consistency.py** — README/SPEC.md consistency checker: validates CLI args, models, datasets, quickstart commands against code
+- **scripts/security_audit.py** — pip-audit wrapper for local security auditing
+- **docs/adr/ADR-0007-v5-dod.md** — v5 DoD proposal: 3 items (CHANGELOG auto, pip-audit CI, README consistency)
+
+### Changed
+
+- **docs/DEPENDENCY_POLICY.md** — Added Section 6: pip-audit integration, known acceptable vulns, local audit guide
+- **ADR-0007-v5-dod.md** — Status: Proposed → Accepted (v5 DoD items 1-3 all implemented)
+
+### CI
+
+- **ci.yml** — Added `security-audit` job: pip-audit -r requirements.lock
+- **ci.yml** — Added `quality-checks` job: check_readme_consistency.py
+- **ci.yml** — Node.js 20 → 24 migration notes (deprecation warnings)
+
 - **benchmarks/run.py** — Regression detection: only compare baseline configs (exact param match); non-baseline sweep configs are excluded from regression checks (fixes 45 false-positive regressions)
 - **benchmarks/hyperparam_baseline.json** — Regenerated with current-environment accuracies for all 40 baseline configs (10 models × 4 datasets); baseline entries now include `params` field
 - **spec/phases.md** — v3 completed, v4 started; ADR-0005 phase upgrade created

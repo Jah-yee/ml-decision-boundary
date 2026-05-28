@@ -41,8 +41,8 @@ python main.py
 ## ✨ Features
 
 ### 🔬 Core Visualization
-- **6 real ML models** — SVM, Logistic Regression, Decision Tree, Random Forest, KNN, Neural Network
-- **4 synthetic datasets** — Circles, Moons, Blobs, XOR (all via `sklearn.datasets`)
+- **10 models** — SVM, Logistic Regression, Decision Tree, Random Forest, KNN, Neural Network
+- **5 datasets** — Circles, Moons, Blobs, XOR, S-curve (all via `sklearn.datasets`)
 - **Decision boundary rendering** — matplotlib contours + meshgrid
 - **Parameter sweeps** — watch boundaries morph as you tune C, depth, k...
 
@@ -196,8 +196,8 @@ Run `python main.py` to reproduce:
 | Best accuracy | 100% (XOR + Decision Tree depth=15) |
 | Fastest model | KNN (~0.001s per fold) |
 | Slowest model | MLP (~0.4s per fold) |
-| Models tested | 6 |
-| Datasets | 4 |
+| Models tested | 10 |
+| Datasets | 5 |
 
 Full results in `output/experiment_results.json`.
 

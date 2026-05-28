@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **benchmarks/run.py** — Regression detection: only compare baseline configs (exact param match); non-baseline sweep configs are excluded from regression checks (fixes 45 false-positive regressions)
 - **benchmarks/hyperparam_baseline.json** — Regenerated with current-environment accuracies for all 40 baseline configs (10 models × 4 datasets); baseline entries now include `params` field
+- **core/train_utils.py** — Remove duplicate build_model definition; consolidate lazy + direct factories into direct imports at module top; shrinks file by ~50 lines (ADR-0009 v6 DoD)
 - **spec/phases.md** — v3 completed, v4 started; ADR-0005 phase upgrade created
 - **docs/adr/ADR-0004-v3-platformization.md** — status updated to Accepted (PR#36 merged)
 - **docs/adr/ADR-0005-phase-v3-to-v4.md** — new ADR: v3→v4 upgrade decision

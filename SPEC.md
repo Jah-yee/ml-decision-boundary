@@ -13,7 +13,12 @@ ml-decision-boundary/
 ├── SPEC.md              ← 本文件：核心规范入口
 ├── spec/
 │   ├── CHARTER.md       ← 愿景、使命、质量门槛
-│   └── phases.md        ← 阶段定义（v0/v1/v2/v3）
+│   └── phases.md        ← 阶段定义（v0 → v6）
+├── docs/
+│   ├── AGENT_CRON_PLAYBOOK.md   ← Owner Agent 执行手册
+│   ├── DEPENDENCY_POLICY.md      ← 依赖治理政策
+│   ├── REPRODUCE.md              ← 可复现性指南
+│   └── adr/                      ← 架构决策记录（ADR-0001 ~ ADR-0009）
 ├── docs/
 │   ├── AGENT_CRON_PLAYBOOK.md   ← Owner Agent 执行手册
 │   ├── DEPENDENCY_POLICY.md      ← 依赖治理政策
@@ -54,7 +59,7 @@ ml-decision-boundary/
 遵循 `docs/DEPENDENCY_POLICY.md` 规定的 P0/P1 分级。
 
 ### 2. 阶段演进
-遵循 `spec/phases.md` 定义的 v0 → v1 → v2 → v3 阶段路线图。
+遵循 `spec/phases.md` 定义的 v0 → v6 阶段路线图。
 
 ### 3. 可复现性
 所有实验必须可通过 `docs/REPRODUCE.md` 中的命令复现。
@@ -71,3 +76,8 @@ ml-decision-boundary/
 | 版本 | 日期 | 变更 |
 |------|------|------|
 | v1.0.0 | 2026-05-03 | 初始版本：文档结构调整（spec/ → docs/） |
+| v1.1.0 | 2026-05-28 | v6 阶段启动：更新 phases.md 路径说明，ADR 编号范围 |
+
+**版本历史**：
+- v1.0.0 (2026-05-03): 初始版本
+- v1.1.0 (2026-05-28): v6 Stability & Extensibility 启动，更新 SPEC.md 阶段范围和 ADR 计数

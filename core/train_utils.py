@@ -8,60 +8,37 @@ All live here once; api/train.py, web/server.py, main.py import from here.
 
 import numpy as np
 
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    GradientBoostingClassifier,
+    ExtraTreesClassifier,
+    AdaBoostClassifier,
+)
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.naive_bayes import GaussianNB
+
 
 def build_model(model_name, params):
     """Factory: build an sklearn estimator from name + keyword params."""
     factories = {
-        'SVM':  lambda: __import__('sklearn.svm', fromlist=['SVC']).SVC(**params, random_state=42),
-        'LR':   lambda: __import__('sklearn.linear_model', fromlist=['LogisticRegression']).LogisticRegression(**params, random_state=42, max_iter=1000),
-        'Tree': lambda: __import__('sklearn.tree', fromlist=['DecisionTreeClassifier']).DecisionTreeClassifier(**params, random_state=42),
-        'RF':   lambda: __import__('sklearn.ensemble', fromlist=['RandomForestClassifier']).RandomForestClassifier(**params, random_state=42),
-        'KNN':  lambda: __import__('sklearn.neighbors', fromlist=['KNeighborsClassifier']).KNeighborsClassifier(**params),
-        'MLP':  lambda: __import__('sklearn.neural_network', fromlist=['MLPClassifier']).MLPClassifier(**params, random_state=42, max_iter=500),
-        'NB':   lambda: __import__('sklearn.naive_bayes', fromlist=['GaussianNB']).GaussianNB(**params),
-        'GB':   lambda: __import__('sklearn.ensemble', fromlist=['GradientBoostingClassifier']).GradientBoostingClassifier(**params, random_state=42),
-        'ET':   lambda: __import__('sklearn.ensemble', fromlist=['ExtraTreesClassifier']).ExtraTreesClassifier(**params, random_state=42),
-        'AB':   lambda: __import__('sklearn.ensemble', fromlist=['AdaBoostClassifier']).AdaBoostClassifier(**params, random_state=42, algorithm='SAMME'),
+        'SVM':  lambda: SVC(**params, random_state=42),
+        'LR':   lambda: LogisticRegression(**params, random_state=42, max_iter=1000),
+        'Tree': lambda: DecisionTreeClassifier(**params, random_state=42),
+        'RF':   lambda: RandomForestClassifier(**params, random_state=42),
+        'KNN':  lambda: KNeighborsClassifier(**params),
+        'MLP':  lambda: MLPClassifier(**params, random_state=42, max_iter=500),
+        'NB':   lambda: GaussianNB(**params),
+        'GB':   lambda: GradientBoostingClassifier(**params, random_state=42),
+        'ET':   lambda: ExtraTreesClassifier(**params, random_state=42),
+        'AB':   lambda: AdaBoostClassifier(**params, random_state=42, algorithm='SAMME'),
     }
     if model_name not in factories:
         raise ValueError(f'Unknown model: {model_name}')
     return factories[model_name]()
-
-
-# ── Alternative: direct imports (faster, same behaviour) ────────────────────
-# Use direct sklearn imports when available — avoids lazy-loading overhead.
-try:
-    from sklearn.svm import SVC
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.tree import DecisionTreeClassifier
-    from sklearn.ensemble import (
-        RandomForestClassifier,
-        GradientBoostingClassifier,
-        ExtraTreesClassifier,
-        AdaBoostClassifier,
-    )
-    from sklearn.neighbors import KNeighborsClassifier
-    from sklearn.neural_network import MLPClassifier
-    from sklearn.naive_bayes import GaussianNB
-
-    def build_model(model_name, params):
-        factories = {
-            'SVM':  lambda: SVC(**params, random_state=42),
-            'LR':   lambda: LogisticRegression(**params, random_state=42, max_iter=1000),
-            'Tree': lambda: DecisionTreeClassifier(**params, random_state=42),
-            'RF':   lambda: RandomForestClassifier(**params, random_state=42),
-            'KNN':  lambda: KNeighborsClassifier(**params),
-            'MLP':  lambda: MLPClassifier(**params, random_state=42, max_iter=500),
-            'NB':   lambda: GaussianNB(**params),
-            'GB':   lambda: GradientBoostingClassifier(**params, random_state=42),
-            'ET':   lambda: ExtraTreesClassifier(**params, random_state=42),
-            'AB':   lambda: AdaBoostClassifier(**params, random_state=42, algorithm='SAMME'),
-        }
-        if model_name not in factories:
-            raise ValueError(f'Unknown model: {model_name}')
-        return factories[model_name]()
-except ImportError:
-    pass  # Will be available at runtime
 
 
 def slider_to_params(model_name, p1, p2):

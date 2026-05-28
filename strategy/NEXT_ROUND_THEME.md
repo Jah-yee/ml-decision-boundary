@@ -1,14 +1,12 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v21 (v5 完成, v6 进行中)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v22 (v6 进行中)
 
-**更新时间：** 2026-05-27 22:15 CST
-**版本：** v21 (v5 全部完成, v6 进行中)
+**更新时间：** 2026-05-28 21:47 CST
+**版本：** v22 (v6 第一天，进行中)
 **维护人：** 太子
 
 ---
 
 ## 📋 当前阶段状态
-
-### v1-v5 完成摘要
 
 | Phase | 状态 | 完成日期 |
 |-------|------|----------|
@@ -18,76 +16,66 @@
 | v3 Platform | ✅ | 2026-05-19 |
 | v4 Reproducibility & Robustness | ✅ | 2026-05-24 |
 | v5 Automation & Documentation | ✅ | 2026-05-27 |
-| v6 Stability & Extensibility | 进行中 | 2026-05-27 |
+| v6 Stability & Extensibility | 进行中 | 2026-05-28（启动） |
 
 ---
 
-## v5 DoD（来自 ADR-0007）
-
-### v5 DoD 候选项目（3 项，已全部完成 ✅）
+## v6 DoD（来自 ADR-0009）
 
 | # | DoD 项目 | 验证标准 | 状态 |
 |---|---------|---------|------|
-| 1 | CHANGELOG 自动化生成 | `scripts/generate_changelog.py` 成功运行 | ✅ 完成（PR#38）|
-| 2 | 依赖安全审核 CI | pip-audit 集成到 CI，security-audit job 通过 | ✅ 完成（PR#39）|
-| 3 | README/SPEC.md 一致性 CI | `scripts/check_readme_consistency.py` 集成到 CI quality-checks | ✅ 完成（PR#39）|
-
-**排除项目**：GitHub Release 自动化（推迟到 v6）
-
----
-
-## ✅ 本轮完成（2026-05-27 晚场）
-
-### main.py 数据集去重 + PR#41 创建
-
-**PR#41**：refactor: delegate dataset generation to core/datasets.py
-- 删除 5 个本地函数：`make_circles`, `make_moons`, `make_blobs`, `make_xor`, `make_s_curve`（-51 行）
-- `generate_dataset()` 改用 `core.datasets.DATASET_GENERATORS` dispatch
-- 新增 re-export 块，保持 tests/ 和 benchmarks/ 向后兼容
-- CI 全部 job 通过（quality-gates, benchmark, depth-sweep, hyperparam-sweep, security-audit, quality-checks）
+| 1 | test_api_contract.py respx/httpx 冲突修复 | pytest 可运行（本地 env issue，根因已定位） | P1（待修复） |
+| 2 | core/train_utils.py build_model 重复定义清理 | 文件无重复 def，从 192→140 行 | ✅ 已完成（PR#42） |
+| 3 | API contract test 覆盖增强 | TBD | P2 |
+| 4 | Release 自动化（GitHub Release） | TBD | P2 |
+| 5 | README/SPEC.md 同步 v6 | 同步 v5 完成 + v6 阶段定义 | P3 |
 
 ---
 
-## 🎯 v5 Non-Goals（明确不做）
+## ✅ 本轮完成（2026-05-28 晚场）
 
-- 多语言 SDK
-- AutoML / 超参搜索平台
-- 模型生产部署托管
+### PR 合并
+
+- **PR#40**：v5→v6 升级 docs — 已合并
+- **PR#41**：main.py 数据集去重 — 已合并
+- **PR#42**：train_utils dedup + ADR-0009 — 待合并（冲突已解决）
+
+### respx/httpx 冲突分析
+
+**问题**：respx 0.23.1 依赖 httpx.BaseTransport，已在 httpx 0.28.1 中删除
+**影响**：本地 pytest 无法收集测试（CI 不受影响，CI 只安装锁定依赖）
+**修复方案**：升级 respx 到 0.24.0+，或在 conftest.py 中隔离
+
+---
+
+## 📊 当前 PR 状态
+
+| PR | 标题 | 状态 |
+|----|------|------|
+| #42 | train_utils dedup + ADR-0009 | OPEN（rebase 解决冲突后待 merge） |
+
+---
+
+## 技术债务
+
+| # | 问题 | 影响 | 状态 |
+|---|------|------|------|
+| C1 | respx/httpx 本地 env 冲突 | pytest 无法本地运行 | P1（待修复） |
+| C2 | core/train_utils.py 重复 def | 死代码 | ✅ 已清理 |
+| C3 | api/health.py 缺 docstring | P3 | 未处理 |
 
 ---
 
 ## 下轮待办
 
-1. [ ] **PR#41 merge**（等待 CI + review）— main.py 数据集去重
-2. [ ] **PR#40 merge**（等待 review）— v5→v6 升级 docs
-3. [ ] **v6 DoD 细化**（来源：ADR-0008）— 候选：测试覆盖增强 / API contract test / Release 自动化
-4. [ ] **respx/httpx 依赖冲突修复**（来源：本轮发现）— env issue, not code issue
-5. [ ] **docstring 补充**（来源：本轮扫描，中优先级）— api/train.py, scripts/*.py 等 13 个文件
-6. [ ] **清理未跟踪文件** strategy/runs/2026-05-22-1004.md
-
----
-
-## 📊 CI 状态
-
-- master: 所有 job 通过
-- refactor/deduplicate-main-py (PR#41): 所有 job 通过 ✅
-- daily/v5-to-v6-upgrade (PR#40): OPEN，等待 review
-
----
-
-## 已知技术债务
-
-| # | 问题 | 影响 | 优先级 |
-|---|------|------|--------|
-| 1 | respx/httpx 依赖冲突 | test_api_contract.py 等无法运行 | P2 |
-| 2 | 13 个核心文件缺少 docstring | API 文档可读性 | P2 |
-| 3 | core/train_utils.py 有重复的 build_model 定义（lazy + direct import） | 死代码 | P3 |
+1. [ ] **PR#42 merge** — train_utils dedup + ADR-0009
+2. [ ] **respx/httpx 修复**（ADR-0009 P1）— 方案：升级 respx 或 conftest 隔离
+3. [ ] **API contract test 覆盖增强**（ADR-0009 P2）— TBD
+4. [ ] **README/SPEC.md v6 同步**（ADR-0009 P3）— 等 PR#42 合并后做
 
 ---
 
 **版本历史**：
-- v21 (2026-05-27 22:15): main.py 数据集去重完成，PR#41 创建，技术债务清单
-- v20 (2026-05-27 10:21): v5 全部完成，v6 启动，ADR-0008 创建，PR#40 open
-- v19 (2026-05-26 09:50): v5 DoD 全部 3 项完成，PR#39 合并
-- v18 (2026-05-25 21:50): v5 DoD 细化完成，ADR-0007 创建，PR#38 创建
-- v17 (2026-05-25 09:50): v5 阶段启动
+- v22 (2026-05-28 21:47): 晚场 — PR#40/41 合并，PR#42 rebase 冲突解决
+- v22 (2026-05-28 10:20): v6 启动，ADR-0009 完成，PR#42 open
+- v21 (2026-05-27 22:15): main.py 去重完成，v5 全部完成，v6 启动

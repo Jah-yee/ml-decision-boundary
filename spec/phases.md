@@ -1,7 +1,7 @@
 # phases.md — 阶段定义
 
-**版本**: v0.1 (Created 2026-04-26)
-**更新**: v4 阶段添加 (2026-05-19)
+**版本**: v0.2 (Created 2026-04-26, Updated 2026-05-27)
+**更新**: v5 阶段完成 + v6 阶段添加 (2026-05-27)
 
 ---
 
@@ -34,7 +34,7 @@
 
 ---
 
-## 当前阶段: v2 — Model & Data Expansion
+## v2 — Model & Data Expansion (已完成 ✅)
 
 **入口条件**: v1 DoD 全部完成 ✅
 
@@ -70,20 +70,46 @@
 
 ---
 
-## 当前阶段: v5 — Automation & Documentation (规划中)
+## v4 — Reproducibility & Robustness (已完成 ✅)
 
 **入口条件**: v3 DoD 全部完成 ✅ + ADR-0004 Accepted + ADR-0005 Accepted
 
 **本阶段 DoD**:
 - [x] ADR-0005: Phase v3 → v4 升级判定 ✅ (2026-05-19)
-- [x] v4 DoD 项目（全部完成 ✅）
-  - [x] REPRODUCE.md v4 update ✅ (2026-05-20)
-  - [x] Tree depth sensitivity matrix CI integration ✅ (2026-05-20)
-  - [x] Hyperparam sweep regression detection automation ✅ (PR#37, 2026-05-24)
-  - [x] Platform boundary case test coverage ✅ (PR#37, 2026-05-24)
-- [x] ADR-0006: Phase v4 → v5 升级判定 ✅ (2026-05-25)
+- [x] REPRODUCE.md v4 update ✅ (2026-05-20)
+- [x] Tree depth sensitivity matrix CI integration ✅ (2026-05-20)
+- [x] Hyperparam sweep regression detection automation ✅ (PR#37, 2026-05-24)
+- [x] Platform boundary case test coverage ✅ (PR#37, 2026-05-24)
 
-**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 进行中**
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅**
+
+---
+
+## v5 — Automation & Documentation (已完成 ✅)
+
+**入口条件**: v3 DoD 全部完成 ✅ + ADR-0004 Accepted + ADR-0005 Accepted
+
+**本阶段 DoD**:
+- [x] ADR-0006: Phase v4 → v5 升级判定 ✅ (2026-05-25)
+- [x] CHANGELOG 自动化生成 ✅ (PR#38, 2026-05-25)
+- [x] 依赖安全审核 CI（pip-audit 集成）✅ (PR#39, 2026-05-26)
+- [x] README/SPEC.md 一致性 CI ✅ (PR#39, 2026-05-26)
+- [x] ADR-0007: v5 DoD 细化 → Accepted ✅ (2026-05-26)
+- [x] ADR-0008: Phase v5 → v6 升级判定 ✅ (2026-05-27)
+
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅**
+
+---
+
+## 当前阶段: v6 — Stability & Extensibility (进行中)
+
+**入口条件**: v5 DoD 全部完成 ✅ + ADR-0007 Accepted + ADR-0008 Accepted
+
+**本阶段 DoD**（待细化）:
+- [ ] ADR-0008: Phase v5 → v6 升级判定 ✅ (2026-05-27)
+- [ ] v6 DoD 项目（TBD）
+
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 进行中**
 
 ---
 

@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v19 (v5 DoD 完成)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v20 (v5 完成, v6 启动)
 
-**更新时间：** 2026-05-26 09:50 CST
-**版本：** v19 (v5 DoD 2/3 完成)
+**更新时间：** 2026-05-27 10:21 CST
+**版本：** v20 (v5 全部完成, v6 进行中)
 **维护人：** 太子
 
 ---
@@ -17,7 +17,8 @@
 | v2 Model & Data Expansion | ✅ | 2026-05-06 |
 | v3 Platform | ✅ | 2026-05-19 |
 | v4 Reproducibility & Robustness | ✅ | 2026-05-24 |
-| v5 Automation & Documentation | 进行中 | 2026-05-26 |
+| v5 Automation & Documentation | ✅ | 2026-05-27 |
+| v6 Stability & Extensibility | 进行中 | 2026-05-27 |
 
 ---
 
@@ -62,20 +63,21 @@
 
 ## 下轮待办
 
-1. [ ] v5 阶段总结 + v6 阶段规划
-2. [ ] ADR-0007 状态更新为 Accepted
-3. [ ] DEPENDENCY_POLICY.md 反映 pip-audit 集成
+1. [ ] v6 DoD 细化（候选：测试覆盖增强 / API contract test / Release 自动化）
+2. [ ] v6 执行规划（5 分叉选 1-2 个深入）
+3. [ ] SPEC.md 更新 phases.md 引用（v3 → v6）
 
 ---
 
 ## 📊 CI 状态
 
-- master: 所有 job 通过（PR#39 merge 后触发）
-- daily/v5-security-readme-ci: 已合并并删除
+- master: 所有 job 通过
+- daily/v5-to-v6-upgrade: PR#40 open（等待 review）
 
 ---
 
 **版本历史**：
+- v20 (2026-05-27 10:21): v5 全部完成，v6 启动，ADR-0008 创建，PR#40 open
 - v19 (2026-05-26 09:50): v5 DoD 全部 3 项完成，PR#39 合并
 - v18 (2026-05-25 21:50): v5 DoD 细化完成，ADR-0007 创建，PR#38 创建
 - v17 (2026-05-25 09:50): v5 阶段启动

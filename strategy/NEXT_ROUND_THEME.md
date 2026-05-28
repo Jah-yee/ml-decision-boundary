@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v20 (v5 完成, v6 启动)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v21 (v5 完成, v6 进行中)
 
-**更新时间：** 2026-05-27 10:21 CST
-**版本：** v20 (v5 全部完成, v6 进行中)
+**更新时间：** 2026-05-27 22:15 CST
+**版本：** v21 (v5 全部完成, v6 进行中)
 **维护人：** 太子
 
 ---
@@ -32,24 +32,19 @@
 | 2 | 依赖安全审核 CI | pip-audit 集成到 CI，security-audit job 通过 | ✅ 完成（PR#39）|
 | 3 | README/SPEC.md 一致性 CI | `scripts/check_readme_consistency.py` 集成到 CI quality-checks | ✅ 完成（PR#39）|
 
-**排除项目**：GitHub Release 自动化（推迟到 v5 后期）
+**排除项目**：GitHub Release 自动化（推迟到 v6）
 
 ---
 
-## ✅ 本轮完成（2026-05-26 早场）
+## ✅ 本轮完成（2026-05-27 晚场）
 
-### v5 DoD 项目 2 & 3 完成 + PR#39 合并
+### main.py 数据集去重 + PR#41 创建
 
-**PR#39**：feat: ADR-0007 DoD items 2 & 3 — pip-audit CI + README consistency check
-- `.github/workflows/ci.yml`：新增 `security-audit` + `quality-checks` jobs
-- `scripts/check_readme_consistency.py`：README 与 main.py argparse 一致性检查（247 行）
-- `scripts/security_audit.py`：pip-audit 本地 wrapper
+**PR#41**：refactor: delegate dataset generation to core/datasets.py
+- 删除 5 个本地函数：`make_circles`, `make_moons`, `make_blobs`, `make_xor`, `make_s_curve`（-51 行）
+- `generate_dataset()` 改用 `core.datasets.DATASET_GENERATORS` dispatch
+- 新增 re-export 块，保持 tests/ 和 benchmarks/ 向后兼容
 - CI 全部 job 通过（quality-gates, benchmark, depth-sweep, hyperparam-sweep, security-audit, quality-checks）
-
-**v5 DoD 全部 3 项完成**：
-- [x] CHANGELOG 自动化（PR#38）
-- [x] 依赖安全审核 CI（PR#39）
-- [x] README/SPEC.md 一致性 CI（PR#39）
 
 ---
 
@@ -63,20 +58,35 @@
 
 ## 下轮待办
 
-1. [ ] v6 DoD 细化（候选：测试覆盖增强 / API contract test / Release 自动化）
-2. [ ] v6 执行规划（5 分叉选 1-2 个深入）
-3. [ ] SPEC.md 更新 phases.md 引用（v3 → v6）
+1. [ ] **PR#41 merge**（等待 CI + review）— main.py 数据集去重
+2. [ ] **PR#40 merge**（等待 review）— v5→v6 升级 docs
+3. [ ] **v6 DoD 细化**（来源：ADR-0008）— 候选：测试覆盖增强 / API contract test / Release 自动化
+4. [ ] **respx/httpx 依赖冲突修复**（来源：本轮发现）— env issue, not code issue
+5. [ ] **docstring 补充**（来源：本轮扫描，中优先级）— api/train.py, scripts/*.py 等 13 个文件
+6. [ ] **清理未跟踪文件** strategy/runs/2026-05-22-1004.md
 
 ---
 
 ## 📊 CI 状态
 
 - master: 所有 job 通过
-- daily/v5-to-v6-upgrade: PR#40 open（等待 review）
+- refactor/deduplicate-main-py (PR#41): 所有 job 通过 ✅
+- daily/v5-to-v6-upgrade (PR#40): OPEN，等待 review
+
+---
+
+## 已知技术债务
+
+| # | 问题 | 影响 | 优先级 |
+|---|------|------|--------|
+| 1 | respx/httpx 依赖冲突 | test_api_contract.py 等无法运行 | P2 |
+| 2 | 13 个核心文件缺少 docstring | API 文档可读性 | P2 |
+| 3 | core/train_utils.py 有重复的 build_model 定义（lazy + direct import） | 死代码 | P3 |
 
 ---
 
 **版本历史**：
+- v21 (2026-05-27 22:15): main.py 数据集去重完成，PR#41 创建，技术债务清单
 - v20 (2026-05-27 10:21): v5 全部完成，v6 启动，ADR-0008 创建，PR#40 open
 - v19 (2026-05-26 09:50): v5 DoD 全部 3 项完成，PR#39 合并
 - v18 (2026-05-25 21:50): v5 DoD 细化完成，ADR-0007 创建，PR#38 创建

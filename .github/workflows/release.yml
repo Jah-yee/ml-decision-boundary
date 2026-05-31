@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          python3 scripts/generate_changelog.py --since $(git describe --tags --abbrev=0 HEAD~1) --dry-run > /tmp/changelog_body.md
+          echo "body_file=/tmp/changelog_body.md" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: ${{ steps.changelog.outputs.body_file }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CHANGELOG.md for released version
+        run: |
+          TAG_NAME=${GITHUB_REF_NAME}
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1)
+          python3 scripts/generate_changelog.py --since $PREV_TAG --output CHANGELOG_NEW.md
+          # Insert version header and merge with existing
+          {
+            echo "# Changelog"
+            echo ""
+            echo "## [$TAG_NAME] - $(date +%Y-%m-%d)"
+            echo ""
+            cat CHANGELOG_NEW.md
+            echo ""
+            tail -n +3 CHANGELOG.md | head -c 5000  # Skip header lines and unreleased
+          } > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
+          rm -f CHANGELOG_NEW.md
+
+      - name: Commit CHANGELOG update
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: update CHANGELOG for ${{ github.ref_name }}"
+          file_pattern: CHANGELOG.md
+          skip_dirty: false

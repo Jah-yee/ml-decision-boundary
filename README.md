@@ -10,6 +10,7 @@
 <img src="https://img.shields.io/badge/Matplotlib-3.7+-green.svg">
 <img src="https://img.shields.io/badge/License-MIT-yellow.svg">
 <img src="https://img.shields.io/badge/build-passing-green.svg">
+<img src="https://img.shields.io/badge/phase-v6%20Stability%20%26%20Extensibility-orange.svg">
 
 </div>
 
@@ -140,22 +141,35 @@ vercel
 ml-decision-boundary/
 ├── main.py                # CLI entry point + experiment runner
 ├── requirements.txt       # Dependencies (numpy, matplotlib, scikit-learn)
+├── requirements.lock      # Locked versions for production
 ├── run.sh                 # One-liner: bash run.sh
 ├── vercel.json            # Vercel deployment config
 ├── api/
 │   ├── train.py           # Vercel serverless: POST /api/train
 │   └── health.py          # Vercel serverless: GET /api/health
+├── core/                  # Core ML logic (train_utils, datasets, visualizer)
+│   ├── __init__.py
+│   ├── train_utils.py
+│   ├── datasets.py
+│   └── visualizer.py
 ├── web/
 │   ├── index.html         # Interactive web UI
 │   └── server.py          # (optional) Flask server for real training
 ├── output/                # Generated visualizations
 │   └── experiment_results.json
-├── docs/                  # Screenshots for README
-│   ├── demo.png
-│   ├── grid_example.png
-│   ├── heatmap_example.png
-│   └── param_effect.png
-├── LICENSE
+├── docs/                  # Documentation + ADR
+│   ├── adr/               # Architecture Decision Records
+│   ├── AGENT_CRON_PLAYBOOK.md  # Owner agent execution guide
+│   ├── DEPENDENCY_POLICY.md    # Dependency governance policy
+│   └── REPRODUCE.md            # Reproducibility guide
+├── spec/                  # Phase definitions & charter
+│   ├── CHARTER.md
+│   └── phases.md
+├── strategy/              # Round theme & run history
+│   ├── NEXT_ROUND_THEME.md
+│   └── runs/
+├── tests/                 # Test suite (pytest + API contract tests)
+├── benchmarks/            # Benchmark reports
 └── README.md
 ```
 

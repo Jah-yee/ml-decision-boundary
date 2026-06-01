@@ -1,40 +1,40 @@
-# phases.md — 阶段定义
+# phases.md - 阶段定义
 
 **版本**: v0.2 (Created 2026-04-26, Updated 2026-05-27)
 **更新**: v5 阶段完成 + v6 阶段添加 (2026-05-27)
 
 ---
 
-## v0 — Foundation (已完成 ✅)
+## v0 - Foundation (已完成 ✅)
 
 **入口条件**: 仓库可 clone、可 install requirements、可 `python3 main.py` 成功运行并产生 output/ 下的可视化文件。
 
-**出口条件**: 
-- P0 通过（compileall + import smoke）
-- P1: 有测试基础设施（至少 conftest + 1 个测试用例）
-- P2: `python3 main.py` 可执行，产生 JSON + PNG
-- P3: API health 返回 200，Web 可本地启动
+**出口条件**:
+- P0 通过(compileall + import smoke)
+- P1: 有测试基础设施(至少 conftest + 1 个测试用例)
+- P2: `python3 main.py` 可执行,产生 JSON + PNG
+- P3: API health 返回 200,Web 可本地启动
 
 **本阶段 DoD**:
-- [x] README 说明清晰，可 clone → run
+- [x] README 说明清晰,可 clone → run
 - [x] main.py 可独立运行
 - [x] 有 requirements.txt
 - [x] 有 vercel.json
 - [x] 有 output/ 目录
-- [x] P1: 测试基础设施（pytest>=7.0.0）
+- [x] P1: 测试基础设施(pytest>=7.0.0)
 - [x] P1: 35 tests passed
-- [x] P2: harness 可重复运行（固定 seed + JSON report schema）
-- [x] P3: 集成测试（health check）
+- [x] P2: harness 可重复运行(固定 seed + JSON report schema)
+- [x] P3: 集成测试(health check)
 
 **v0 已完成 ✅ | v1 进行中**
 
 ---
 
-## v1 — Testing & Harness (已完成 ✅)
+## v1 - Testing & Harness (已完成 ✅)
 
 ---
 
-## v2 — Model & Data Expansion (已完成 ✅)
+## v2 - Model & Data Expansion (已完成 ✅)
 
 **入口条件**: v1 DoD 全部完成 ✅
 
@@ -48,29 +48,29 @@
 **v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅**
 
 ### v2 附加目标
-- 扩展模型族（新增模型类型或超参数配置）
-- 新数据集支持（更多合成数据场景）
+- 扩展模型族(新增模型类型或超参数配置)
+- 新数据集支持(更多合成数据场景)
 - 模型超参数调优实验体系
-- benchmark 报告自动化（HTML schema）
+- benchmark 报告自动化(HTML schema)
 
 ---
 
-## v3 — Platform (已完成 ✅)
+## v3 - Platform (已完成 ✅)
 
 **入口条件**: v2 DoD 全部完成 ✅
 
 **本阶段 DoD**:
 - [x] ADR-0003: Phase v2 → v3 升级判定 ✅ (2026-05-08)
-- [x] 新模型支持或超参数调优实验体系 ✅ — 超参调优实验体系基础设施 (PR#34, 2026-05-17)
-- [x] 新数据集支持 ✅ — s_curve 数据集 (PR#31, 2026-05-15)
-- [x] CLI/Web/API 平台化 ✅ — core/ 模块提取 (PR#36, 2026-05-19)
+- [x] 新模型支持或超参数调优实验体系 ✅ - 超参调优实验体系基础设施 (PR#34, 2026-05-17)
+- [x] 新数据集支持 ✅ - s_curve 数据集 (PR#31, 2026-05-15)
+- [x] CLI/Web/API 平台化 ✅ - core/ 模块提取 (PR#36, 2026-05-19)
 - [x] ADR-0004: v3 平台化决策 ✅ (2026-05-19)
 
 **v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅**
 
 ---
 
-## v4 — Reproducibility & Robustness (已完成 ✅)
+## v4 - Reproducibility & Robustness (已完成 ✅)
 
 **入口条件**: v3 DoD 全部完成 ✅ + ADR-0004 Accepted + ADR-0005 Accepted
 
@@ -85,14 +85,14 @@
 
 ---
 
-## v5 — Automation & Documentation (已完成 ✅)
+## v5 - Automation & Documentation (已完成 ✅)
 
 **入口条件**: v3 DoD 全部完成 ✅ + ADR-0004 Accepted + ADR-0005 Accepted
 
 **本阶段 DoD**:
 - [x] ADR-0006: Phase v4 → v5 升级判定 ✅ (2026-05-25)
 - [x] CHANGELOG 自动化生成 ✅ (PR#38, 2026-05-25)
-- [x] 依赖安全审核 CI（pip-audit 集成）✅ (PR#39, 2026-05-26)
+- [x] 依赖安全审核 CI(pip-audit 集成)✅ (PR#39, 2026-05-26)
 - [x] README/SPEC.md 一致性 CI ✅ (PR#39, 2026-05-26)
 - [x] ADR-0007: v5 DoD 细化 → Accepted ✅ (2026-05-26)
 - [x] ADR-0008: Phase v5 → v6 升级判定 ✅ (2026-05-27)
@@ -101,15 +101,17 @@
 
 ---
 
-## 当前阶段: v6 — Stability & Extensibility (进行中)
+## 当前阶段: v7 — Extensibility, Edge Cases & UX (进行中)
 
-**入口条件**: v5 DoD 全部完成 ✅ + ADR-0007 Accepted + ADR-0008 Accepted
+**入口条件**: v6 DoD 全部完成 ✅ + ADR-0009 Accepted + ADR-0010 Proposed (2026-06-01)
 
-**本阶段 DoD**（待细化）:
-- [ ] ADR-0008: Phase v5 → v6 升级判定 ✅ (2026-05-27)
-- [ ] v6 DoD 项目（TBD）
+**本阶段 DoD**（待细化 — ADR-0011）：
+- [ ] ADR-0011: v7 DoD 细化 ✅ (2026-06-01)
+- [ ] 自定义模型插件接口
+- [ ] 数据集边界验证
+- [ ] 错误信息改进
 
-**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 进行中**
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 进行中**
 
 ---
 
@@ -117,4 +119,4 @@
 
 - 每个 phase 的 P0 必须通过才能进入下一 phase
 - phase 升级需要创建 `docs/adr/NNNN-phase-N-to-N+1.md`
-- phase 之间禁止跳跃（必须顺序通过）
+- phase 之间禁止跳跃(必须顺序通过)

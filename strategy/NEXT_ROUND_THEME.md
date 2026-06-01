@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v26 (v6 完成 ✅)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v27 (v7 规划启动 ✅)
 
-**更新时间：** 2026-05-31 21:40 CST
-**版本：** v26 (v6 完成，晚场)
+**更新时间：** 2026-06-01 09:45 CST
+**版本：** v27 (v7 规划启动，早场)
 **维护人：** 太子
 
 ---
@@ -16,7 +16,8 @@
 | v3 Platform | ✅ | 2026-05-19 |
 | v4 Reproducibility & Robustness | ✅ | 2026-05-24 |
 | v5 Automation & Documentation | ✅ | 2026-05-27 |
-| v6 Stability & Extensibility | ✅ 完成 | 2026-05-31（完成） |
+| v6 Stability & Extensibility | ✅ 完成 | 2026-05-31 |
+| v7 Extensibility, Edge Cases & UX | 🔄 进行中 | 2026-06-01 |
 
 ---
 
@@ -32,33 +33,49 @@
 
 ---
 
-## ✅ 本轮完成（2026-05-31 晚场）
+## v7 阶段入口（ADR-0010 Proposed）
 
-### PR Merge 闭环
+**主题**：Extensibility, Edge Cases & UX
 
-- **PR#47**：`docs: sync README/SPEC.md with v6 phase — ADR-0009 v6 DoD #5`
-  - v6 DoD #5 完成
-  - README.md：v6 phase badge + 目录结构更新
-  - SPEC.md：v1.0.0→v1.1.0
+### v7 候选方向（待细化 — ADR-0011）
+
+| # | 方向 | 描述 | 优先级 |
+|---|------|------|--------|
+| 1 | 自定义模型插件接口 | 用户可注册自己的模型 builder，无需修改核心代码 | P1 |
+| 2 | 数据集边界验证 | 空数据集/单类数据集/极端值优雅处理 | P1 |
+| 3 | 错误信息改进 | 当模型/数据集/参数异常时给出可操作的提示 | P1 |
+| 4 | Benchmark 报告增强 | HTML 报告添加运行时环境、参数 hash 等元信息 | P2 |
+| 5 | C4: pytest 超时修复 | sklearn MLP 收敛导致超时，诊断并修复 | P3 |
+
+---
+
+## ✅ 本轮完成（2026-06-01 早场）
+
+### PR 创建闭环
+
+- **PR#48**：`docs: phase v6→v7 upgrade — ADR-0010, Extensibility & Edge Cases theme`
+  - v7 阶段注册（phases.md）
+  - ADR-0010 新建（v6→v7 升级判定 + v7 方向提案）
+  - 等待 merge
 
 ### 本地验证
 
 - **P0**: compileall — ✅ pass
-- **P1**: pytest test_api_contract.py — ✅ 15 passed
+- **P1**: pytest test_api_contract.py — ✅ 15 passed (7s)
 
-### v6 完成判定
+### v7 启动判定
 
-> ADR-0009 v6 DoD 全部 5 项已完成 ✅
-> v6 阶段正式完成，进入 v7 规划阶段
+> v6 DoD 全部 5 项完成 ✅ + ADR-0009 Accepted ✅
+> v7 正式注册，ADR-0010 Proposed (等待 PR#48 merge)
+> 下轮重点：ADR-0011 v7 DoD 细化
 
 ---
 
-## 📊 master 分支状态
+## 📊 master / daily 分支状态
 
 ```
-4e4f3fc docs: sync README/SPEC.md with v6 phase — ADR-0009 v6 DoD #5 (#47)
-e1953d3 feat: release automation workflow + api/health.py docstring (#45)
-f36ee1c docs(strategy): v24 — morning close, PR#44 merged, API contract P2 done
+master:  97fd01f docs(strategy): v26 — v6 complete, all DoD done, v7 planning starts
+daily/v7-upgrade-adr0010: 4568919 docs: phase v6→v7 upgrade — ADR-0010 (PR#48)
 ```
 
 ---
@@ -74,18 +91,18 @@ f36ee1c docs(strategy): v24 — morning close, PR#44 merged, API contract P2 don
 
 ---
 
-## 下轮主题（v7 规划）
+## 下轮主题（v27 晚场）
 
-**主题**：v7 — Extensibility & Edge Cases
+**主题**：v7 — DoD 细化与首项执行
 
 **待办**：
-1. [ ] **ADR-0010：v6 → v7 升级判定** — 评估 v6 完成，准备 v7 DoD
-2. [ ] **C4：pytest 超时调查** — 非阻塞，但值得查
-3. [ ] **v7 DoD 细化** — 基于 Charter 规划下一阶段
+1. [ ] **ADR-0011：v7 DoD 细化** — 基于 ADR-0010 方向，定义 v7 验收标准
+2. [ ] **v7 DoD 首项启动** — 评估从 P1 哪项开始（插件接口/边界验证/错误信息）
+3. [ ] **C4：pytest 超时调查** — 非阻塞，但值得查
 
 ---
 
 **版本历史**：
+- v27 (2026-06-01 09:45): 早场 — PR#48 创建，ADR-0010 proposed，v7 注册 ✅
 - v26 (2026-05-31 21:40): 晚场 — PR#47 merged, v6 DoD 全部完成 ✅
 - v25 (2026-05-31 09:58): 早场 — PR#45 创建，v6 DoD #4 + C3 完成，v6 DoD #5 部分完成
-- v24 (2026-05-29 09:45): 早场 — PR#44 合并，API contract test P2 完成，v6 DoD #3 更新

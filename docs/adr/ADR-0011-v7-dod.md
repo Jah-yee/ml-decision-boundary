@@ -1,7 +1,7 @@
 # ADR-0011 — v7 DoD 细化：Extensibility, Edge Cases & UX
 
 **日期**: 2026-06-01
-**状态**: Proposed
+**状态**: Accepted (PR#50 merged, DoD #1 complete)
 **维护人**: 太子
 
 ---
@@ -16,7 +16,7 @@ ADR-0010 已确定 v7 主题为 **Extensibility, Edge Cases & UX**，并列出�
 
 | # | DoD 项目 | 验收标准 | 优先级 | 备注 |
 |---|---------|---------|--------|------|
-| 1 | **自定义模型插件接口** | 用户在 `core/plugins/models/` 目录下放置 Python 文件即可注册新模型，无需修改核心代码；至少一个内置模型可通过插件机制加载 | P1 | 对应 ADR-0010 方向 #1 |
+| 1 | **自定义模型插件接口** ✅ | 用户在 `core/plugins/models/` 目录下放置 Python 文件即可注册新模型，无需修改核心代码；至少一个内置模型可通过插件机制加载 | P1 | PR#50 merged |
 | 2 | **数据集边界验证** | 输入空数据集、单类数据集、极端值时，CLI/API 返回可操作的错误信息（非 traceback） | P1 | 对应 ADR-0010 方向 #2 |
 | 3 | **错误信息改进** | 所有 CLI/API 错误给出人类可读的「行动建议」而非 Python traceback | P1 | 对应 ADR-0010 方向 #3 |
 | 4 | **C4: pytest 超时修复** | 解决 sklearn MLP 收敛导致 pytest 超时的问题（非阻塞，但需要诊断） | P3 | 对应 ADR-0010 方向 #6 |
@@ -121,4 +121,10 @@ pytest 完整套件运行时间过长（> 60s），已知原因是 sklearn MLP �
 
 ## 版本历史
 
+- v2 (2026-06-02): DoD #1 complete — PR#50 merged
+  - core/interfaces.py: ModelBuilder 抽象接口
+  - core/plugins/registry.py: 插件发现与注册
+  - core/plugins/models/svm_plugin.py: SVM 插件示例
+  - core/train_utils.py: build_model() 插件感知
+  - tests/test_plugins.py: 15 tests pass
 - v1 (2026-06-01): Initial — v7 DoD 细化，基于 ADR-0010 方向展开

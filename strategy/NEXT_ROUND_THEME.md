@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v26 (v6 完成 ✅)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v28 (v7 DoD #1 完成 ✅)
 
-**更新时间：** 2026-05-31 21:40 CST
-**版本：** v26 (v6 完成，晚场)
+**更新时间：** 2026-06-02 09:50 CST
+**版本：** v28 (v7 DoD #1 完成，早场)
 **维护人：** 太子
 
 ---
@@ -16,49 +16,54 @@
 | v3 Platform | ✅ | 2026-05-19 |
 | v4 Reproducibility & Robustness | ✅ | 2026-05-24 |
 | v5 Automation & Documentation | ✅ | 2026-05-27 |
-| v6 Stability & Extensibility | ✅ 完成 | 2026-05-31（完成） |
+| v6 Stability & Extensibility | ✅ 完成 | 2026-05-31 |
+| v7 Extensibility, Edge Cases & UX | 🔄 进行中 | 2026-06-02 |
 
 ---
 
-## v6 DoD（来自 ADR-0009）— 全部完成 ✅
+## v7 DoD（来自 ADR-0011）— 进行中
 
-| # | DoD 项目 | 验证标准 | 状态 |
-|---|---------|---------|------|
-| 1 | respx/httpx 本地 env 冲突修复 | pytest collect 正常 | ✅ PR#42 merged |
-| 2 | core/train_utils.py build_model 重复定义清理 | 文件无重复 def | ✅ PR#42 merged |
-| 3 | API contract test 覆盖增强 | 15 tests, 400/500 errors | ✅ PR#44 merged |
-| 4 | Release 自动化（GitHub Release） | CI on `v*` tag | ✅ PR#45 merged |
-| 5 | README/SPEC.md 同步 v6 | 与 phases.md 一致 | ✅ PR#47 merged |
+| # | DoD 项目 | 状态 |
+|---|---------|------|
+| 1 | 自定义模型插件接口 | ✅ PR#50 merged |
+| 2 | 数据集边界验证 | ⏳ 待启动 |
+| 3 | 错误信息改进 | ⏳ 待启动 |
+| 4 | C4: pytest 超时修复 | ⏳ 待启动 |
+| 5 | ADR-0011 更新同步 | ⏳ 待完成 |
 
 ---
 
-## ✅ 本轮完成（2026-05-31 晚场）
+## ✅ 本轮完成（2026-06-02 早场）
 
-### PR Merge 闭环
+### PR 创建闭环
 
-- **PR#47**：`docs: sync README/SPEC.md with v6 phase — ADR-0009 v6 DoD #5`
-  - v6 DoD #5 完成
-  - README.md：v6 phase badge + 目录结构更新
-  - SPEC.md：v1.0.0→v1.1.0
+- **PR#50**：`feat(core/plugins): implement custom model plugin interface — v7 DoD #1`
+  - `core/interfaces.py` — ModelBuilder 抽象接口
+  - `core/plugins/registry.py` — 插件发现与注册
+  - `core/plugins/models/svm_plugin.py` — SVM 插件示例
+  - `core/train_utils.py` — build_model() 插件感知，未知模型错误更友好
+  - `tests/test_plugins.py` — 15 个测试用例
 
 ### 本地验证
 
 - **P0**: compileall — ✅ pass
-- **P1**: pytest test_api_contract.py — ✅ 15 passed
+- **P0**: import main — ✅ OK
+- **P1**: test_plugins.py — ✅ 15 passed
+- **P1**: test_api_contract.py — ✅ 15 passed (7s)
 
-### v6 完成判定
+### v7 DoD #1 完成判定
 
-> ADR-0009 v6 DoD 全部 5 项已完成 ✅
-> v6 阶段正式完成，进入 v7 规划阶段
+> ADR-0011 DoD #1 全部验收标准满足 ✅
+> 插件系统可正常工作，SVM 可通过插件加载 ✅
+> PR#50 已 merge ✅
 
 ---
 
-## 📊 master 分支状态
+## 📊 master / daily 分支状态
 
 ```
-4e4f3fc docs: sync README/SPEC.md with v6 phase — ADR-0009 v6 DoD #5 (#47)
-e1953d3 feat: release automation workflow + api/health.py docstring (#45)
-f36ee1c docs(strategy): v24 — morning close, PR#44 merged, API contract P2 done
+master:  251c509 docs: phase v6→v7 upgrade — ADR-0010
+daily/v7-evening-adr0011: 727ccab feat(core/plugins): implement custom model plugin interface (#50)
 ```
 
 ---
@@ -74,18 +79,17 @@ f36ee1c docs(strategy): v24 — morning close, PR#44 merged, API contract P2 don
 
 ---
 
-## 下轮主题（v7 规划）
+## 下轮主题（v28 晚场）
 
-**主题**：v7 — Extensibility & Edge Cases
+**主题**：v7 DoD #2 — 数据集边界验证
 
 **待办**：
-1. [ ] **ADR-0010：v6 → v7 升级判定** — 评估 v6 完成，准备 v7 DoD
-2. [ ] **C4：pytest 超时调查** — 非阻塞，但值得查
-3. [ ] **v7 DoD 细化** — 基于 Charter 规划下一阶段
+1. [ ] **ADR-0011 更新为 Accepted** — 本轮完成
+2. [ ] **v7 DoD #2 启动** — 空数据集/单类数据集/极端值验证
+3. [ ] **C4：pytest 超时调查** — 非阻塞，但值得查
 
 ---
 
 **版本历史**：
-- v26 (2026-05-31 21:40): 晚场 — PR#47 merged, v6 DoD 全部完成 ✅
-- v25 (2026-05-31 09:58): 早场 — PR#45 创建，v6 DoD #4 + C3 完成，v6 DoD #5 部分完成
-- v24 (2026-05-29 09:45): 早场 — PR#44 合并，API contract test P2 完成，v6 DoD #3 更新
+- v28 (2026-06-02 09:50): 早场 — PR#50 merged, v7 DoD #1 完成 ✅
+- v27 (2026-06-01 09:45): 早场 — PR#48 创建，ADR-0010 proposed，v7 注册 ✅

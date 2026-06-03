@@ -5,10 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] — 2026-06-03 Evening
+
+### Added
+- `core/validation.py`: validate_dataset() + validate_model_params() — boundary validation for empty/too-few/single-class datasets, NaN/Inf, and invalid model params
+- `tests/test_validation.py`: 33 test cases covering all boundary scenarios
+- `main.py`: wire validate_dataset() into generate_dataset() and validate_model_params() into run_experiment()
 
 ### Changed
-
 - **main.py** — delegate dataset generation to `core/datasets.py`; removed 5 local function copies (`make_circles/moons/blobs/xor/s_curve`), now calls `DATASET_GENERATORS` dispatcher directly; backward compatibility preserved for tests/ and benchmarks/
 - **docs/DEPENDENCY_POLICY.md** — Added Section 6: pip-audit integration, known acceptable vulns, local audit guide
 - **ADR-0007-v5-dod.md** — Status: Proposed → Accepted (v5 DoD items 1-3 all implemented)
@@ -173,3 +177,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - v4 Reproducibility & Robustness completed (ADR-0006, 2026-05-25)
 - v5 Automation & Documentation phase initiated
 - ADR-0007: v5 DoD 细化 proposal created (3 items)
+

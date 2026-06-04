@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — 2026-06-03 Evening
 
+## [Unreleased] — 2026-06-04 Morning
+
+### Added
+- `core/error_messages.py`: Canonical error code definitions (E1xxx/E2xxx/E3xxx/E4xxx) + format_error() helper — all errors now use standardized codes with hints
+
+### Changed
+- `core/validation.py`: All 6 dataset validation + 3 model param validation errors now use canonical error codes (E1001-E1006, E3001-E3003)
+- `core/train_utils.py`: build_model() unknown model error uses E2001
+- `main.py`: 3 ValueError sites use canonical codes (E3005, E1007, E2001)
+- `api/train.py`: dataset unknown error uses E1007
+
+
 ### Added
 - `core/validation.py`: validate_dataset() + validate_model_params() — boundary validation for empty/too-few/single-class datasets, NaN/Inf, and invalid model params
 - `tests/test_validation.py`: 33 test cases covering all boundary scenarios

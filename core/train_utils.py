@@ -8,6 +8,8 @@ All live here once; api/train.py, web/server.py, main.py import from here.
 
 import numpy as np
 
+from core.error_messages import E2001_UNKNOWN_MODEL, format_error
+
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -37,7 +39,7 @@ def build_model(model_name, params):
         'AB':   lambda: AdaBoostClassifier(**params, random_state=42, algorithm='SAMME'),
     }
     if model_name not in factories:
-        raise ValueError(f'Unknown model: {model_name}')
+        raise ValueError(format_error(E2001_UNKNOWN_MODEL, name=model_name))
     return factories[model_name]()
 
 

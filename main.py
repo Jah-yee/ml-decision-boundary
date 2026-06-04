@@ -26,6 +26,7 @@ from core.validation import (
     validate_model_params,
     DatasetValidationError,
 )
+from core.error_messages import E1007_UNKNOWN_DATASET, E2001_UNKNOWN_MODEL, E3005_INVALID_PARAM_FORMAT, format_error
 
 # Import sklearn directly for main.py-only helpers (visualization, experiment orchestration)
 from sklearn.datasets import make_circles as sk_circles, make_moons as sk_moons, make_blobs as sk_blobs, make_s_curve as sk_s_curve
@@ -149,7 +150,7 @@ def parse_params(params_list: list) -> dict:
     for item in params_list:
         for pair in item:
             if "=" not in pair:
-                raise ValueError(f"Invalid parameter format: '{pair}'. Expected KEY=VALUE.")
+                raise ValueError(format_error(E3005_INVALID_PARAM_FORMAT, pair=pair))
             key, val = pair.split("=", 1)
             # Try to convert to int/float/bool, else keep as string
             for typ in (int, float):
@@ -190,7 +191,7 @@ def generate_dataset(dataset_name: str, n_samples: int = 500, noise: float = 0.3
     Validates output before returning.
     """
     if dataset_name not in DATASET_GENERATORS:
-        raise ValueError(f"Unknown dataset: {dataset_name}")
+        raise ValueError(format_error(E1007_UNKNOWN_DATASET, name=dataset_name))
     X, y = DATASET_GENERATORS[dataset_name](n_samples, noise, seed)
     # Boundary validation — raises DatasetValidationError with actionable message
     validate_dataset(X, y, dataset_name=dataset_name)
@@ -215,7 +216,7 @@ def train_model(model_type: str, params: dict, X_train, y_train) -> Tuple:
     }
 
     if model_type not in models:
-        raise ValueError(f"Unknown model: {model_type}")
+        raise ValueError(format_error(E2001_UNKNOWN_MODEL, name=model_type))
 
     model = models[model_type]()
     start = time.perf_counter()

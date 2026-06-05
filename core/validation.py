@@ -3,9 +3,17 @@ core/validation.py — Dataset boundary validation
 
 Validates X, y before they reach model training.
 All validation functions raise DatasetValidationError with human-readable messages.
+Uses canonical error codes from core/error_messages.py.
 """
 
 import numpy as np
+
+from core.error_messages import (
+    E1001_EMPTY, E1002_TOO_FEW, E1003_LENGTH_MISMATCH,
+    E1004_SINGLE_CLASS, E1005_ALL_NAN_INF, E1006_NO_VALID_VALUES,
+    E3001_INVALID_C, E3002_INVALID_N_NEIGHBORS, E3003_INVALID_MAX_DEPTH,
+    format_error,
+)
 
 
 class DatasetValidationError(ValueError):
@@ -20,53 +28,36 @@ def validate_dataset(X, y, dataset_name="dataset"):
     """
     # Check 1: Empty dataset
     if X.size == 0 or len(X) == 0:
-        raise DatasetValidationError(
-            f"Error: {dataset_name} is empty. Provide at least 2 samples. "
-            f"Example: python main.py --n-samples 500"
-        )
+        raise DatasetValidationError(E1001_EMPTY)
 
     n_samples = len(X)
 
     # Check 2: Too few samples
     if n_samples < 2:
-        raise DatasetValidationError(
-            f"Error: {dataset_name} has only {n_samples} sample(s). "
-            f"Need at least 2 samples for classification. "
-            f"Example: python main.py --n-samples 500"
-        )
+        raise DatasetValidationError(format_error(E1002_TOO_FEW, n=n_samples))
 
     # Check 3: X and y length mismatch
     if len(y) != n_samples:
-        raise DatasetValidationError(
-            f"Error: X and y have mismatched lengths: "
-            f"X has {n_samples} samples, but len(y)={len(y)}. "
-            f"Ensure X and y have the same number of rows."
-        )
+        raise DatasetValidationError(format_error(
+            E1003_LENGTH_MISMATCH, n_x=n_samples, n_y=len(y)
+        ))
 
     # Check 4: Single-class dataset
     unique_labels = np.unique(y)
     if len(unique_labels) < 2:
         labels_str = ", ".join(str(u) for u in unique_labels)
-        raise DatasetValidationError(
-            f"Error: Only 1 class ({labels_str}) found in labels for '{dataset_name}'. "
-            f"Need at least 2 classes for classification. "
-            f"Check your dataset or try a different seed."
-        )
+        raise DatasetValidationError(format_error(
+            E1004_SINGLE_CLASS, dataset=dataset_name, labels=labels_str
+        ))
 
     # Check 5: All NaN or Inf in X
     if np.all(np.isnan(X)) or np.all(np.isinf(X)):
-        raise DatasetValidationError(
-            f"Error: {dataset_name} contains only NaN or Inf values. "
-            f"Please check your data source."
-        )
+        raise DatasetValidationError(E1005_ALL_NAN_INF)
 
     # Check 6: Valid number check
     valid_mask = np.isfinite(X)
     if not np.any(valid_mask):
-        raise DatasetValidationError(
-            f"Error: {dataset_name} has no valid (finite) numeric values. "
-            f"All feature values are NaN or Inf."
-        )
+        raise DatasetValidationError(E1006_NO_VALID_VALUES)
 
     return True
 
@@ -84,15 +75,9 @@ def validate_model_params(model_name, params):
         try:
             C = float(C)
             if C <= 0:
-                errors.append(
-                    f"Error: Invalid value for --C: {C!r}. "
-                    f"C must be a positive number. Example: --C 1.0"
-                )
+                errors.append(format_error(E3001_INVALID_C, value=C))
         except (TypeError, ValueError):
-            errors.append(
-                f"Error: Invalid value for --C: {C!r}. "
-                f"C must be a number. Example: --C 1.0"
-            )
+            errors.append(format_error(E3001_INVALID_C, value=C))
 
     # KNN: n_neighbors must be positive integer
     if model_name == "KNN" and "n_neighbors" in params:
@@ -100,15 +85,9 @@ def validate_model_params(model_name, params):
         try:
             k = int(k)
             if k < 1:
-                errors.append(
-                    f"Error: Invalid value for --n_neighbors: {k}. "
-                    f"n_neighbors must be at least 1. Example: --params n_neighbors=5"
-                )
+                errors.append(format_error(E3002_INVALID_N_NEIGHBORS, value=k))
         except (TypeError, ValueError):
-            errors.append(
-                f"Error: Invalid value for --n_neighbors: {k!r}. "
-                f"n_neighbors must be an integer. Example: --params n_neighbors=5"
-            )
+            errors.append(format_error(E3002_INVALID_N_NEIGHBORS, value=k))
 
     # Tree / RF / GB / ET: max_depth must be positive or None
     if model_name in ("Tree", "RF", "GB", "ET") and "max_depth" in params:
@@ -117,16 +96,9 @@ def validate_model_params(model_name, params):
             try:
                 md = int(md)
                 if md < 1:
-                    errors.append(
-                        f"Error: Invalid value for --max_depth: {md}. "
-                        f"max_depth must be a positive integer or omitted (None). "
-                        f"Example: --params max_depth=10"
-                    )
+                    errors.append(format_error(E3003_INVALID_MAX_DEPTH, value=md))
             except (TypeError, ValueError):
-                errors.append(
-                    f"Error: Invalid value for --max_depth: {md!r}. "
-                    f"max_depth must be an integer. Example: --params max_depth=10"
-                )
+                errors.append(format_error(E3003_INVALID_MAX_DEPTH, value=md))
 
     if errors:
         raise ValueError("\n".join(errors))

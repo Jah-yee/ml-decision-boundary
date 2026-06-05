@@ -15,6 +15,7 @@ from core.train_utils import (
     compute_boundary_grid,
     get_model_info_dict,
 )
+from core.error_messages import E1007_UNKNOWN_DATASET, format_error
 
 
 def handle(req, res):
@@ -28,7 +29,7 @@ def handle(req, res):
 
         if dataset_name not in DATASET_GENERATORS:
             res.status = 400
-            res.json({'error': f'Unknown dataset: {dataset_name}'})
+            res.json({'error': format_error(E1007_UNKNOWN_DATASET, name=dataset_name)})
             return
 
         X, y = DATASET_GENERATORS[dataset_name](500, 0.3, seed=42)

@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v26 (v6 完成 ✅)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v28 (v7 DoD #1 + #2 完成 ✅)
 
-**更新时间：** 2026-05-31 21:40 CST
-**版本：** v26 (v6 完成，晚场)
+**更新时间：** 2026-06-03 21:50 CST
+**版本：** v28 (v7 DoD #1 + #2 完成，晚场)
 **维护人：** 太子
 
 ---
@@ -16,49 +16,52 @@
 | v3 Platform | ✅ | 2026-05-19 |
 | v4 Reproducibility & Robustness | ✅ | 2026-05-24 |
 | v5 Automation & Documentation | ✅ | 2026-05-27 |
-| v6 Stability & Extensibility | ✅ 完成 | 2026-05-31（完成） |
+| v6 Stability & Extensibility | ✅ | 2026-05-31 |
+| v7 Extensibility, Edge Cases & UX | 🔄 进行中 | 2026-06-03 |
 
 ---
 
-## v6 DoD（来自 ADR-0009）— 全部完成 ✅
+## v7 DoD（来自 ADR-0011）— 进行中
 
-| # | DoD 项目 | 验证标准 | 状态 |
-|---|---------|---------|------|
-| 1 | respx/httpx 本地 env 冲突修复 | pytest collect 正常 | ✅ PR#42 merged |
-| 2 | core/train_utils.py build_model 重复定义清理 | 文件无重复 def | ✅ PR#42 merged |
-| 3 | API contract test 覆盖增强 | 15 tests, 400/500 errors | ✅ PR#44 merged |
-| 4 | Release 自动化（GitHub Release） | CI on `v*` tag | ✅ PR#45 merged |
-| 5 | README/SPEC.md 同步 v6 | 与 phases.md 一致 | ✅ PR#47 merged |
+| # | DoD 项目 | 状态 | PR |
+|---|---------|------|-----|
+| 1 | 自定义模型插件接口 | ✅ PR#50 merged | daily/v7-evening-plugin-do1 |
+| 2 | 数据集边界验证 | ✅ PR#51 OPEN | feature/v7-dod2-validation-clean |
+| 3 | 错误信息改进 | ⏳ 待启动 | — |
+| 4 | C4: pytest 超时修复 | ⏳ 待查 | — |
+| 5 | ADR-0011 更新同步 | ⏳ 待完成 | — |
 
 ---
 
-## ✅ 本轮完成（2026-05-31 晚场）
+## ✅ 本轮完成（2026-06-03 晚场）
 
-### PR Merge 闭环
+### PR 创建闭环
 
-- **PR#47**：`docs: sync README/SPEC.md with v6 phase — ADR-0009 v6 DoD #5`
-  - v6 DoD #5 完成
-  - README.md：v6 phase badge + 目录结构更新
-  - SPEC.md：v1.0.0→v1.1.0
+- **PR#51**：`feat(core): add dataset boundary validation — v7 DoD #2`
+  - `core/validation.py` — validate_dataset() + validate_model_params()
+  - `tests/test_validation.py` — 33 个测试用例
+  - `main.py` — 接入边界验证
 
 ### 本地验证
 
 - **P0**: compileall — ✅ pass
-- **P1**: pytest test_api_contract.py — ✅ 15 passed
+- **P0**: import main — ✅ OK
+- **P1**: test_validation.py — ✅ 33 passed
+- **P2**: benchmark smoke — ✅ SVM moons 正常运行
 
-### v6 完成判定
+### v7 DoD #2 完成判定
 
-> ADR-0009 v6 DoD 全部 5 项已完成 ✅
-> v6 阶段正式完成，进入 v7 规划阶段
+> ADR-0011 DoD #2 全部验收标准满足 ✅
+> 数据集边界验证可正常工作 ✅
+> PR#51 已创建 ✅
 
 ---
 
-## 📊 master 分支状态
+## 📊 master / daily 分支状态
 
 ```
-4e4f3fc docs: sync README/SPEC.md with v6 phase — ADR-0009 v6 DoD #5 (#47)
-e1953d3 feat: release automation workflow + api/health.py docstring (#45)
-f36ee1c docs(strategy): v24 — morning close, PR#44 merged, API contract P2 done
+master:  251c509 docs: phase v6→v7 upgrade — ADR-0010
+feature/v7-dod2-validation-clean: 848f4ff docs(strategy): v28 evening — PR#51 created, CHANGELOG updated
 ```
 
 ---
@@ -70,22 +73,33 @@ f36ee1c docs(strategy): v24 — morning close, PR#44 merged, API contract P2 don
 | C1 | respx/httpx 本地 env 冲突 | pytest collect 正常 | ✅ 已修复 |
 | C2 | core/train_utils.py 重复 def | 死代码 | ✅ 已清理 |
 | C3 | api/health.py 缺 docstring | P3 | ✅ 已修复 |
-| C4 | pytest 运行超时（本地） | 非阻塞 | 待查 |
+| C4 | pytest 运行超时（120s+） | 非阻塞 | 待查 |
 
 ---
 
-## 下轮主题（v7 规划）
+## 遗留未合并 PR
 
-**主题**：v7 — Extensibility & Edge Cases
+| # | 标题 | 状态 |
+|---|------|------|
+| 50 | feat(core/plugins): implement custom model plugin interface — v7 DoD #1 | OPEN |
+| 49 | docs(adr): ADR-0011 — v7 DoD细化 | OPEN |
+| 48 | docs: phase v6→v7 upgrade — ADR-0010 | OPEN |
+
+---
+
+## 下轮主题（v29 早场）
+
+**主题**：v7 DoD #3 — 错误信息改进
 
 **待办**：
-1. [ ] **ADR-0010：v6 → v7 升级判定** — 评估 v6 完成，准备 v7 DoD
-2. [ ] **C4：pytest 超时调查** — 非阻塞，但值得查
-3. [ ] **v7 DoD 细化** — 基于 Charter 规划下一阶段
+1. [ ] **merge 等待中的 PR#48/49/50** — 需要人工 review + approve
+2. [ ] **v7 DoD #3 启动** — 改进错误信息可读性和可操作性
+3. [ ] **C4：pytest 超时调查** — 非阻塞，但值得查
+4. [ ] **ADR-0011 更新为 Accepted** — 需在 PR merge 后完成
 
 ---
 
 **版本历史**：
-- v26 (2026-05-31 21:40): 晚场 — PR#47 merged, v6 DoD 全部完成 ✅
-- v25 (2026-05-31 09:58): 早场 — PR#45 创建，v6 DoD #4 + C3 完成，v6 DoD #5 部分完成
-- v24 (2026-05-29 09:45): 早场 — PR#44 合并，API contract test P2 完成，v6 DoD #3 更新
+- v28 (2026-06-03 21:50): 晚场 — PR#51 创建，v7 DoD #2 完成 ✅，CHANGELOG 更新
+- v27 (2026-06-01 09:45): 早场 — v7 规划开始，PR#48/49/50 创建
+- v26 (2026-05-31 21:40): 晚场 — v6 完成，PR#47 merged

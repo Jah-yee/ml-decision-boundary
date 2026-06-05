@@ -21,6 +21,11 @@ from core.train_utils import (
     compute_boundary_grid,
     get_model_info_dict,
 )
+from core.validation import (
+    validate_dataset,
+    validate_model_params,
+    DatasetValidationError,
+)
 
 # Import sklearn directly for main.py-only helpers (visualization, experiment orchestration)
 from sklearn.datasets import make_circles as sk_circles, make_moons as sk_moons, make_blobs as sk_blobs, make_s_curve as sk_s_curve
@@ -182,10 +187,14 @@ def generate_dataset(dataset_name: str, n_samples: int = 500, noise: float = 0.3
     """Generate synthetic classification datasets.
 
     Delegates to the canonical implementations in core/datasets.py.
+    Validates output before returning.
     """
     if dataset_name not in DATASET_GENERATORS:
         raise ValueError(f"Unknown dataset: {dataset_name}")
-    return DATASET_GENERATORS[dataset_name](n_samples, noise, seed)
+    X, y = DATASET_GENERATORS[dataset_name](n_samples, noise, seed)
+    # Boundary validation — raises DatasetValidationError with actionable message
+    validate_dataset(X, y, dataset_name=dataset_name)
+    return X, y
 
 
 def train_model(model_type: str, params: dict, X_train, y_train) -> Tuple:
@@ -284,6 +293,8 @@ def plot_decision_boundary(ax, model, X_train, y_train, xx, yy, Z, title: str):
 
 def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42) -> ModelResult:
     """Run single experiment"""
+    # Validate model params before training
+    validate_model_params(model_type, params)
     X, y = generate_dataset(dataset, n_samples=500, noise=0.3, seed=seed)
 
     # Split data (simple holdout)

@@ -26,7 +26,7 @@ from core.validation import (
     validate_model_params,
     DatasetValidationError,
 )
-from core.error_messages import E1007_UNKNOWN_DATASET, E2001_UNKNOWN_MODEL, E3005_INVALID_PARAM_FORMAT, format_error
+from core.error_messages import E1007_UNKNOWN_DATASET, E3005_INVALID_PARAM_FORMAT, format_error
 
 # Import sklearn directly for main.py-only helpers (visualization, experiment orchestration)
 from sklearn.datasets import make_circles as sk_circles, make_moons as sk_moons, make_blobs as sk_blobs, make_s_curve as sk_s_curve
@@ -216,7 +216,20 @@ def train_model(model_type: str, params: dict, X_train, y_train) -> Tuple:
     }
 
     if model_type not in models:
-        raise ValueError(format_error(E2001_UNKNOWN_MODEL, name=model_type))
+        # Provide helpful error with available options (including plugins)
+        try:
+            from core.plugins.registry import discover_plugins
+            plugins = discover_plugins()
+            builtin_list = list(models.keys())
+            plugin_list = list(plugins.keys())
+            all_options = builtin_list + plugin_list
+        except Exception:
+            all_options = list(models.keys())
+        raise ValueError(
+            f"Unknown model: '{model_type}'. "
+            f"Available models: {', '.join(all_options)}. "
+            f"Run with --list-models to see all."
+        )
 
     model = models[model_type]()
     start = time.perf_counter()

@@ -5,39 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 2026-06-03 Evening
-
-## [Unreleased] — 2026-06-04 Morning
+## [Unreleased] — 2026-06-05 Evening
 
 ### Added
 - `core/error_messages.py`: Canonical error code definitions (E1xxx/E2xxx/E3xxx/E4xxx) + format_error() helper — all errors now use standardized codes with hints
-
-### Changed
-- `core/validation.py`: All 6 dataset validation + 3 model param validation errors now use canonical error codes (E1001-E1006, E3001-E3003)
-- `core/train_utils.py`: build_model() unknown model error uses E2001
-- `main.py`: 3 ValueError sites use canonical codes (E3005, E1007, E2001)
-- `api/train.py`: dataset unknown error uses E1007
-
-
-### Added
 - `core/validation.py`: validate_dataset() + validate_model_params() — boundary validation for empty/too-few/single-class datasets, NaN/Inf, and invalid model params
 - `tests/test_validation.py`: 33 test cases covering all boundary scenarios
 - `main.py`: wire validate_dataset() into generate_dataset() and validate_model_params() into run_experiment()
+- `core/plugins/models/svm_plugin.py` — SVM plugin demonstrating ModelBuilder interface
+- `core/interfaces.py` — ModelBuilder abstract interface for plugin system
+- `core/plugins/registry.py` — Plugin registry with discover_plugins() and get_plugin_model()
+- `tests/test_plugins.py` — Plugin system tests (auto-discovery, SVM loading, error handling)
+- `docs/adr/ADR-0011-v7-dod.md` — v7 DoD 细化: Extensibility, Edge Cases & UX
 
 ### Changed
+- `core/validation.py`: All 6 dataset validation + 3 model param validation errors now use canonical error codes (E1001-E1006, E3001-E3003)
+- `core/train_utils.py`: build_model() plugin-aware with helpful error messages
+- `main.py`: 3 ValueError sites use canonical codes (E3005, E1007) + helpful plugin-aware messages
+- `api/train.py`: dataset unknown error uses E1007
 - **main.py** — delegate dataset generation to `core/datasets.py`; removed 5 local function copies (`make_circles/moons/blobs/xor/s_curve`), now calls `DATASET_GENERATORS` dispatcher directly; backward compatibility preserved for tests/ and benchmarks/
 - **docs/DEPENDENCY_POLICY.md** — Added Section 6: pip-audit integration, known acceptable vulns, local audit guide
 - **ADR-0007-v5-dod.md** — Status: Proposed → Accepted (v5 DoD items 1-3 all implemented)
 
 ### CI
-
 - **ci.yml** — Added `security-audit` job: pip-audit -r requirements.lock
 - **ci.yml** — Added `quality-checks` job: check_readme_consistency.py
 - **ci.yml** — Node.js 20 → 24 migration notes (deprecation warnings)
 
+### Fixed
 - **benchmarks/run.py** — Regression detection: only compare baseline configs (exact param match); non-baseline sweep configs are excluded from regression checks (fixes 45 false-positive regressions)
-- **benchmarks/hyperparam_baseline.json** — Regenerated with current-environment accuracies for all 40 baseline configs (10 models × 4 datasets); baseline entries now include `params` field
 - **core/train_utils.py** — Remove duplicate build_model definition; consolidate lazy + direct factories into direct imports at module top; shrinks file by ~50 lines (ADR-0009 v6 DoD)
+- **web/server.py** — Security fix: remove traceback.format_exc() from /train error handler to prevent internal path/dependency exposure (#35)
+
+## [0.1.1] — 2026-05-01
+
+### Added
 - **spec/phases.md** — v3 completed, v4 started; ADR-0005 phase upgrade created
 - **docs/adr/ADR-0004-v3-platformization.md** — status updated to Accepted (PR#36 merged)
 - **docs/adr/ADR-0005-phase-v3-to-v4.md** — new ADR: v3→v4 upgrade decision
@@ -46,14 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **core/train_utils.py** — Shared ML utilities (build_model/slider_to_params/compute_boundary_grid/get_model_info_dict); consolidated from api/train.py + web/server.py
 - **api/train.py** — Refactored to import from core/; removed ~160 lines of duplication; removed unused matplotlib import
 - **web/server.py** — Refactored to import from core/; removed ~220 lines of duplication; all three entry points now consistent
-
-- **web/server.py** — Security fix: remove traceback.format_exc() from /train error handler to prevent internal path/dependency exposure (#35)
-
 - **benchmarks/run.py** — Fix: stored_baseline (from JSON) vs inline_baseline (live) — prevents live-best-vs-itself regression comparison; exit code 1 on regressions > 0
 - **tests/test_boundary_cases.py** — 116 new tests: noise extremes, seed stability, unexplored dataset×model combos, model edge params, small-sample boundary, high-noise stress test
-
-### Added
-
 - **benchmarks/hyperparam_config.py** — Hyperparameter sweep configuration: SWEEP_GRIDS (per-model param grids), BASELINE_CONFIGS (baseline defaults), SWEEP_DATASETS, REGRESSION_THRESHOLD (5%% accuracy drop = regression)
 - **benchmarks/run.py** — `run_hyperparam_sweep()`: systematic hyperparameter tuning across all models × SWEEP_DATASETS, compares against baselines, detects regressions; `write_hyperparam_report()` outputs JSON+MD reports; CLI: `--hyperparam-sweep`
 - **benchmarks/run.py** — s_curve integration: ACCURACY_THRESHOLDS (0.55), DEPTH_TREE_THRESHOLDS (calibrated per depth), added to DATASETS list and `generate_summary()` by_dataset stats
@@ -69,124 +65,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **main.py (2026-05-05 evening)** — Fix CLI single-experiment crash: remove stale `compute_decision_boundary(result, ...)` call where result is ModelResult (not a model); keep only `compute_decision_boundary(trained_model, X)` path
 - **benchmarks/run.py (2026-05-05)** — CLI help improvement: add `prog=` name, epilog examples, run_depth_sweep docstring added
 - **docs/adr/ADR-0002-phase-v1-to-v2.md** — Phase v1→v2 升级判定: v1 DoD 全部完成（pytest 89%, API全覆盖, benchmark标准化, 安全修复, REPRODUCE.md）; v2 进入 Model & Data Expansion 阶段 (PR#18)
-- **spec/phases.md** — 更新：v1 已完成标记, v2 DoD 新增（SPEC.md拆分, CLI改进, ADR-0002）(PR#18)
-- **benchmarks/reports/2026-05-05.json/.md, benchmarks/reports/2026-05-06.json/.md** — 新增每日 benchmark 报告归档（2026-05-05 + 2026-05-06）：JSON + Markdown 双格式，记录 52 个实验（45通过/7失败），平均准确率 0.8237
-- **.github/workflows/ci.yml** — 新增 GitHub Actions CI 流程：P0 compileall + P1 pytest + P2 benchmark smoke，带 pip cache 优化
-- **CONTRIBUTING.md** — 新增贡献者指南：快速开始、P0/P1/P2 质量门槛、分支/PR 规范、commit 格式、benchmark 规范
-- **benchmarks/run.py** — Tree depth sensitivity sweep: `--depth-sweep` flag runs 24 experiments across depth∈{1,2,3,5,10,None} on all datasets. Per-dataset thresholds (DEPTH_TREE_THRESHOLDS) calibrated for shallow tree underperformance. Reports: `benchmarks/reports/depth_sweep_YYYY-MM-DD.json/.md`
-- **benchmarks/reports/depth_sweep_2026-05-08.{json,md}** — Tree depth sensitivity sweep results: 24 experiments, 22 passed, 2 failed (circles/xor shallow depths)
-- **research/2026-05-01-tree-depth-sensitivity.md** — Key finding: circles/moons peak at depth=5 then degrade (overfitting); xor needs depth≥5 to break 0.60 threshold (0.46→0.75 jump); blobs saturates at depth=2
-- **REPRODUCE.md** — First reproducibility guide: quick start, core commands, expected baseline results, troubleshooting, CI/reproducibility notes
-- **strategy/runs/2026-04-30-1440.md** — Afternoon session run log
-- **benchmarks/reports/2026-04-30.json/.md** — Refreshed with evening smoke test timestamp (22:38 CST)
-- **docs/DEPENDENCY_POLICY.md, docs/REPRODUCE.md** — Moved from spec/ to docs/; created SPEC.md as core entry point (PR#19)
-
-### Security
-- **api/train.py** — Remove `traceback.format_exc()` from error handler to prevent internal path/filename leakage in production responses (fixes THREAT_MODEL.md item)
-
-### Fixed
-- **benchmarks/reports/2026-04-29.json** — Restored from smoke (21-line truncated) to full 52-experiment output; pipeline now writes smoke to `YYYY-MM-DD` date of execution
-
-### v4 Progress (2026-05-20 Morning)
-- **REPRODUCE.md** — Comprehensive rewrite (8777 bytes): platform arch (core/ module), P0/P1/P2 quality gates, Tree depth findings, full benchmark table, troubleshooting (commit 59358c8)
-- **CI depth-sweep job** — Added to .github/workflows/ci.yml: runs Tree depth sensitivity matrix on every push, uploads report artifact, 30-day retention (commit 59358c8)
-- **Full benchmark**: 100 exp / 89 passed / 11 expected-fail (reproducible)
-- **Depth sweep**: 30 exp / 27 passed (circles 5/6, moons 6/6, blobs 6/6, xor 6/6, s_curve 4/6)
-- **Quality gates**: P0 compileall ✅ / P1 100 tests ✅ / P2 benchmark smoke ✅
-
-### Metrics
-- pytest: **100/100** passed (verified 2026-05-20)
-- TOTAL coverage: **89%** (maintained)
-- Full benchmark suite: **100 exp, 89 passed, 11 expected-fail** (reproducible baseline)
-
-
-### Added
-- **tests/test_benchmarks_run.py** — 7 new tests for benchmarks/run.py: run_quick_benchmark (smoke + threshold), generate_summary (smoke/full/empty), write_report (files + markdown)
-- **tests/test_api_train.py** — 19 new tests for api/train.py pure functions: build_model (6 model types + unknown), slider_to_params (6 model configs), DATASET_GENERATORS (4 datasets), get_model_info_dict (2 model types)
-
-### Metrics
-- pytest: **74 → 100** (+26 passing tests)
-
----
-
-## ["2026-04-28"]
-
-### Added
-- **tests/test_experiment_flow.py** — 15 new tests: run_experiment (10 cases covering all models/datasets) + save_results (5 cases including edge case for empty list)
-- **tests/test_benchmarks_smoke.py** — 8 new tests: benchmark CLI smoke + run module integration tests
-- **research/2026-04-28-negative-tree-on-xor.md** — Negative result: Tree(depth=3) on XOR achieves only 0.46 accuracy (expected ~0.50); 3 actionable recommendations for benchmark threshold granularity and depth sensitivity testing
-
-### Changed
-- **main.py** — save_results([]) edge case fixed: now returns NaN for best_accuracy/fastest_train_time instead of ValueError on empty list
-
-### Metrics
-- main.py coverage: **27% → 42%** (+15pp)
-- TOTAL coverage: **42% → 60%** (+18pp)
-- Tests: **28 → 58** (+30 passing tests)
-- benchmark: 52 exp, 45 passed, 7 expected-fail (documented as design limitations, not regressions)
-
-### Added
-- **benchmarks/ package** — Standardized benchmark harness with `python3 -m benchmarks` entrypoint (--quick smoke test + full suite), structured JSON + MD report output to benchmarks/reports/
-- **ADR-0001** — Phase v0→v1 升级判定文档（正式记录 v0 完成，v1 开始）
-- **docs/adr/ADR-0001-phase-v0-to-v1.md** — 阶段升级决策记录
-- **spec/phases.md** (v0.2) — 更新：v0 已完成标记，v1 DoD 新增（pytest≥80%, API全覆, benchmark标准化）
-- **tests/test_api_contract.py** — 7 new tests for API serverless functions (api/health.py, api/train.py), covering contract consistency and train_model signature cross-module verification
-- **benchmarks/reports/2026-04-26.md** — First benchmark report documenting 72-experiment run
-- **spec/DEPENDENCY_POLICY.md** (v0.1) — Dependency management policy: principles, environment constraints (serverless/CPU), P0/P1分级, 变更流程
-- **benchmarks/reports/2026-04-27.md** — Second benchmark report (72-experiment run, MLP best on circles/xor, blobs linear separable)
-- **tests/test_main.py** — +10 new tests: LR/NB model training, dataset edge cases, ModelResult dataclass, API contract signature checks
-
-### Changed
-- **requirements.txt** — Added `pytest>=7.0.0` (上轮遗留：pytest 未写入依赖)
-- **main.py** — MLP max_iter increased from 500 to 2000 to eliminate ConvergenceWarning (eliminates P1 warning)
-- **strategy/NEXT_ROUND_THEME.md** — Updated to mark Harness v1 as next priority
-
-### Fixed
-- **main.py** — MLP ConvergenceWarning eliminated (max_iter 500→2000)
-
-### Security
-- **api/health.py** — Added contract test to verify health response structure
-
----
-
-## [0.0.1] — 2026-04-26
-
-### Added
-- **spec/CHARTER.md** — Project vision, mission, non-goals, quality bar
-- **spec/phases.md** — Phase definitions (v0 Foundation → v1 Testing & Harness → v2 Model Expansion → v3 Platform)
-- **spec/REPRODUCE.md** — Reproducibility guide with P0-P3 verification commands
-- **tests/** — Test infrastructure with 11 test cases covering datasets and model training
-
----
-
-## [0.0.0] — 2026-04-25
-
-### Added
-- Initial release: ML Decision Boundary Visualizer
-- 6 models: SVM, Logistic Regression, Decision Tree, Random Forest, KNN, MLP
-- 4 datasets: circles, moons, blobs, xor
-- CLI (`python main.py`) and Web interface (`web/server.py`)
-- Vercel deployment config
-
-### Changed
-- **Directory restructure**: Moved `AGENT_CRON_PLAYBOOK.md`, `DEPENDENCY_POLICY.md`, `REPRODUCE.md` from `spec/` to `docs/`. Created `SPEC.md` as core spec entry point (2026-05-03)
-- **benchmarks/reports/** — 新增每日 benchmark 报告归档（2026-05-05 + 2026-05-06）：JSON + Markdown 双格式，记录 52 个实验结果
-- **.github/workflows/ci.yml** — 新增 GitHub Actions CI 流程：P0 compileall + P1 pytest + P2 benchmark smoke，带 pip cache 优化
-- **CONTRIBUTING.md** — 新增贡献者指南：快速开始、P0/P1/P2 质量门槛、分支/PR 规范、commit 格式、benchmark 规范
-
-## [Unreleased] — 2026-05-25 Evening
-
-### Added
-- **scripts/generate_changelog.py** — Conventional commit parser: reads git log, outputs Keep a Changelog formatted entries. Supports `--since/--from/--dry-run/--output`. Integrates with CI or release workflow.
-- **docs/adr/ADR-0007-v5-dod.md** — v5 Automation & Documentation phase DoD proposal: 3 candidate items (CHANGELOG automation, pip-audit security CI, README/SPEC.md consistency check)
-
-### Changed
-- **CONTRIBUTING.md** — P1 pytest expected count updated to 216 (was 100), P2 command corrected to `python3 -m benchmarks --quick`
-- **REPRODUCE.md** — Last verified date bumped to 2026-05-25, Expected pytest count updated to 216 passed
-- **PR#35 closed** — fix/web-error-traceback-leak: fix already in master (commit 06f663b via PR#37), PR closed as duplicate
-
-### v5 Phase Started
-- v4 Reproducibility & Robustness completed (ADR-0006, 2026-05-25)
-- v5 Automation & Documentation phase initiated
-- ADR-0007: v5 DoD 细化 proposal created (3 items)
-

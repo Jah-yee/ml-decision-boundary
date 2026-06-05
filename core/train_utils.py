@@ -8,8 +8,6 @@ All live here once; api/train.py, web/server.py, main.py import from here.
 
 import numpy as np
 
-from core.error_messages import E2001_UNKNOWN_MODEL, format_error
-
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -25,7 +23,22 @@ from sklearn.naive_bayes import GaussianNB
 
 
 def build_model(model_name, params):
-    """Factory: build an sklearn estimator from name + keyword params."""
+    """Factory: build an sklearn estimator from name + keyword params.
+
+    Plugin-aware: first checks core/plugins/models/ for a registered plugin.
+    Falls back to builtin sklearn models if no plugin found.
+    Raises ValueError if model_name is unknown to both plugin system and builtins.
+    """
+    # Try plugin system first
+    try:
+        from core.plugins.registry import get_plugin_model
+        plugin = get_plugin_model(model_name)
+        if plugin is not None:
+            return plugin.build(**params)
+    except Exception:
+        pass  # Fall through to builtins
+
+    # Builtin sklearn factories
     factories = {
         'SVM':  lambda: SVC(**params, random_state=42),
         'LR':   lambda: LogisticRegression(**params, random_state=42, max_iter=1000),
@@ -39,7 +52,20 @@ def build_model(model_name, params):
         'AB':   lambda: AdaBoostClassifier(**params, random_state=42, algorithm='SAMME'),
     }
     if model_name not in factories:
-        raise ValueError(format_error(E2001_UNKNOWN_MODEL, name=model_name))
+        # Provide helpful error with available options
+        try:
+            from core.plugins.registry import discover_plugins
+            plugins = discover_plugins()
+            builtin_list = list(factories.keys())
+            plugin_list = list(plugins.keys())
+            all_options = builtin_list + plugin_list
+        except Exception:
+            all_options = list(factories.keys())
+        raise ValueError(
+            f"Unknown model: '{model_name}'. "
+            f"Available models: {', '.join(all_options)}. "
+            f"Run with --list-models to see all."
+        )
     return factories[model_name]()
 
 

@@ -1,7 +1,7 @@
 # ADR-0011 — v7 DoD 细化：Extensibility, Edge Cases & UX
 
 **日期**: 2026-06-01
-**状态**: Proposed
+**状态**: Accepted (2026-06-06)
 **维护人**: 太子
 
 ---

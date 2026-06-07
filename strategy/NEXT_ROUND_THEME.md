@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v30 (v8 规划)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v31 (v8 进行中)
 
-**更新时间：** 2026-06-06 22:00 CST
-**版本：** v30 (v7 完成，v8 规划启动)
+**更新时间：** 2026-06-07 09:57 CST
+**版本：** v31 (v8 DoD 细化完成)
 **维护人：** 太子
 
 ---
@@ -18,51 +18,22 @@
 | v5 Automation & Documentation | ✅ | 2026-05-27 |
 | v6 Stability & Extensibility | ✅ | 2026-05-31 |
 | v7 Extensibility, Edge Cases & UX | ✅ 完成 | 2026-06-06 |
-| v8 Model Registry & Lifecycle | 🔄 规划中 | — |
+| v8 Model Registry & Lifecycle | 🔄 进行中 | — |
 
 ---
 
-## v7 完成总结（2026-06-06 晚场收尾）
-
-### v7 DoD（ADR-0011）— 全部完成 ✅
-
-| # | DoD 项目 | 状态 | PR | 完成日期 |
-|---|---------|------|-----|---------|
-| 1 | 自定义模型插件接口 | ✅ merged | PR#50 | 2026-06-06 |
-| 2 | 数据集边界验证 | ✅ merged | PR#51 | 2026-06-06 |
-| 3 | 错误信息改进 | ✅ merged | PR#52 | 2026-06-06 |
-| 4 | C4: pytest 超时修复 | ✅ merged | PR#53 | 2026-06-06 |
-| 5 | ADR-0011 更新同步 | ✅ Accepted | — | 2026-06-06 |
-
-### 本轮完成（晚场）
-
-- **ADR-0012 创建** — v7→v8 升级判定文档 Proposed
-- **phases.md 更新** — v7 标记为完成，v8 入口条件定义
-- **PR#46 关闭** — v6 readme sync 已 stale，关闭
-- **PR#53** — 待皇上 review + approve + merge
-
-### master 分支状态
-
-```
-master:  8e02b87 feat(core): standardize error messages with canonical error codes — v7 DoD #3 (#52)
-fix/pytest-timeout-c4: d5ae6c4 docs(strategy): v29 morning run report
-```
-
----
-
-## v8 阶段规划（ADR-0012 — Proposed）
+## v8 DoD 细化（ADR-0013 — Proposed）
 
 **主题：** Model Registry & Lifecycle（模型注册与生命周期管理）
 
-### v8 候选 DoD（待细化 ADR-0013）
+### v8 DoD（ADR-0013）
 
-| # | DoD 项目 | 描述 | 优先级 |
-|---|---------|------|--------|
-| 1 | Model Registry 核心 | 训练结果自动注册到 `~/.ml-decision-boundary/registry/`，元数据 JSON 持久化 | P1 |
-| 2 | 模型序列化 | `save`/`load` 接口，支持插件模型和内置模型 | P1 |
-| 3 | CLI 模型管理 | `ml-db model list` / `inspect <id>` / `delete <id>` | P1 |
-| 4 | Benchmark Registry | benchmark 结果写入 registry，支持回归趋势查询 | P2 |
-| 5 | ADR-0012 Accepted 后同步 | NEXT_ROUND_THEME 更新 | P0 |
+| # | DoD 项目 | 描述 | 状态 |
+|---|---------|------|------|
+| 1 | Model Registry 核心 | 训练结果自动注册到 `~/.ml-decision-boundary/registry/`，元数据 JSON 持久化 | 🔄 待启动 |
+| 2 | 模型序列化 | `save`/`load` 接口，支持插件模型和内置模型 | 🔄 待启动 |
+| 3 | CLI 模型管理 | `ml-db model list` / `inspect <id>` / `delete <id>` | 🔄 待启动 |
+| 4 | ADR-0013 Accepted 后同步 | NEXT_ROUND_THEME 更新 | 🔄 待启动 |
 
 ### 技术债务（v8 规划参考）
 
@@ -74,18 +45,35 @@ fix/pytest-timeout-c4: d5ae6c4 docs(strategy): v29 morning run report
 
 ---
 
-## 下轮主题（v30 早场 / v8 早场）
+## v31 早场完成项
 
-**主题**：v8 DoD 细化 + ADR-0013 创建
+- **ADR-0013 创建** ✅ — v8 DoD 细化文档（Model Registry & Lifecycle）
+- **phases.md 更新** ✅ — v8 标记为进行中，ADR-0013 DoD #1 标记完成
+- **spec/AGENT_CRON_PLAYBOOK.md** ✅ — 最小占位（原来不存在）
+- **strategy/runs/2026-06-07-0957.md** ✅ — 早场运行报告
+
+### PR 状态
+
+| PR | 标题 | 状态 | 备注 |
+|----|------|------|------|
+| #53 | fix(tests): skip duplicate full-suite test to resolve C4 pytest timeout | OPEN | 待皇上 merge |
+| #54 | docs: v8 DoD 细化 — ADR-0013 Model Registry & Lifecycle | OPEN | 本轮 push 成功 |
+
+---
+
+## 下轮主题（v31 晚场 / v8 晚场）
+
+**主题**：v8 DoD #1 启动 — Model Registry 核心实现
 
 **待办**：
 1. [ ] **PR#53 merge** — 需要皇上 review + approve
-2. [ ] **ADR-0013 创建** — v8 DoD 细化文档
-3. [ ] **v8 DoD #1 启动** — Model Registry 核心设计与实现
-4. [ ] **phases.md 更新** — v8 标记为进行中
+2. [ ] **v8 DoD #1 启动** — `core/registry.py` 实现
+3. [ ] **RegistryManager 类** — 目录创建、元数据持久化
+4. [ ] **ADR-0013 → Accepted** — 推动皇上审批
 
 ---
 
 **版本历史**：
+- v31 (2026-06-07 09:57): 早场 — v8 DoD 细化 ADR-0013 完成，v8 标记为进行中，AGENT_CRON_PLAYBOOK.md 占位
 - v30 (2026-06-06 22:00): 晚场 — v7 完成，v8 规划启动，ADR-0012 Proposed，phases.md v8 入口定义
 - v29 (2026-06-06 10:40): 早场 — v7 全部完成 ✅，C4 修复 PR#53，ADR-0011 → Accepted

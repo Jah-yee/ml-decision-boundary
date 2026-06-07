@@ -27,6 +27,7 @@ from core.validation import (
     DatasetValidationError,
 )
 from core.error_messages import E1007_UNKNOWN_DATASET, E3005_INVALID_PARAM_FORMAT, format_error
+from core.registry import get_registry_manager
 
 # Import sklearn directly for main.py-only helpers (visualization, experiment orchestration)
 from sklearn.datasets import make_circles as sk_circles, make_moons as sk_moons, make_blobs as sk_blobs, make_s_curve as sk_s_curve
@@ -109,6 +110,10 @@ Examples:
     parser.add_argument(
         "--verbose", "-v", action="store_true",
         help="Enable verbose output",
+    )
+    parser.add_argument(
+        "--no-registry", action="store_true",
+        help="Disable model registry (default: registry enabled)",
     )
     return parser.parse_args()
 
@@ -305,7 +310,7 @@ def plot_decision_boundary(ax, model, X_train, y_train, xx, yy, Z, title: str):
     ax.set_ylabel('Feature 2')
 
 
-def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42) -> ModelResult:
+def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42, use_registry: bool = True, verbose: bool = False) -> ModelResult:
     """Run single experiment"""
     # Validate model params before training
     validate_model_params(model_type, params)
@@ -320,8 +325,11 @@ def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42) 
     # Train model
     model, train_time = train_model(model_type, params, X_train, y_train)
 
+
     # Evaluate
-    accuracy = model.score(X_test, y_test)
+    train_accuracy = model.score(X_train, y_train)
+    test_accuracy = model.score(X_test, y_test)
+
 
     # Compute boundary
     xx, yy, Z = compute_decision_boundary(model, X_train)
@@ -329,17 +337,40 @@ def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42) 
     # Extract model info
     info = get_model_info(model, model_type)
 
+    # Auto-register model to registry
+    if use_registry:
+        try:
+            rm = get_registry_manager()
+            model_id = rm.save_model(
+                model=model,
+                model_type=model_type,
+                hyperparameters=params,
+                X_train=X_train,
+                y_train=y_train,
+                dataset_name=dataset,
+                n_samples=X_train.shape[0],
+                train_accuracy=train_accuracy,
+                test_accuracy=test_accuracy,
+                plugin_origin=False,
+            )
+            if verbose:
+                print(f"  📦 Registered model: {model_id}")
+        except Exception as e:
+            if verbose:
+                print(f"  ⚠️  Registry error (non-fatal): {e}")
+
+
     return ModelResult(
         name=f"{model_type}_{dataset}",
         params=params,
-        accuracy=accuracy,
+        accuracy=test_accuracy,
         train_time=train_time,
         boundary_points=[],  # Store for advanced analysis
         **info
     )
 
 
-def run_all_experiments():
+def run_all_experiments(use_registry: bool = True, verbose: bool = False):
     """Run comprehensive experiments"""
     datasets = ["circles", "moons", "blobs", "xor", "s_curve"]
     models = {
@@ -393,7 +424,7 @@ def run_all_experiments():
         for model_type, param_list in models.items():
             for params in param_list:
                 try:
-                    result = run_experiment(dataset, model_type, params)
+                    result = run_experiment(dataset, model_type, params, use_registry=use_registry, verbose=verbose)
                     results.append(result)
                     print(f"  ✅ {model_type} C={params.get('C', params.get('max_depth', 'N/A'))}: acc={result.accuracy:.4f} time={result.train_time:.4f}s")
                 except Exception as e:
@@ -644,7 +675,7 @@ if __name__ == "__main__":
     if run_all:
         if args.verbose:
             print("\n📊 Running all experiments...")
-        results = run_all_experiments()
+        results = run_all_experiments(use_registry=not args.no_registry, verbose=args.verbose)
         if args.verbose:
             print(f"   Completed {len(results)} experiments.")
 
@@ -676,7 +707,7 @@ if __name__ == "__main__":
         if args.verbose:
             print(f"\n▶️  Running single experiment: model={model}, dataset={dataset}, params={params}")
 
-        result = run_experiment(dataset, model, params, seed=args.seed)
+        result = run_experiment(dataset, model, params, seed=args.seed, use_registry=not args.no_registry, verbose=args.verbose)
 
         # Plot and save
         import matplotlib.pyplot as plt

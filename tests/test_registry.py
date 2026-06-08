@@ -14,11 +14,17 @@ import tempfile
 import shutil
 import json
 from pathlib import Path
+from datetime import date
 
 from sklearn.svm import SVC
 from sklearn.datasets import make_circles
 
 from core.registry import RegistryManager, REGISTRY_BASE
+
+
+# Dynamic date helper to avoid hardcoded dates in assertions
+def _today():
+    return date.today().strftime("%Y-%m-%d")
 
 
 @pytest.fixture
@@ -53,7 +59,8 @@ class TestRegistrySaveLoad:
             train_accuracy=0.95,
             test_accuracy=0.90,
         )
-        assert model_id.startswith("2026-06-07_")
+        today = _today()
+        assert model_id.startswith(f"{today}_")
         assert len(model_id.split("_")) == 2
         assert len(model_id.split("_")[1]) == 6
 
@@ -99,7 +106,8 @@ class TestRegistrySaveLoad:
         assert meta["metrics"]["test_accuracy"] == 0.90
         assert meta["plugin_origin"] is False
         assert "joblib_path" in meta
-        assert "2026-06-07" in meta["created_at"]
+        today = _today()
+        assert today in meta["created_at"]
 
     def test_load_model_restores_correct_type(self, temp_registry, trained_svm):
         model, X, y = trained_svm
@@ -148,7 +156,7 @@ class TestRegistrySaveLoad:
 
     def test_load_model_not_found_raises(self, temp_registry):
         with pytest.raises(FileNotFoundError, match="not found"):
-            temp_registry.load_model("2026-06-07_nonexist")
+            temp_registry.load_model(f"{_today()}_nonexist")
 
 
 class TestRegistryListDelete:
@@ -186,7 +194,7 @@ class TestRegistryListDelete:
 
     def test_delete_model_not_found_raises(self, temp_registry):
         with pytest.raises(FileNotFoundError, match="not found"):
-            temp_registry.delete_model("2026-06-07_nonexist")
+            temp_registry.delete_model(f"{_today()}_nonexist")
 
     def test_find_model(self, temp_registry, trained_svm):
         model, X, y = trained_svm
@@ -196,7 +204,7 @@ class TestRegistryListDelete:
             n_samples=100, train_accuracy=0.95, test_accuracy=0.90,
         )
         assert temp_registry.find_model(model_id) is True
-        assert temp_registry.find_model("2026-06-07_nonexist") is False
+        assert temp_registry.find_model(f"{_today()}_nonexist") is False
 
 
 class TestRegistryManagerSingleton:

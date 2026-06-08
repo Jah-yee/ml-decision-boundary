@@ -29,3 +29,16 @@ class SVMPlugin(ModelBuilder):
             "kernel": ["linear", "rbf", "poly"],
             "gamma": ["scale", "auto", 0.01, 0.1],
         }
+
+    def get_state(self) -> Dict[str, Any]:
+        """Serialize SVM plugin state for registry persistence."""
+        return {
+            "plugin_name": self.name,
+            "hyperparameters": self.default_params(),
+        }
+
+    @classmethod
+    def from_state(cls, state: Dict[str, Any]) -> "SVMPlugin":
+        """Reconstruct SVMPlugin from serialized state."""
+        instance = cls()
+        return instance

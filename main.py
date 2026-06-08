@@ -115,6 +115,16 @@ Examples:
         "--no-registry", action="store_true",
         help="Disable model registry (default: registry enabled)",
     )
+
+    # v8 DoD #3: model subcommand group
+    subparsers = parser.add_subparsers(dest="model_cmd", help="Model registry management")
+
+    # ml-db model list
+    list_parser = subparsers.add_parser("model", help="Model registry management")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete"],
+                              help="Action: list, inspect <id>, or delete <id>")
+    list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete)")
+
     return parser.parse_args()
 
 
@@ -145,6 +155,56 @@ def list_models():
     print("\nAvailable datasets:")
     for name, desc in datasets.items():
         print(f"  {name:8s} — {desc}")
+
+
+# ── v8 DoD #3: Model Registry CLI ─────────────────────────────────────────────
+
+
+def cmd_model_list(rm):
+    """List all registered models."""
+    models = rm.list_models()
+    if not models:
+        print("📭 No models registered yet. Run an experiment to register your first model.")
+        return
+    # Print table header
+    print(f"\n{'ID':<22} {'TYPE':<8} {'ACCURACY':<10} {'CREATED':<25}")
+    print("-" * 70)
+    for m in models:
+        created = m.get("created_at", "unknown")[:25]
+        acc = m.get("accuracy", m.get("metrics", {}).get("test_accuracy", 0.0))
+        print(f"{m['id']:<22} {m['model_type']:<8} {acc:<10.4f} {created}")
+    print(f"\n✅ {len(models)} model(s) registered")
+
+
+def cmd_model_inspect(rm, model_id):
+    """Show detailed metadata for a specific model."""
+    try:
+        meta = rm.get_metadata(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    print(f"\n🔍 Model: {meta['id']}")
+    print(f"   Type:         {meta['model_type']}")
+    print(f"   Plugin:       {meta.get('plugin_origin', False)}")
+    print(f"   Accuracy:     {meta.get('accuracy', 'N/A')}")
+    print(f"   Created:      {meta.get('created_at', 'unknown')}")
+    print(f"   Hyperparameters: {meta.get('hyperparameters', {})}")
+    print(f"   Dataset:      {meta.get('dataset', {})}")
+    print(f"   Metrics:      {meta.get('metrics', {})}")
+    if meta.get('plugin_state'):
+        print(f"   Plugin State: {meta['plugin_state']}")
+    print(f"   Joblib:       {meta.get('joblib_path', 'N/A')}")
+
+
+def cmd_model_delete(rm, model_id):
+    """Delete a registered model."""
+    try:
+        rm.get_metadata(model_id)  # Verify it exists first
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    rm.delete_model(model_id)
+    print(f"🗑️  Deleted model: {model_id}")
 
 
 def parse_params(params_list: list) -> dict:
@@ -662,6 +722,24 @@ if __name__ == "__main__":
 
     if args.list_models:
         list_models()
+        raise SystemExit(0)
+
+    # v8 DoD #3: model registry subcommands
+    if args.model_cmd:
+        rm = get_registry_manager()
+        action = args.action
+        if action == "list":
+            cmd_model_list(rm)
+        elif action == "inspect":
+            if not args.model_id:
+                print("❌ inspect requires a model_id: python main.py model inspect <id>")
+                raise SystemExit(1)
+            cmd_model_inspect(rm, args.model_id)
+        elif action == "delete":
+            if not args.model_id:
+                print("❌ delete requires a model_id: python main.py model delete <id>")
+                raise SystemExit(1)
+            cmd_model_delete(rm, args.model_id)
         raise SystemExit(0)
 
     if args.verbose:

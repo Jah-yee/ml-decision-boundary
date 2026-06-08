@@ -42,6 +42,7 @@ class ModelMetadata:
     plugin_origin: bool        # True if loaded from plugin
     joblib_path: str           # relative path to .joblib file
     accuracy: float            # primary metric (test accuracy)
+    plugin_state: Optional[Dict[str, Any]] = None  # v8 DoD #2: plugin serialization state
 
 
 class RegistryManager:
@@ -100,6 +101,7 @@ class RegistryManager:
         train_accuracy: float = 0.0,
         test_accuracy: float = 0.0,
         plugin_origin: bool = False,
+        plugin_state: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Persist a trained model to the registry.
@@ -144,6 +146,7 @@ class RegistryManager:
             plugin_origin=plugin_origin,
             joblib_path=str(joblib_path.relative_to(self.registry_base)),
             accuracy=round(test_accuracy, 4),
+            plugin_state=plugin_state,
         )
 
         # Write metadata JSON
@@ -181,6 +184,19 @@ class RegistryManager:
                 f"Model file for '{model_id}' not found at {joblib_path}. "
                 f"Registry may be corrupted."
             )
+
+        # v8 DoD #2: handle plugin models via from_state()
+        plugin_state = metadata.get("plugin_state")
+        if metadata.get("plugin_origin") and plugin_state:
+            plugin_name = plugin_state.get("plugin_name", metadata.get("model_type", ""))
+            # Dynamically import plugin registry to avoid circular imports
+            from core.plugins.registry import get_plugin_model
+            plugin = get_plugin_model(plugin_name)
+            if plugin is not None and hasattr(plugin, "from_state"):
+                builder = plugin.from_state(plugin_state)
+                # Build model with restored hyperparameters
+                model = builder.build(**plugin_state.get("hyperparameters", {}))
+                return model
 
         return joblib.load(joblib_path)
 

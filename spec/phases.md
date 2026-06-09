@@ -123,9 +123,10 @@
 
 **本阶段 DoD**（ADR-0013）：
 - [x] ADR-0013: v8 DoD 细化 ✅ (2026-06-07)
-- [ ] Model Registry 核心（训练结果自动注册，元数据持久化）
-- [ ] 模型序列化（save/load 接口）
-- [ ] CLI 模型管理命令
+- [x] Model Registry 核心（训练结果自动注册，元数据持久化）✅ (PR#55, v34 bugfix)
+- [x] 模型序列化（save/load 接口）✅ (PR#55, v34 bugfix)
+- [x] CLI 模型管理命令 ✅ (PR#55)
+- [ ] ADR-0013 Accepted 后同步 → v8 DoD #4 启动
 
 **v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 进行中 🔄**
 

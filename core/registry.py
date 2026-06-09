@@ -212,16 +212,18 @@ class RegistryManager:
 
     def list_models(self) -> List[Dict[str, Any]]:
         """
-        Return metadata for all registered models, newest first.
+        Return metadata for all registered models, newest first (by created_at).
         """
         models = []
-        for json_file in sorted(self.models_dir.glob("*.json"), reverse=True):
+        for json_file in self.models_dir.glob("*.json"):
             try:
                 with open(json_file, encoding="utf-8") as f:
                     models.append(json.load(f))
             except Exception:
                 # Skip corrupted metadata files
                 continue
+        # Sort by created_at descending (newest first)
+        models.sort(key=lambda m: m.get("created_at", ""), reverse=True)
         return models
 
     def delete_model(self, model_id: str) -> None:

@@ -5,6 +5,8 @@ Demonstrates the ModelBuilder plugin interface.
 Place in core/plugins/models/ to auto-register.
 """
 
+from typing import Dict, Any
+
 from sklearn.svm import SVC
 
 from core.interfaces import ModelBuilder

@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v35 (v8 进行中)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v36 (v8 进行中)
 
-**更新时间：** 2026-06-16 21:52 CST
-**版本：** v35 (v8 DoD #1/#2/#3 ✅ — DoD #4 设计完成 ✅ — 等皇上 merge PR#53/#54/#55)
+**更新时间：** 2026-06-17 09:47 CST
+**版本：** v36 (v8 DoD #1/#2/#3 ✅ — DoD #4 设计完成 ✅ — 等皇上 merge PR#53/#54/#55)
 **维护人：** 太子
 
 ---
@@ -46,19 +46,20 @@
 
 ---
 
-## v35 晚场完成项（2026-06-16 21:52 CST）
+## v36 早场完成项（2026-06-17 09:47 CST）
 
 ### 状态确认 ✅
 - **ADR-0013**: DoD #1-4 全部完成，Proposed 态，等皇上 Accepted
 - **PR#53/#54/#55**: 全 OPEN，**请皇上 review + merge！**
 - **v8 DoD #4 设计**: ADR-0013-v8-dod.md 已包含完整 DoD #4 详细设计（commit f22e404）
+- **本轮**: 无新代码改动（v8 DoD #1-4 全部完成待 merge）；theme 更新
 
 ### 验证结果
 - **P0**: compileall + import main ✅
 - **P1**: ⚠️ pytest timeout（HANG，见下方说明）
   - 原因：PR#53（skip duplicate full-suite test）未 merge，C4 技术债务未清除
-  - 本地 60s timeout 仍未完成，正是 PR#53 要修的 bug
-  - `pytest --collect-only` 确认收集到 **284 tests**
+  - pytest 确认收集到 **284 tests**
+  - 这是 PR#53 要修的已知 bug，非 regression
 
 ### PR 状态
 
@@ -70,7 +71,7 @@
 
 ---
 
-## 下轮主题（v36 早场 / v9 早场）
+## 下轮主题（v36 晚场 / v9 早场）
 
 **主题**：v8 DoD #4 实现 — Benchmark Registry 结构化 + ADR-0013 → Accepted
 
@@ -85,6 +86,7 @@
 ---
 
 **版本历史**：
+- v36 (2026-06-17 09:47): **早场** — P0 ✅，PR#53/#54/#55 全 OPEN 等皇上 merge，本轮无新代码
 - v35 (2026-06-16 21:52): **晚场** — ADR-0013 DoD #4 设计完成（P1 ⚠️ 因PR#53未merge），PR#53/#54/#55 等皇上 merge
 - v35 (2026-06-16 09:38): 早场 — P0/P1 全绿（283 tests），ADR-0013 DoD #1-3 验证完成，PR#53/#54/#55 等皇上 review，v8 DoD #4 设计草案起草中
 - v34 (2026-06-09 22:13): 早场 — v8 DoD #1-3 bugfix（list_models sort + svm_plugin typing），232 tests pass

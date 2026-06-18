@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v36 (v8 进行中)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v36晚场 (v8 进行中)
 
-**更新时间：** 2026-06-17 09:47 CST
-**版本：** v36 (v8 DoD #1/#2/#3 ✅ — DoD #4 设计完成 ✅ — 等皇上 merge PR#53/#54/#55)
+**更新时间：** 2026-06-18 10:46 CST
+**版本：** v36 晚场 (v8 DoD #1/#2/#3 ✅ — DoD #4 设计完成 ✅ — 等皇上 merge PR#53/#54/#55)
 **维护人：** 太子
 
 ---
@@ -22,11 +22,7 @@
 
 ---
 
-## v8 DoD 细化（ADR-0013 — Proposed）
-
-**主题：** Model Registry & Lifecycle（模型注册与生命周期管理）
-
-### v8 DoD（ADR-0013 — Proposed，DoD #1-4 全部完成）
+## v8 DoD（ADR-0013 — Proposed，DoD #1-4 全部完成/设计完成）
 
 | # | DoD 项目 | 描述 | 状态 |
 |---|---------|------|------|
@@ -46,19 +42,17 @@
 
 ---
 
-## v36 早场完成项（2026-06-17 09:47 CST）
+## v36 晚场确认（2026-06-18 10:46 CST）
 
 ### 状态确认 ✅
-- **ADR-0013**: DoD #1-4 全部完成，Proposed 态，等皇上 Accepted
-- **PR#53/#54/#55**: 全 OPEN，**请皇上 review + merge！**
-- **v8 DoD #4 设计**: ADR-0013-v8-dod.md 已包含完整 DoD #4 详细设计（commit f22e404）
-- **本轮**: 无新代码改动（v8 DoD #1-4 全部完成待 merge）；theme 更新
+- **ADR-0013**: DoD #1-4 全部完成/设计完成，Proposed 态，**等皇上 Accepted**
+- **PR#53/#54/#55**: 全 OPEN（无 reviewDecision），**等皇上 review + merge！**
+- **本轮**: 无新代码改动（v8 DoD #1-4 全部完成待 merge）
 
 ### 验证结果
-- **P0**: compileall + import main ✅
-- **P1**: ⚠️ pytest timeout（HANG，见下方说明）
+- **P0**: compileall ✅ + import main ✅
+- **P1**: ⚠️ pytest timeout（HANG，C4 技术债务未清除，PR#53 待 merge）
   - 原因：PR#53（skip duplicate full-suite test）未 merge，C4 技术债务未清除
-  - pytest 确认收集到 **284 tests**
   - 这是 PR#53 要修的已知 bug，非 regression
 
 ### PR 状态
@@ -71,7 +65,7 @@
 
 ---
 
-## 下轮主题（v36 晚场 / v9 早场）
+## 下轮主题（v37 早场 / v9 早场）
 
 **主题**：v8 DoD #4 实现 — Benchmark Registry 结构化 + ADR-0013 → Accepted
 
@@ -86,7 +80,8 @@
 ---
 
 **版本历史**：
-- v36 (2026-06-17 09:47): **早场** — P0 ✅，PR#53/#54/#55 全 OPEN 等皇上 merge，本轮无新代码
+- v36 晚场 (2026-06-18 10:46): P0 ✅，PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码，theme 更新
+- v36 早场 (2026-06-17 09:47): **早场** — P0 ✅，PR#53/#54/#55 全 OPEN 等皇上 merge，本轮无新代码
 - v35 (2026-06-16 21:52): **晚场** — ADR-0013 DoD #4 设计完成（P1 ⚠️ 因PR#53未merge），PR#53/#54/#55 等皇上 merge
 - v35 (2026-06-16 09:38): 早场 — P0/P1 全绿（283 tests），ADR-0013 DoD #1-3 验证完成，PR#53/#54/#55 等皇上 review，v8 DoD #4 设计草案起草中
 - v34 (2026-06-09 22:13): 早场 — v8 DoD #1-3 bugfix（list_models sort + svm_plugin typing），232 tests pass

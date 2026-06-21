@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v37晚场 (v8 进行中)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v38 早场 (v8 进行中)
 
-**更新时间：** 2026-06-20 10:30 CST
-**版本：** v37 晚场 (v8 DoD #1/#2/#3 ✅ — DoD #4 设计完成 ✅ — 等皇上 merge PR#53/#54/#55)
+**更新时间：** 2026-06-21 09:53 CST
+**版本：** v38 早场 (v8 DoD #1/#2/#3 ✅ — DoD #4 设计完成 ✅ — 等皇上 merge PR#53/#54/#55)
 **维护人：** 太子
 
 ---
@@ -43,14 +43,19 @@
 
 ---
 
-## v37 晚场确认（2026-06-20 10:30 CST）
+## v38 早场（2026-06-21 09:53 CST）
 
 ### 状态确认
 - **P0**: ✅ compileall + import smoke 通过
-- **P1**: ✅ pytest -q 30s 内 exit 0（全量测试通过；C4 偶发，本次未触发）
+- **P1**: ✅ pytest exit 0 within 60s（本次通过，C4 偶发）
 - **ADR-0013**: DoD #1-4 全部完成/设计完成，Proposed 态，**等皇上 Accepted**
 - **PR#53/#54/#55**: 全 OPEN（无 reviewDecision），**请皇上 review + merge！**
-- **本轮**: 无新代码改动（PR#53 未 merge；C4 偶发，本次测试意外通过）
+- **本轮**: 无新代码（无法开发，P1 阻塞于 PR merge）— 完成 v38 早场状态确认
+
+### 本轮研究笔记（供下轮直接使用）
+- `core/registry.py` 已实现：`RegistryManager` 类含 `save_model`/`load_model`/`list_models`/`delete_model`/`get_metadata`，`BENCHMARKS_DIR` 已定义但无 `save_benchmark` 等方法
+- `benchmarks/run.py`：`run_benchmarks()` 返回 `summary` dict（内含 `results` 列表、`json_report`、`md_report` 路径），需在 `main()` 中添加 `--registry` flag 并调用 `rm.save_benchmark(...)`
+- DoD #4 实现路径：`core/registry.py` 添加 `BenchmarkMetadata` dataclass + `save_benchmark`/`list_benchmarks`/`get_benchmark`/`get_latest_benchmark`/`detect_regressions`；`benchmarks/run.py` 添加 `--registry/--no-registry` flags + 集成调用
 
 ### PR 状态
 
@@ -62,7 +67,7 @@
 
 ---
 
-## 下轮主题（v38 早场）
+## 下轮主题（v38 晚场）
 
 **主题**：v8 DoD #4 实现 — Benchmark Registry 结构化 + ADR-0013 → Accepted
 
@@ -77,6 +82,8 @@
 ---
 
 **版本历史**：
+- v38 早场 (2026-06-21 09:53): P0 ✅，P1 ✅ exit 0 within 60s（C4 偶发，本次通过），PR#53/#54/#55 全 OPEN，本轮无新代码
+- v37 晚场·二次 (2026-06-20 22:10): P0 ✅，P1 ⚠️ HANG（EXIT:124，C4偶发，PR#53未merge），PR#53/#54/#55 全 OPEN，本轮无新代码，完成 DoD #4 深度研究
 - v37 晚场 (2026-06-20 10:30): P0 ✅，P1 ✅ 30s内 exit 0（本次测试意外通过；PR#53/#54/#55 全 OPEN），本轮无新代码
 - v37 早场 (2026-06-19 09:46): P0 ✅，P1 ⚠️ HANG（C4,PR#53未merge），PR#53/#54/#55 全 OPEN，本轮无新代码
 - v36 晚场·二次 (2026-06-18 21:49): P0 ✅，PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码，theme 更新

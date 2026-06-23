@@ -65,7 +65,7 @@
 
 ---
 
-## 下轮主题（v40 晚场）
+## 下轮主题（v41 早场）
 
 **主题**：v8 DoD #4 实现 — Benchmark Registry 结构化 + ADR-0013 → Accepted
 
@@ -80,6 +80,7 @@
 ---
 
 **版本历史**：
+- v40 晚场 (2026-06-22 21:36): P0 ✅ compileall无错，P1 ⚠️ HANG（EXIT:124，C4，PR#53未merge），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码（DoD #4 依赖 PR#55 registry 基础设施，PR 未 merge 则无法开发）
 - v40 早场 (2026-06-22 09:57): P0 ✅，P1 ✅ exit 0（C4偶发，本次通过），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码
 - v39 晚场 (2026-06-21 21:54): P0 ✅，P1 ⚠️ HANG（EXIT:124，C4，PR#53未merge），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码
 - v39 早场 (2026-06-21 09:53): P0 ✅，P1 ✅ exit 0 within 60s（C4 偶发，本次通过），PR#53/#54/#55 全 OPEN，本轮无新代码

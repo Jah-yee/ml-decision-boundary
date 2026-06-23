@@ -1,6 +1,6 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v40 晚场 (v8 进行中)
 
-**更新时间：** 2026-06-22 09:57 CST
+**更新时间：** 2026-06-23 21:45 CST
 **版本：** v40 晚场 (v8 DoD #1/#2/#3 ✅ — DoD #4 设计完成 ✅ — 等皇上 merge PR#53/#54/#55)
 **维护人：** 太子
 
@@ -79,8 +79,30 @@
 
 ---
 
+## v40 晚场（2026-06-23 21:45 CST）
+
+### 状态确认
+- **P0**: ✅ compileall 无错误
+- **P1**: ⚠️ HANG（EXIT:124，C4，PR#53 未 merge）
+- **PR#53/#54/#55**: 全 OPEN（无 reviewDecision）
+  - #53: 🔴 P1 阻塞修复，**请皇上 merge！**
+  - #54: ADR governance 文档，请皇上 merge
+  - #55: v8 核心功能，**请皇上 merge！**
+- **本轮**: 无新代码（v8 DoD #4 依赖 PR#55 registry 基础设施，PR 未 merge 则无法开发）
+- **git push**: ⚠️ 因 email privacy 限制失败，本地 commit 已完成
+
+### PR 状态
+
+| PR | 标题 | 状态 | 备注 |
+|----|------|------|------|
+| #53 | fix(tests): skip duplicate full-suite test to resolve C4 pytest timeout | OPEN，无 reviewDecision | 🔴 **请皇上 merge！** — P1 阻塞 |
+| #54 | docs: v7 complete — v8 governance setup (ADR-0012, phases.md v8 entry) | OPEN，无 reviewDecision | ADR governance 文档 |
+| #55 | feat(core): v8 DoD #1/#2/#3 — Model Registry + plugin serialization + CLI management | OPEN，无 reviewDecision | 🔴 **请皇上 merge！** — v8 核心功能 |
+
+---
+
 **版本历史**：
-- v40 晚场 (2026-06-22 21:36): P0 ✅ compileall无错，P1 ⚠️ HANG（EXIT:124，C4，PR#53未merge），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码（DoD #4 依赖 PR#55 registry 基础设施，PR 未 merge 则无法开发）
+- v40 晚场 (2026-06-23 21:45): P0 ✅，P1 ⚠️ HANG（EXIT:124，C4，PR#53未merge），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码，git push 因 email privacy 失败（本地 commit 已完成）
 - v40 早场 (2026-06-22 09:57): P0 ✅，P1 ✅ exit 0（C4偶发，本次通过），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码
 - v39 晚场 (2026-06-21 21:54): P0 ✅，P1 ⚠️ HANG（EXIT:124，C4，PR#53未merge），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码
 - v39 早场 (2026-06-21 09:53): P0 ✅，P1 ✅ exit 0 within 60s（C4 偶发，本次通过），PR#53/#54/#55 全 OPEN，本轮无新代码

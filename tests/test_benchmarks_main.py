@@ -5,6 +5,7 @@ import json
 import tempfile
 import os
 from pathlib import Path
+import pytest
 
 project_root = Path(__file__).parent.parent
 
@@ -20,6 +21,7 @@ def test_benchmarks_module_entrypoint_quick():
     assert result.returncode == 0, f"stderr: {result.stderr}\nstdout: {result.stdout}"
 
 
+@pytest.mark.skip(reason="C4: duplicate of test_benchmarks_smoke.py::TestBenchmarksCLI::test_benchmarks_full_suite_runs; full suite already covered there, running both causes resource contention + timeout")
 def test_benchmarks_module_full_suite():
     """python3 -m benchmarks runs full suite and produces JSON."""
     result = subprocess.run(

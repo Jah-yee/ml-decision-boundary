@@ -27,6 +27,7 @@ from core.validation import (
     DatasetValidationError,
 )
 from core.error_messages import E1007_UNKNOWN_DATASET, E3005_INVALID_PARAM_FORMAT, format_error
+from core.registry import get_registry_manager
 
 # Import sklearn directly for main.py-only helpers (visualization, experiment orchestration)
 from sklearn.datasets import make_circles as sk_circles, make_moons as sk_moons, make_blobs as sk_blobs, make_s_curve as sk_s_curve
@@ -110,6 +111,20 @@ Examples:
         "--verbose", "-v", action="store_true",
         help="Enable verbose output",
     )
+    parser.add_argument(
+        "--no-registry", action="store_true",
+        help="Disable model registry (default: registry enabled)",
+    )
+
+    # v8 DoD #3: model subcommand group
+    subparsers = parser.add_subparsers(dest="model_cmd", help="Model registry management")
+
+    # ml-db model list
+    list_parser = subparsers.add_parser("model", help="Model registry management")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete"],
+                              help="Action: list, inspect <id>, or delete <id>")
+    list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete)")
+
     return parser.parse_args()
 
 
@@ -140,6 +155,56 @@ def list_models():
     print("\nAvailable datasets:")
     for name, desc in datasets.items():
         print(f"  {name:8s} — {desc}")
+
+
+# ── v8 DoD #3: Model Registry CLI ─────────────────────────────────────────────
+
+
+def cmd_model_list(rm):
+    """List all registered models."""
+    models = rm.list_models()
+    if not models:
+        print("📭 No models registered yet. Run an experiment to register your first model.")
+        return
+    # Print table header
+    print(f"\n{'ID':<22} {'TYPE':<8} {'ACCURACY':<10} {'CREATED':<25}")
+    print("-" * 70)
+    for m in models:
+        created = m.get("created_at", "unknown")[:25]
+        acc = m.get("accuracy", m.get("metrics", {}).get("test_accuracy", 0.0))
+        print(f"{m['id']:<22} {m['model_type']:<8} {acc:<10.4f} {created}")
+    print(f"\n✅ {len(models)} model(s) registered")
+
+
+def cmd_model_inspect(rm, model_id):
+    """Show detailed metadata for a specific model."""
+    try:
+        meta = rm.get_metadata(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    print(f"\n🔍 Model: {meta['id']}")
+    print(f"   Type:         {meta['model_type']}")
+    print(f"   Plugin:       {meta.get('plugin_origin', False)}")
+    print(f"   Accuracy:     {meta.get('accuracy', 'N/A')}")
+    print(f"   Created:      {meta.get('created_at', 'unknown')}")
+    print(f"   Hyperparameters: {meta.get('hyperparameters', {})}")
+    print(f"   Dataset:      {meta.get('dataset', {})}")
+    print(f"   Metrics:      {meta.get('metrics', {})}")
+    if meta.get('plugin_state'):
+        print(f"   Plugin State: {meta['plugin_state']}")
+    print(f"   Joblib:       {meta.get('joblib_path', 'N/A')}")
+
+
+def cmd_model_delete(rm, model_id):
+    """Delete a registered model."""
+    try:
+        rm.get_metadata(model_id)  # Verify it exists first
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    rm.delete_model(model_id)
+    print(f"🗑️  Deleted model: {model_id}")
 
 
 def parse_params(params_list: list) -> dict:
@@ -305,7 +370,7 @@ def plot_decision_boundary(ax, model, X_train, y_train, xx, yy, Z, title: str):
     ax.set_ylabel('Feature 2')
 
 
-def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42) -> ModelResult:
+def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42, use_registry: bool = True, verbose: bool = False) -> ModelResult:
     """Run single experiment"""
     # Validate model params before training
     validate_model_params(model_type, params)
@@ -320,8 +385,11 @@ def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42) 
     # Train model
     model, train_time = train_model(model_type, params, X_train, y_train)
 
+
     # Evaluate
-    accuracy = model.score(X_test, y_test)
+    train_accuracy = model.score(X_train, y_train)
+    test_accuracy = model.score(X_test, y_test)
+
 
     # Compute boundary
     xx, yy, Z = compute_decision_boundary(model, X_train)
@@ -329,17 +397,40 @@ def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42) 
     # Extract model info
     info = get_model_info(model, model_type)
 
+    # Auto-register model to registry
+    if use_registry:
+        try:
+            rm = get_registry_manager()
+            model_id = rm.save_model(
+                model=model,
+                model_type=model_type,
+                hyperparameters=params,
+                X_train=X_train,
+                y_train=y_train,
+                dataset_name=dataset,
+                n_samples=X_train.shape[0],
+                train_accuracy=train_accuracy,
+                test_accuracy=test_accuracy,
+                plugin_origin=False,
+            )
+            if verbose:
+                print(f"  📦 Registered model: {model_id}")
+        except Exception as e:
+            if verbose:
+                print(f"  ⚠️  Registry error (non-fatal): {e}")
+
+
     return ModelResult(
         name=f"{model_type}_{dataset}",
         params=params,
-        accuracy=accuracy,
+        accuracy=test_accuracy,
         train_time=train_time,
         boundary_points=[],  # Store for advanced analysis
         **info
     )
 
 
-def run_all_experiments():
+def run_all_experiments(use_registry: bool = True, verbose: bool = False):
     """Run comprehensive experiments"""
     datasets = ["circles", "moons", "blobs", "xor", "s_curve"]
     models = {
@@ -393,7 +484,7 @@ def run_all_experiments():
         for model_type, param_list in models.items():
             for params in param_list:
                 try:
-                    result = run_experiment(dataset, model_type, params)
+                    result = run_experiment(dataset, model_type, params, use_registry=use_registry, verbose=verbose)
                     results.append(result)
                     print(f"  ✅ {model_type} C={params.get('C', params.get('max_depth', 'N/A'))}: acc={result.accuracy:.4f} time={result.train_time:.4f}s")
                 except Exception as e:
@@ -633,6 +724,24 @@ if __name__ == "__main__":
         list_models()
         raise SystemExit(0)
 
+    # v8 DoD #3: model registry subcommands
+    if args.model_cmd:
+        rm = get_registry_manager()
+        action = args.action
+        if action == "list":
+            cmd_model_list(rm)
+        elif action == "inspect":
+            if not args.model_id:
+                print("❌ inspect requires a model_id: python main.py model inspect <id>")
+                raise SystemExit(1)
+            cmd_model_inspect(rm, args.model_id)
+        elif action == "delete":
+            if not args.model_id:
+                print("❌ delete requires a model_id: python main.py model delete <id>")
+                raise SystemExit(1)
+            cmd_model_delete(rm, args.model_id)
+        raise SystemExit(0)
+
     if args.verbose:
         print("=" * 60)
         print("🎯 ML Decision Boundary Visualizer")
@@ -644,7 +753,7 @@ if __name__ == "__main__":
     if run_all:
         if args.verbose:
             print("\n📊 Running all experiments...")
-        results = run_all_experiments()
+        results = run_all_experiments(use_registry=not args.no_registry, verbose=args.verbose)
         if args.verbose:
             print(f"   Completed {len(results)} experiments.")
 
@@ -676,7 +785,7 @@ if __name__ == "__main__":
         if args.verbose:
             print(f"\n▶️  Running single experiment: model={model}, dataset={dataset}, params={params}")
 
-        result = run_experiment(dataset, model, params, seed=args.seed)
+        result = run_experiment(dataset, model, params, seed=args.seed, use_registry=not args.no_registry, verbose=args.verbose)
 
         # Plot and save
         import matplotlib.pyplot as plt

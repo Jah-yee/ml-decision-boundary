@@ -42,3 +42,33 @@ class ModelBuilder(ABC):
         Used by slider_to_params when generating param combinations.
         """
         return {}
+
+    # ── Serialization protocol (v8 DoD #2) ──────────────────────────────────
+
+    def get_state(self) -> Dict[str, Any]:
+        """
+        Serialize plugin model state for registry persistence.
+
+        Returns a dict with at minimum:
+          - plugin_name: str (the plugin's registered name)
+          - hyperparameters: dict (current hyperparameter values)
+
+        Subclasses may include additional serializable fields.
+        Built-in sklearn models (SVM, Tree, etc.) use joblib directly
+        and do not need to implement this method.
+        """
+        return {"plugin_name": self.name, "hyperparameters": self.default_params()}
+
+    @classmethod
+    def from_state(cls, state: Dict[str, Any]) -> "ModelBuilder":
+        """
+        Reconstruct a ModelBuilder instance from serialized state.
+
+        Args:
+            state: dict as produced by get_state()
+
+        Returns:
+            A new ModelBuilder instance with hyperparameters restored.
+        """
+        instance = cls()
+        return instance

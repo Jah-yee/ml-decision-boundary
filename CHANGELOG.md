@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 2026-06-05 Evening
+## [Unreleased] — 2026-06-06 Evening (v30 — v7 complete, v8 planning)
 
 ### Added
 - `core/error_messages.py`: Canonical error code definitions (E1xxx/E2xxx/E3xxx/E4xxx) + format_error() helper — all errors now use standardized codes with hints
@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **benchmarks/run.py** — Regression detection: only compare baseline configs (exact param match); non-baseline sweep configs are excluded from regression checks (fixes 45 false-positive regressions)
 - **core/train_utils.py** — Remove duplicate build_model definition; consolidate lazy + direct factories into direct imports at module top; shrinks file by ~50 lines (ADR-0009 v6 DoD)
 - **web/server.py** — Security fix: remove traceback.format_exc() from /train error handler to prevent internal path/dependency exposure (#35)
+
+### Governance (v30 Evening)
+- **docs/adr/ADR-0012-phase-v7-to-v8.md** — New ADR: v7→v8 upgrade decision, Model Registry & Lifecycle theme (Proposed)
+- **spec/phases.md** — v7 marked complete, v8 entry conditions defined
+- **strategy/NEXT_ROUND_THEME.md** — v30: v7 完成，v8 规划启动
 
 ## [0.1.1] — 2026-05-01
 

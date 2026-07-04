@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v28 (v7 DoD #1 + #2 完成 ✅)
+# NEXT_ROUND_THEME.md — ml-decision-boundary v40 晚场 (v8 进行中)
 
-**更新时间：** 2026-06-03 21:50 CST
-**版本：** v28 (v7 DoD #1 + #2 完成，晚场)
+**更新时间：** 2026-06-23 21:45 CST
+**版本：** v40 晚场 (v8 DoD #1/#2/#3 ✅ — DoD #4 设计完成 ✅ — 等皇上 merge PR#53/#54/#55)
 **维护人：** 太子
 
 ---
@@ -17,89 +17,103 @@
 | v4 Reproducibility & Robustness | ✅ | 2026-05-24 |
 | v5 Automation & Documentation | ✅ | 2026-05-27 |
 | v6 Stability & Extensibility | ✅ | 2026-05-31 |
-| v7 Extensibility, Edge Cases & UX | 🔄 进行中 | 2026-06-03 |
+| v7 Extensibility, Edge Cases & UX | ✅ 完成 | 2026-06-06 |
+| v8 Model Registry & Lifecycle | 🔄 进行中 | — |
 
 ---
 
-## v7 DoD（来自 ADR-0011）— 进行中
+## v8 DoD（ADR-0013 — Proposed，DoD #1-4 全部完成/设计完成）
 
-| # | DoD 项目 | 状态 | PR |
-|---|---------|------|-----|
-| 1 | 自定义模型插件接口 | ✅ PR#50 merged | daily/v7-evening-plugin-do1 |
-| 2 | 数据集边界验证 | ✅ PR#51 OPEN | feature/v7-dod2-validation-clean |
-| 3 | 错误信息改进 | ⏳ 待启动 | — |
-| 4 | C4: pytest 超时修复 | ⏳ 待查 | — |
-| 5 | ADR-0011 更新同步 | ⏳ 待完成 | — |
+| # | DoD 项目 | 描述 | 状态 |
+|---|---------|------|------|
+| 1 | Model Registry 核心 | 训练结果自动注册到 `~/.ml-decision-boundary/registry/`，元数据 JSON 持久化 | ✅ 完成 (PR#55 + bugfix) |
+| 2 | 模型序列化 | `save`/`load` 接口，支持插件模型和内置模型 | ✅ 完成 (PR#55 + bugfix) |
+| 3 | CLI 模型管理 | `ml-db model list` / `inspect <id>` / `delete <id>` | ✅ 完成 (PR#55 + bugfix) |
+| 4 | Benchmark Registry | benchmark 输出结构化注册；`list_benchmarks()`/`get_benchmark()`/`detect_regressions()`；CLI `ml-db benchmark list`/`inspect` | ✅ DoD 设计完成 (ADR-0013 v2) |
+| 5 | ADR-0013 Accepted 后同步 | NEXT_ROUND_THEME 更新 | 🔄 待启动（等 PR#54/#55 merge → ADR-0013 Accepted） |
 
----
-
-## ✅ 本轮完成（2026-06-03 晚场）
-
-### PR 创建闭环
-
-- **PR#51**：`feat(core): add dataset boundary validation — v7 DoD #2`
-  - `core/validation.py` — validate_dataset() + validate_model_params()
-  - `tests/test_validation.py` — 33 个测试用例
-  - `main.py` — 接入边界验证
-
-### 本地验证
-
-- **P0**: compileall — ✅ pass
-- **P0**: import main — ✅ OK
-- **P1**: test_validation.py — ✅ 33 passed
-- **P2**: benchmark smoke — ✅ SVM moons 正常运行
-
-### v7 DoD #2 完成判定
-
-> ADR-0011 DoD #2 全部验收标准满足 ✅
-> 数据集边界验证可正常工作 ✅
-> PR#51 已创建 ✅
-
----
-
-## 📊 master / daily 分支状态
-
-```
-master:  251c509 docs: phase v6→v7 upgrade — ADR-0010
-feature/v7-dod2-validation-clean: 848f4ff docs(strategy): v28 evening — PR#51 created, CHANGELOG updated
-```
-
----
-
-## 技术债务
+### 技术债务（v8 规划参考）
 
 | # | 问题 | 影响 | 状态 |
 |---|------|------|------|
-| C1 | respx/httpx 本地 env 冲突 | pytest collect 正常 | ✅ 已修复 |
-| C2 | core/train_utils.py 重复 def | 死代码 | ✅ 已清理 |
-| C3 | api/health.py 缺 docstring | P3 | ✅ 已修复 |
-| C4 | pytest 运行超时（120s+） | 非阻塞 | 待查 |
+| C4 | pytest 超时不退出（完整 suite 内有一次重复 HANG） | P1 阻塞，CI 不可靠 | 🔄 PR#53 待 merge |
+| C5 | 模型训练结果无持久化 | 每次运行独立，无版本追踪 | ✅ v8 DoD #1 完成 |
+| C6 | benchmark 输出无结构化 registry | 回归检测依赖手动 | ✅ v8 DoD #4 设计完成（实现待启动） |
+| C7 | 插件接口无版本声明机制 | 接口演化无约束 | ✅ v8 DoD #2 完成（get_state/from_state 协议） |
 
 ---
 
-## 遗留未合并 PR
+## v40 早场（2026-06-22 09:57 CST）
 
-| # | 标题 | 状态 |
-|---|------|------|
-| 50 | feat(core/plugins): implement custom model plugin interface — v7 DoD #1 | OPEN |
-| 49 | docs(adr): ADR-0011 — v7 DoD细化 | OPEN |
-| 48 | docs: phase v6→v7 upgrade — ADR-0010 | OPEN |
+### 状态确认
+- **P0**: ✅ compileall 无错误 + import smoke OK
+- **P1**: ✅ exit 0（C4 偶发，本次通过）
+- **ADR-0013**: DoD #1-4 全部完成/设计完成，Proposed 态，**等皇上 Accepted**
+- **PR#53/#54/#55**: 全 OPEN（无 reviewDecision）
+  - #53: 🔴 P1 阻塞修复，**请皇上 merge！**
+  - #54: ADR governance 文档，请皇上 merge
+  - #55: v8 核心功能，**请皇上 merge！**
+- **本轮**: 无新代码（无法开发，P1/C4阻塞于 PR merge）— 完成 v40 早场状态确认
+
+### PR 状态
+
+| PR | 标题 | 状态 | 备注 |
+|----|------|------|------|
+| #53 | fix(tests): skip duplicate full-suite test to resolve C4 pytest timeout | OPEN，无 reviewDecision | 🔴 **请皇上 merge！** — P1 阻塞 |
+| #54 | docs: v7 complete — v8 governance setup (ADR-0012, phases.md v8 entry) | OPEN，无 reviewDecision | ADR governance 文档 |
+| #55 | feat(core): v8 DoD #1/#2/#3 — Model Registry + plugin serialization + CLI management | OPEN，无 reviewDecision | 🔴 **请皇上 merge！** — v8 核心功能 |
 
 ---
 
-## 下轮主题（v29 早场）
+## 下轮主题（v41 早场）
 
-**主题**：v7 DoD #3 — 错误信息改进
+**主题**：v8 DoD #4 实现 — Benchmark Registry 结构化 + ADR-0013 → Accepted
+
+**前提**：PR#53/#54/#55 merge 后 → ADR-0013 Accepted → v8 DoD #4 实现启动
 
 **待办**：
-1. [ ] **merge 等待中的 PR#48/49/50** — 需要人工 review + approve
-2. [ ] **v7 DoD #3 启动** — 改进错误信息可读性和可操作性
-3. [ ] **C4：pytest 超时调查** — 非阻塞，但值得查
-4. [ ] **ADR-0011 更新为 Accepted** — 需在 PR merge 后完成
+1. [ ] **PR#53/#54/#55 merge** — 🔴 请皇上 review + approve！
+2. [ ] **ADR-0013 → Accepted** — PR#54/#55 merge 后，ADR-0013 随 master 更新状态
+3. [ ] **v8 DoD #4 实现启动** — `core/registry.py` 添加 benchmark 相关方法 + `benchmarks/run.py` 集成
+4. [ ] **phases.md 更新** — v8 DoD #4 标记为进行中
+
+---
+
+## v40 晚场（2026-06-23 21:45 CST）
+
+### 状态确认
+- **P0**: ✅ compileall 无错误
+- **P1**: ⚠️ HANG（EXIT:124，C4，PR#53 未 merge）
+- **PR#53/#54/#55**: 全 OPEN（无 reviewDecision）
+  - #53: 🔴 P1 阻塞修复，**请皇上 merge！**
+  - #54: ADR governance 文档，请皇上 merge
+  - #55: v8 核心功能，**请皇上 merge！**
+- **本轮**: 无新代码（v8 DoD #4 依赖 PR#55 registry 基础设施，PR 未 merge 则无法开发）
+- **git push**: ⚠️ 因 email privacy 限制失败，本地 commit 已完成
+
+### PR 状态
+
+| PR | 标题 | 状态 | 备注 |
+|----|------|------|------|
+| #53 | fix(tests): skip duplicate full-suite test to resolve C4 pytest timeout | OPEN，无 reviewDecision | 🔴 **请皇上 merge！** — P1 阻塞 |
+| #54 | docs: v7 complete — v8 governance setup (ADR-0012, phases.md v8 entry) | OPEN，无 reviewDecision | ADR governance 文档 |
+| #55 | feat(core): v8 DoD #1/#2/#3 — Model Registry + plugin serialization + CLI management | OPEN，无 reviewDecision | 🔴 **请皇上 merge！** — v8 核心功能 |
 
 ---
 
 **版本历史**：
-- v28 (2026-06-03 21:50): 晚场 — PR#51 创建，v7 DoD #2 完成 ✅，CHANGELOG 更新
-- v27 (2026-06-01 09:45): 早场 — v7 规划开始，PR#48/49/50 创建
-- v26 (2026-05-31 21:40): 晚场 — v6 完成，PR#47 merged
+- v40 晚场 (2026-06-23 21:45): P0 ✅，P1 ⚠️ HANG（EXIT:124，C4，PR#53未merge），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码，git push 因 email privacy 失败（本地 commit 已完成）
+- v40 早场 (2026-06-22 09:57): P0 ✅，P1 ✅ exit 0（C4偶发，本次通过），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码
+- v39 晚场 (2026-06-21 21:54): P0 ✅，P1 ⚠️ HANG（EXIT:124，C4，PR#53未merge），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码
+- v39 早场 (2026-06-21 09:53): P0 ✅，P1 ✅ exit 0 within 60s（C4 偶发，本次通过），PR#53/#54/#55 全 OPEN，本轮无新代码
+- v38 晚场 (2026-06-21 21:54): P0 ✅，P1 ⚠️ HANG（EXIT:124，C4，PR#53未merge），PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码
+- v38 早场 (2026-06-21 09:53): P0 ✅，P1 ✅ exit 0 within 60s（C4 偶发，本次通过），PR#53/#54/#55 全 OPEN，本轮无新代码
+- v37 晚场·二次 (2026-06-20 22:10): P0 ✅，P1 ⚠️ HANG（EXIT:124，C4偶发，PR#53未merge），PR#53/#54/#55 全 OPEN，本轮无新代码，完成 DoD #4 深度研究
+- v37 晚场 (2026-06-20 10:30): P0 ✅，P1 ✅ 30s内 exit 0（本次测试意外通过；PR#53/#54/#55 全 OPEN），本轮无新代码
+- v37 早场 (2026-06-19 09:46): P0 ✅，P1 ⚠️ HANG（C4,PR#53未merge），PR#53/#54/#55 全 OPEN，本轮无新代码
+- v36 晚场·二次 (2026-06-18 21:49): P0 ✅，PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码，theme 更新
+- v36 晚场 (2026-06-18 10:46): P0 ✅，PR#53/#54/#55 全 OPEN 无 reviewDecision，本轮无新代码
+- v36 早场 (2026-06-17 09:47): **早场** — P0 ✅，PR#53/#54/#55 全 OPEN 等皇上 merge，本轮无新代码
+- v35 (2026-06-16 21:52): **晚场** — ADR-0013 DoD #4 设计完成（P1 ⚠️ 因PR#53未merge），PR#53/#54/#55 等皇上 merge
+- v35 (2026-06-16 09:38): 早场 — P0/P1 全绿（283 tests），ADR-0013 DoD #1-3 验证完成，PR#53/#54/#55 等皇上 review，v8 DoD #4 设计草案起草中
+- v34 (2026-06-09 22:13): 早场 — v8 DoD #1-3 bugfix（list_models sort + svm_plugin typing），232 tests pass

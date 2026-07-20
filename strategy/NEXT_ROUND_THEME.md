@@ -1,37 +1,49 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v65 早场（等待皇上操作 🔴）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v65 早场
 
-**更新时间：** 2026-07-19 21:54 CST
+**更新时间：** 2026-07-20 09:44 CST
 **版本：** v65 早场
 **维护人：** 太子
 
 ---
 
-## v64 晚场（2026-07-19 21:54 CST）
+## 当前全局状态
 
-### 状态确认
-- **P0**: ✅ `python3 -m compileall .` 无错误 + `python3 -c "import main; print('OK')"` 成功
-- **本地分支**: `feat/v11-model-registry-core`
-- **origin/master**: ✅ 已同步（f64f422，v8 完成）
-- **本地待 push commits**: 3 个（cfd2888 + 77955ff + c2433b2）
+| 项目 | 状态 |
+|------|------|
+| v8 (Model Registry) | ✅ 完成 (ADR-0013 Accepted 2026-07-04) |
+| v9 (Docs & Examples) | ✅ 完成 (ADR-0014 Accepted 2026-07-08) |
+| v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
+| **v11 (Multi-Dataset + Experiment History)** | 🟡 **进行中** — DoD #1-3 ✅，#4 🟡 待 Accept |
 
-### 本轮结果：代码就绪 ✅，push 仍阻塞 🔴
+---
 
-本轮完成：
-1. ✅ P0 检查通过（compileall + import main）
-2. ✅ 确认 origin/master 正常
-3. ✅ ADR-0016-v11-dod.md 存在且完整（Draft，DoD #1-3 ✅，#4 🟡）
-4. 🔴 **GH007 仍然阻塞** —皇上仍未修复 email privacy
+## v65 早场（2026-07-20 09:44 CST）
 
-### ⚠️ GH007 阻塞根因（持续未解除）
+### 通过层级
 
-| 检查项 | 结果 |
-|--------|------|
-| 本地 commits author | `Jah-yee <jydu_seven@outlook.com>` |
-| origin/master | ✅ 正常（f64f422）|
-| 本地分支 push | 🔴 **GH007 拒绝** |
-| 根因 | 皇上 GitHub Settings → Emails 中 `Keep my email address private` **仍勾选** |
+| 层级 | 状态 | 证据 |
+|------|------|------|
+| P0 | ✅ | `python3 -m compileall .` 无错误 + `python3 -c "import main; print('OK')"` → OK |
+| P1 | ✅ | `pytest -q` → 324 passed, 5 skipped, 19 warnings in 57.80s |
+| P2 | ⚠️ | 需要皇上操作才能 push（GH007 未解除） |
+| P3 | ⚠️ | 同上 |
 
-### 皇上必须做的（1步搞定 push 阻塞）
+### 本地分支状态
+
+- **分支**: `feat/v11-model-registry-core`
+- **本地 commits**: 4 个（cfd2888 → 2b3216e）
+- **origin/master**: f64f422（v8 完成节点）
+- **分叉状态**: ahead 122 / behind 118（与 origin/master 分叉）
+
+### 核心阻塞：GH007（持续未解除）
+
+```
+remote: error: GH007: Your push would publish a private email address.
+To https://github.com/Jah-yee/ml-decision-boundary.git
+ ! [remote rejected] feat/v11-model-registry-core -> feat/v11-model-registry-core (push declined due to email privacy restrictions)
+```
+
+**皇上必须做的（1步搞定）：**
 
 访问 **https://github.com/settings/emails**
 
@@ -40,41 +52,35 @@
 
 **同时确认** `jydu_seven@outlook.com` 在列表中且 verified。
 
-> ⚠️ 取消勾选后，从本机 git push 将正常工作。
-
-### 待皇上操作后的步骤
-
-1. `git push origin feat/v11-model-registry-core`
-2. 太子创建 PR：feat/v11-model-registry-core → master
-3. 请皇上 review + merge
-4. Accept ADR-0016（状态 Draft → Accepted）
-5. 开始 v12 规划
-
 ---
 
-## ADR-0016 当前状态（v11 DoD #1-3 全部完成 ✅，DoD #4 🟡 待 Accept）
+## ADR-0016 当前状态
 
 | DoD | 项目 | 状态 |
 |-----|------|------|
 | #1 | Multi-Dataset Support (swiss_roll + make_classification) | ✅ |
 | #2 | Batch Prediction API (`POST /api/predict/batch`) | ✅ |
 | #3 | Experiment History UI (experiments.jsonl + /api/experiments) | ✅ |
-| #4 | ADR-0016 Accepted | 🟡 **待皇上批准**（等 push + PR merge 后）|
+| #4 | ADR-0016 Accepted | 🟡 **待皇上批准**（等 push + PR merge） |
 
 ---
 
-## v63 → v64 进展
+## 待皇上操作后（太子自动承接）
 
-| 项目 | v63 晚场 | v64 早场 | v64 晚场 |
-|------|----------|----------|----------|
-| P0 | ✅ | ✅ | ✅ |
-| 代码准备 | ✅ | ✅ | ✅（未变）|
-| Push 解法 | 🔴 皇上未执行 | 🔴 仍然未执行 | 🔴 **仍然未执行** |
-| 需要皇上操作 | 是 | 仍然 是 | **仍然 是** |
+1. `git push origin feat/v11-model-registry-core` → 太子创建 PR
+2. 皇上 review + merge PR
+3. Accept ADR-0016（Draft → Accepted）
+4. 更新 phases.md（v11 完成）
+5. 开始 v12 规划
 
 ---
 
-## 历史状态
+## v64 → v65 进展
 
-### v63 晚场（2026-07-18 22:08 CST）
-详见上方 — GH007 根因确认，origin/master force-push 确认
+| 项目 | v64 晚场 | v65 早场 |
+|------|----------|----------|
+| P0 | ✅ | ✅ |
+| P1 | — | ✅ 324 passed |
+| 代码就绪 | ✅ | ✅（未变）|
+| GH007 阻塞 | 🔴 | 🔴 **仍然阻塞** |
+| 需要皇上操作 | 是 | **仍然 是** |

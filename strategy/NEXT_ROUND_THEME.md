@@ -24,7 +24,7 @@
 | 层级 | 状态 | 证据 |
 |------|------|------|
 | P0 | ✅ | `python3 -m compileall .` 无错误 + `python3 -c "import main; print('OK')"` → OK |
-| P1 | 🔄 | pytest -q 运行中 |
+| P1 | ✅ | pytest -q → **324 passed, 5 skipped in 114s** |
 | P2 | ⚠️ | GH007 阻塞未解除 |
 | P3 | ⚠️ | 同上 |
 

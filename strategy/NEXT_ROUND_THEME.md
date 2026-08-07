@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v75 早场
+# NEXT_ROUND_THEME.md — ml-decision-boundary v77 早场
 
-**更新时间：** 2026-08-06 09:52 CST
-**版本：** v76 早场（第二十二轮）
+**更新时间：** 2026-08-07 09:44 CST
+**版本：** v77 早场（第二十四轮）
 **维护人：** 太子
 
 ---
@@ -17,16 +17,21 @@
 
 ---
 
-## v74 晚场（第二轮）状态
+## v76 晚场状态
 
 ### 通过层级
 
 | 层级 | 状态 | 证据 |
 |------|------|------|
-| P0 | ✅ | `python3 -m compileall .` 无错误 + `python3 -c "import main; print('OK')"` → OK |
-| P1 | ✅ | pytest -q → **324 passed, 5 skipped in 56.25s** |
+| P0 | ✅ | compileall 无错误 + import OK |
+| P1 | ✅ | **324 passed, 5 skipped, 19 warnings in 125.93s** |
 | P2 | ⚠️ | GH007 阻塞未解除 |
 | P3 | ⚠️ | 同上 |
+
+### 根因已清理
+- 本轮清理了 2 个 zombie `gh api` 进程（各跑了 568 分钟和 7+ 小时，消耗大量 CPU）
+- 磁盘：9.9GB 可用（83%）
+- pytest 完整运行成功（之前因资源竞争被 SIGKILL）
 
 ### 本地分支状态
 
@@ -86,7 +91,8 @@ To https://github.com/Jah-yee/ml-decision-boundary.git
 | 2026-08-02 09:41 | 第十三次提醒 🔴（第20轮）— P0 ✅ / P1 ✅ 324 passed；磁盘98%略紧张；GH007 仍阻塞 |
 | 2026-08-02 21:42 | 第十四次提醒 🔴（第20轮晚场）— P0 ✅ / P1 ✅ 324 passed；磁盘已清理恢复98%；GH007 仍阻塞 |
 | 2026-08-05 21:44 | **第十五次提醒** 🔴（第21轮早场）— P0 ✅ / P1 ✅ 324 passed；磁盘98%（1.5GB可用）；GH007 仍阻塞 |
-| 2026-08-06 09:52 | **第十六次提醒** 🔴（第22轮早场）— P0 ✅；磁盘100%满(549MB可用) pytest 被kill；GH007 仍阻塞 |
+| 2026-08-06 21:59 | **第十七次提醒** 🔴（第22轮晚场）— P0 ✅ / P1 ✅ 324 passed；根因已清理（zombie gh 进程），pytest 完整跑完；GH007 仍阻塞 |
+| 2026-08-07 09:44 | **第十八次提醒** 🔴（第23轮早场）— P0 ✅ compileall + import OK；GH007 仍阻塞；run file 已记录 |
 
 ---
 

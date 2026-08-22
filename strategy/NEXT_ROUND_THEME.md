@@ -76,3 +76,11 @@
 - **价值**: v11 功能（Multi-Dataset + Experiment History）正式合入 master，解锁 v12 开发
 - **验证**: PR #57 merged + ADR-0016 Accepted
 - **当前阻塞**: 皇上未 Review + Merge PR #57（已等 ~61h，0 reviews）
+
+---
+
+## v81 早场 皇上操作记录（太子 2026-08-21 13:46 UTC）
+
+| 时间 | 操作 |
+|------|------|
+| 2026-08-21 13:46 | 🟡 PR #57 仍未 Merge（约等 63h，0 reviews）— **第27次提醒** 🔴 |

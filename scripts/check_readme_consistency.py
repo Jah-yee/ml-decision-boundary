@@ -101,11 +101,12 @@ def check_cli_consistency():
     readme_args = extract_readme_cli_args()
     main_args = extract_main_py_args()
     
-    # Known valid args from main.py
+    # Known valid args from main.py + examples
     valid_args = {
         "model", "dataset", "n-samples", "noise", "seed",
         "output", "list-models", "params", "resolution", "verbose",
-        "help"  # argparse adds this automatically
+        "help",  # argparse adds this automatically
+        "quick",  # examples/05_benchmark_harness.py --quick
     }
     
     errors = []

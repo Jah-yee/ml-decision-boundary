@@ -525,8 +525,56 @@ def write_report(output_dir: Path, results: list, summary: dict) -> tuple:
     return str(json_path), str(md_path)
 
 
+def _register_benchmark(
+    mode: str,
+    results: list,
+    summary: dict,
+    duration_seconds: float,
+    report_json: str = "",
+    report_md: str = "",
+    regressions: int = 0,
+) -> str:
+    """Persist a benchmark run to the registry.  v8 DoD #4.
+
+    Returns the registered benchmark_id.
+    """
+    try:
+        # Lazily import to avoid circular dependency at module load time
+        from core.registry import get_registry_manager
+        rm = get_registry_manager()
+        git_hash = _git_hash()
+        benchmark_id = rm.save_benchmark(
+            mode=mode,
+            results=results,
+            summary=summary,
+            duration_seconds=duration_seconds,
+            report_json=report_json,
+            report_md=report_md,
+            regression_details=[],
+            git_hash=git_hash,
+        )
+        print(f"  📋 Registered as {benchmark_id}")
+        return benchmark_id
+    except Exception as e:
+        print(f"  ⚠️  Registry save failed (non-fatal): {e}")
+        return ""
+
+
+def _git_hash() -> str:
+    """Return current git commit hash or 'unknown'."""
+    try:
+        import subprocess
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short=8", "HEAD"],
+            stderr=subprocess.DEVNULL, text=True
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
 def run_benchmarks(quick: bool = False, depth_sweep: bool = False,
-                  hyperparam_sweep: bool = False, baseline_path: str | None = None) -> dict:
+                  hyperparam_sweep: bool = False, baseline_path: str | None = None,
+                  register: bool = False) -> dict:
     """Main entry point: run benchmarks and return summary dict.
 
     Args:
@@ -534,7 +582,10 @@ def run_benchmarks(quick: bool = False, depth_sweep: bool = False,
         depth_sweep: Run Tree depth sensitivity matrix across all datasets.
         hyperparam_sweep: Run hyperparameter sweep across all models and datasets.
         baseline_path: Path to hyperparam_baseline.json for regression detection.
+        register: If True, persist the run to the model registry (v8 DoD #4).
     """
+    import time as time_module
+    t0 = time_module.perf_counter()
     if hyperparam_sweep:
         print("🔬 Running hyperparameter sweep...")
         results = run_hyperparam_sweep(baseline_path=baseline_path)
@@ -543,8 +594,13 @@ def run_benchmarks(quick: bool = False, depth_sweep: bool = False,
         total = len(results)
         regressions = sum(1 for r in results if r.get("is_regression", False))
         passed = sum(1 for r in results if r.get("passed", False))
+        duration = time_module.perf_counter() - t0
         print(f"  Total: {total} | Passed: {passed} | Regressions: {regressions}")
         print(f"  Reports: {json_path} + {md_path}")
+        if register:
+            _register_benchmark("hyperparam_sweep", results,
+                                {"total_experiments": total, "passed": passed, "regressions": regressions},
+                                duration, json_path, md_path, regressions)
         return {"results": results, "total_experiments": total, "passed": passed, "regressions": regressions,
                "json_report": json_path, "md_report": md_path}
 
@@ -556,8 +612,11 @@ def run_benchmarks(quick: bool = False, depth_sweep: bool = False,
         json_path, md_path = write_depth_sweep_report(report_dir, results, summary)
         summary["json_report"] = json_path
         summary["md_report"] = md_path
+        duration = time_module.perf_counter() - t0
         print(f"  Total: {summary['total_experiments']} | Passed: {summary['passed']}")
         print(f"  Reports: {json_path} + {md_path}")
+        if register:
+            _register_benchmark("depth_sweep", results, summary, duration, json_path, md_path)
         return summary
 
     raw_results = run_quick_benchmark() if quick else run_full_benchmark()
@@ -568,6 +627,10 @@ def run_benchmarks(quick: bool = False, depth_sweep: bool = False,
     json_path, md_path = write_report(report_dir, results, summary)
     summary["json_report"] = json_path
     summary["md_report"] = md_path
+    duration = time_module.perf_counter() - t0
+    if register:
+        mode = "quick" if quick else "full"
+        _register_benchmark(mode, results, summary, duration, json_path, md_path)
     return summary
 
 
@@ -578,11 +641,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python -m benchmarks.run              # Run full benchmark suite
-  python -m benchmarks.run --quick     # Quick smoke test (single model)
-  python -m benchmarks.run --depth-sweep   # Tree depth sensitivity matrix
-  python -m benchmarks.run --hyperparam-sweep   # Hyperparameter sweep
-  python -m benchmarks.run --no-report # Skip report generation
+  python -m benchmarks.run                  # Run full benchmark suite
+  python -m benchmarks.run --quick         # Quick smoke test (single model)
+  python -m benchmarks.run --depth-sweep    # Tree depth sensitivity matrix
+  python -m benchmarks.run --hyperparam-sweep  # Hyperparameter sweep
+  python -m benchmarks.run --registry       # Also persist to model registry (v8 DoD #4)
+  python -m benchmarks.run --no-report     # Skip report generation
         """,
     )
     parser.add_argument("--quick", action="store_true", help="Run only a single smoke test")
@@ -592,28 +656,31 @@ Examples:
                         help="Path to hyperparam_baseline.json for CI regression detection")
     parser.add_argument("--report", action="store_true", help="Generate report (default on)")
     parser.add_argument("--no-report", action="store_true", help="Skip report generation")
+    parser.add_argument("--registry", action="store_true",
+                        help="Persist this run to the model registry (v8 DoD #4)")
     args = parser.parse_args()
 
     if args.hyperparam_sweep:
-        summary = run_benchmarks(hyperparam_sweep=True, baseline_path=args.hyperparam_baseline)
+        summary = run_benchmarks(hyperparam_sweep=True, baseline_path=args.hyperparam_baseline,
+                                 register=args.registry)
         regressions = summary.get("regressions", 0)
         print(f"  Regressions detected: {regressions}")
         return 1 if regressions > 0 else 0
 
     if args.depth_sweep:
-        summary = run_benchmarks(depth_sweep=True)
+        summary = run_benchmarks(depth_sweep=True, register=args.registry)
         print(f"  Reports: {summary['json_report']} + {summary['md_report']}")
         return 0 if summary["passed"] > 0 else 1
 
     if args.quick:
         print("🏃 Running quick smoke test...")
-        summary = run_benchmarks(quick=True)
+        summary = run_benchmarks(quick=True, register=args.registry)
         print(f"  Dataset: {summary['dataset']}, Model: {summary['model']}")
         print(f"  Accuracy: {summary['accuracy']:.4f} | Threshold: {summary['threshold']:.4f}")
         print(f"  {'✅ PASSED' if summary['passed'] else '❌ FAILED'}")
     else:
         print("🎯 Running full benchmark suite...")
-        summary = run_benchmarks(quick=False)
+        summary = run_benchmarks(quick=False, register=args.registry)
         print(f"  Total: {summary['total_experiments']} | Passed: {summary['passed']} | Failed: {summary['failed']}")
         print(f"  Avg accuracy: {summary['avg_accuracy']:.4f} | Avg train time: {summary['avg_train_time']:.4f}s")
         print(f"  Reports: {summary['json_report']} + {summary['md_report']}")

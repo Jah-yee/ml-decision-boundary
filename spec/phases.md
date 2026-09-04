@@ -117,7 +117,7 @@
 
 ---
 
-## 当前阶段: v8 — Model Registry & Lifecycle (规划中)
+## v8 — Model Registry & Lifecycle (已完成 ✅)
 
 **入口条件**: v7 DoD 全部完成 ✅ + ADR-0011 Accepted + ADR-0012 Proposed (2026-06-06)
 
@@ -126,9 +126,58 @@
 - [x] Model Registry 核心（训练结果自动注册，元数据持久化）✅ (PR#55, v34 bugfix)
 - [x] 模型序列化（save/load 接口）✅ (PR#55, v34 bugfix)
 - [x] CLI 模型管理命令 ✅ (PR#55)
-- [ ] ADR-0013 Accepted 后同步 → v8 DoD #4 启动
+- [x] Benchmark Registry CLI（`ml-db benchmark list`/`inspect`/`regressions`）✅ (本轮)
+- [x] ADR-0013 Accepted ✅ (2026-07-04)
+- [x] v8 DoD #1-4 全部完成 ✅ (PR#55 merged 2026-07-04)
 
-**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 进行中 🔄**
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ 🎉**
+
+---
+
+## v9 — Documentation, Examples & Registry UX (已完成 ✅)
+
+**入口条件**: v8 DoD 全部完成 ✅ + ADR-0013 Accepted (2026-07-04) + ADR-0014 Proposed (2026-07-05)
+
+**本阶段 DoD**（ADR-0014 — ✅ Accepted 2026-07-08）：
+- [x] ADR-0014: v9 DoD 细化 ✅ (2026-07-08 Accept，v9 DoD #1-4 全部完成)
+- [x] 示例脚本集 (`examples/01~05_*.py`) — 5 个独立可运行脚本 ✅ (v50 晚场)
+- [x] Cookbook 文档 (`docs/cookbook.md`) — 6章节，606行 ✅ (v51 早场)
+- [x] Registry CLI 增强 (`compare` / `tag` / `list --tag`) ✅ (v51 晚场)
+- [x] README 改进 (Quick Start + Architecture + 功能徽章) ✅ (v52 早场)
+- [x] ADR-0014 Accepted 后同步至 phases.md + NEXT_ROUND_THEME ✅ (v52 晚场)
+
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ 🎉**
+
+---
+
+## v10 — API Enhancement & Interactive Web UI (已完成 ✅)
+
+**入口条件**: v9 DoD 全部完成 ✅ + ADR-0014 Accepted (2026-07-08) + ADR-0015 Draft (2026-07-09)
+
+**本阶段 DoD**（ADR-0015 — ✅ Accepted 2026-07-10）：
+- [x] ADR-0015: v10 DoD 细化 ✅ (2026-07-10 Accepted)
+- [x] API Model Detail Endpoint — `GET /api/models/<name>` 返回模型元数据 ✅ (v53 晚场)
+- [x] API Dataset Listing Endpoint — `GET /api/datasets` 返回可用数据集列表 ✅ (v53 晚场)
+- [x] Web UI: Model Comparison View — 多模型并排对比边界视图 ✅ (v54 早场)
+- [x] Web UI: Parameter Presets — SVM/RF/KNN 快速预设按钮 ✅ (v54 早场)
+- [x] ADR-0015 Accepted ✅ (2026-07-10)
+
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ 🎉**
+
+---
+
+## v11 — Multi-Dataset Expansion & Experiment History (进行中 🟡)
+
+**入口条件**: v10 DoD 全部完成 ✅ + ADR-0015 Accepted (2026-07-10) + ADR-0016 Draft (2026-07-10)
+
+**本阶段 DoD**（ADR-0016 — 🟡 Draft）：
+- [x] ADR-0016: v11 DoD 细化 ✅ (v55 晚场 Draft)
+- [x] Multi-Dataset Support — 新增 swiss_roll + make_classification 变体 ✅ (v56 早场)
+- [x] Batch Prediction API — `POST /api/predict/batch` ✅ (v56 晚场)
+- [x] Experiment History UI — Web UI 历史实验面板 + output/experiments.jsonl ✅ (v57 早场)
+- [ ] ADR-0016 Accepted — DoD #1-3 全部完成后 Accept 🟡
+
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 进行中 🟡**
 
 ---
 

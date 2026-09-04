@@ -121,9 +121,18 @@ Examples:
 
     # ml-db model list
     list_parser = subparsers.add_parser("model", help="Model registry management")
-    list_parser.add_argument("action", choices=["list", "inspect", "delete"],
-                              help="Action: list, inspect <id>, or delete <id>")
-    list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete)")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags"],
+                              help="Action: list, inspect, delete, compare, tag, untag, tags")
+    list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete/compare/tag/untag)")
+    list_parser.add_argument("model_id2", nargs="?", help="Second model ID (for compare)")
+    list_parser.add_argument("--tag", dest="tag_name", help="Tag name (for tag/untag/list --tag)")
+    list_parser.add_argument("--remove-tag", dest="remove_tag", help="Remove tag name (for untag)")
+
+    # v8 DoD #4: benchmark subcommand group
+    bench_parser = subparsers.add_parser("benchmark", help="Benchmark registry management")
+    bench_parser.add_argument("action", choices=["list", "inspect", "regressions"],
+                              help="Action: list, inspect <id>, or regressions [current_id]")
+    bench_parser.add_argument("benchmark_id", nargs="?", help="Benchmark ID (optional for inspect/regressions)")
 
     return parser.parse_args()
 
@@ -191,6 +200,8 @@ def cmd_model_inspect(rm, model_id):
     print(f"   Hyperparameters: {meta.get('hyperparameters', {})}")
     print(f"   Dataset:      {meta.get('dataset', {})}")
     print(f"   Metrics:      {meta.get('metrics', {})}")
+    tags = meta.get('tags', [])
+    print(f"   Tags:         {tags if tags else '(none)'}")
     if meta.get('plugin_state'):
         print(f"   Plugin State: {meta['plugin_state']}")
     print(f"   Joblib:       {meta.get('joblib_path', 'N/A')}")
@@ -205,6 +216,158 @@ def cmd_model_delete(rm, model_id):
         raise SystemExit(1)
     rm.delete_model(model_id)
     print(f"🗑️  Deleted model: {model_id}")
+
+
+def cmd_model_compare(rm, model_id1: str, model_id2: str):
+    """Compare accuracy and metadata of two registered models.  v9 DoD #3."""
+    try:
+        result = rm.compare_models(model_id1, model_id2)
+    except FileNotFoundError as e:
+        print(f"❌ {e}")
+        raise SystemExit(1)
+
+    m1, m2 = result["model1"], result["model2"]
+    print(f"\n⚖️  Model Comparison")
+    print(f"   model1: {m1['id']} ({m1['model_type']}, acc={m1.get('accuracy', 'N/A')})")
+    print(f"   model2: {m2['id']} ({m2['model_type']}, acc={m2.get('accuracy', 'N/A')})")
+    print()
+    print(f"{'FIELD':<30} {'MODEL1':<15} {'MODEL2':<15} NOTE")
+    print("-" * 80)
+    for d in result["differences"]:
+        f = d["field"]
+        v1 = str(d["value1"])[:15]
+        v2 = str(d["value2"])[:15]
+        note = d.get("note", "")
+        print(f"{f:<30} {v1:<15} {v2:<15} {note}")
+    print()
+    # Highlight accuracy winner
+    acc_diff = next((d for d in result["differences"] if d["field"] == "test_accuracy"), None)
+    if acc_diff:
+        winner = acc_diff["winner"]
+        if winner == "model1":
+            print(f"🏆 Winner: {m1['id']} (model1) — {acc_diff['note']}")
+        elif winner == "model2":
+            print(f"🏆 Winner: {m2['id']} (model2) — {acc_diff['note']}")
+        else:
+            print("🤝 Result: Tie — identical test accuracy")
+
+
+def cmd_model_tag(rm, model_id: str, tag: str):
+    """Add a tag to a model.  v9 DoD #3."""
+    try:
+        rm.tag_model(model_id, tag)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    except ValueError as e:
+        print(f"❌ {e}")
+        raise SystemExit(1)
+    print(f"🏷️  Tagged model {model_id} with '{tag}'")
+
+
+def cmd_model_untag(rm, model_id: str, tag: str):
+    """Remove a tag from a model.  v9 DoD #3."""
+    try:
+        rm.untag_model(model_id, tag)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    except ValueError as e:
+        print(f"❌ {e}")
+        raise SystemExit(1)
+    print(f"🏷️  Removed tag '{tag}' from model {model_id}")
+
+
+def cmd_model_tags(rm):
+    """List all tags and the models that have them.  v9 DoD #3."""
+    tag_index = rm.list_tags()
+    if not tag_index:
+        print("📭 No tags found. Use 'python main.py model tag <id> --tag <name>' to add tags.")
+        return
+    print(f"\n🏷️  All Tags ({len(tag_index)} total):")
+    print()
+    for tag, model_ids in sorted(tag_index.items()):
+        print(f"  【{tag}】 — {len(model_ids)} model(s)")
+        for mid in model_ids:
+            try:
+                meta = rm.get_metadata(mid)
+                acc = meta.get("accuracy", "N/A")
+                mtype = meta.get("model_type", "?")
+                print(f"     {mid:<22} {mtype:<8} acc={acc}")
+            except Exception:
+                print(f"     {mid}")
+        print()
+
+
+# ── v8 DoD #4: Benchmark Registry CLI ─────────────────────────────────────────
+
+
+def cmd_benchmark_list(rm):
+    """List all registered benchmark runs."""
+    benchmarks = rm.list_benchmarks()
+    if not benchmarks:
+        print("📭 No benchmark runs registered yet. Run a benchmark to register your first result.")
+        return
+    print(f"\n{'ID':<30} {'MODE':<12} {'DATE':<25} {'DUR':<8} {'PASS':<6} {'FAIL':<6} {'REGR':<6}")
+    print("-" * 100)
+    for b in benchmarks:
+        bid = b.get('id', 'unknown')[:30]
+        mode = b.get('mode', 'unknown')[:12]
+        date = b.get('timestamp', 'unknown')[:25]
+        dur = f"{b.get('duration_seconds', 0):.1f}s"
+        passed = b.get('passed', 0)
+        failed = b.get('failed', 0)
+        regr = b.get('regressions', 0)
+        print(f"{bid:<30} {mode:<12} {date:<25} {dur:<8} {passed:<6} {failed:<6} {regr:<6}")
+    print(f"\n✅ {len(benchmarks)} benchmark run(s) registered")
+
+
+def cmd_benchmark_inspect(rm, benchmark_id):
+    """Show detailed metadata for a specific benchmark run."""
+    try:
+        meta = rm.get_benchmark(benchmark_id)
+    except FileNotFoundError:
+        print(f"❌ Benchmark '{benchmark_id}' not found. Run 'python main.py benchmark list' to see available runs.")
+        raise SystemExit(1)
+    print(f"\n🔍 Benchmark: {meta['id']}")
+    print(f"   Mode:          {meta.get('mode', 'N/A')}")
+    print(f"   Timestamp:    {meta.get('timestamp', 'N/A')}")
+    print(f"   Duration:     {meta.get('duration_seconds', 'N/A')}s")
+    print(f"   Git Hash:     {meta.get('git_hash', 'N/A')}")
+    print(f"   Total:        {meta.get('total_experiments', 'N/A')}")
+    print(f"   Passed:       {meta.get('passed', 'N/A')}")
+    print(f"   Failed:       {meta.get('failed', 'N/A')}")
+    print(f"   Regressions:  {meta.get('regressions', 'N/A')}")
+    if meta.get('regression_details'):
+        print(f"\n   📉 Regression Details:")
+        for rd in meta['regression_details']:
+            print(f"      - {rd.get('dataset')}/{rd.get('model')}: "
+                  f"{rd.get('previous_accuracy')} → {rd.get('current_accuracy')} "
+                  f"(-{rd.get('drop_pct')}%, -{rd.get('drop')})")
+    if meta.get('model_results'):
+        print(f"\n   📊 Model Results ({len(meta['model_results'])} total):")
+        for mr in meta['model_results'][:5]:
+            print(f"      - {mr.get('dataset')}/{mr.get('model')}: acc={mr.get('accuracy', 'N/A')}")
+        if len(meta['model_results']) > 5:
+            print(f"      ... and {len(meta['model_results']) - 5} more")
+    if meta.get('report_md'):
+        print(f"\n   📄 Report: {meta.get('report_md', 'N/A')}")
+
+
+def cmd_benchmark_regressions(rm, current_run_id):
+    """Detect regressions vs previous run (or vs specified run)."""
+    result = rm.detect_regressions(current_run_id=current_run_id)
+    if result.get("error"):
+        print(f"⚠️  {result['error']}")
+        return
+    if not result.get("has_regressions"):
+        print(f"✅ No regressions detected ({result.get('count', 0)} checks)")
+        return
+    print(f"\n🚨 Regression Alert: {result.get('count')} regression(s) detected!")
+    for detail in result.get("details", []):
+        print(f"   📉 {detail['dataset']}/{detail['model']}: "
+              f"{detail['previous_accuracy']} → {detail['current_accuracy']} "
+              f"(-{detail['drop_pct']}%, -{detail['drop']})")
 
 
 def parse_params(params_list: list) -> dict:
@@ -724,22 +887,68 @@ if __name__ == "__main__":
         list_models()
         raise SystemExit(0)
 
-    # v8 DoD #3: model registry subcommands
+    # v8 DoD #3/#4: model and benchmark registry subcommands (routed by args.model_cmd value)
     if args.model_cmd:
         rm = get_registry_manager()
-        action = args.action
-        if action == "list":
-            cmd_model_list(rm)
-        elif action == "inspect":
-            if not args.model_id:
-                print("❌ inspect requires a model_id: python main.py model inspect <id>")
-                raise SystemExit(1)
-            cmd_model_inspect(rm, args.model_id)
-        elif action == "delete":
-            if not args.model_id:
-                print("❌ delete requires a model_id: python main.py model delete <id>")
-                raise SystemExit(1)
-            cmd_model_delete(rm, args.model_id)
+        cmd = args.model_cmd  # "model" or "benchmark"
+        action = args.action  # shared across both subparsers
+
+        if cmd == "model":
+            if action == "list":
+                # v9 DoD #3: support --tag filter
+                if args.tag_name:
+                    models = rm.list_models_by_tag(args.tag_name)
+                    if not models:
+                        print(f"📭 No models found with tag '{args.tag_name}'.")
+                    else:
+                        print(f"\n🏷️  Models tagged '{args.tag_name}' ({len(models)}):")
+                        for m in models:
+                            created = m.get("created_at", "unknown")[:25]
+                            acc = m.get("accuracy", 0.0)
+                            print(f"   {m['id']:<22} {m['model_type']:<8} acc={acc:.4f}  {created}")
+                else:
+                    cmd_model_list(rm)
+            elif action == "inspect":
+                if not args.model_id:
+                    print("❌ inspect requires a model_id: python main.py model inspect <id>")
+                    raise SystemExit(1)
+                cmd_model_inspect(rm, args.model_id)
+            elif action == "delete":
+                if not args.model_id:
+                    print("❌ delete requires a model_id: python main.py model delete <id>")
+                    raise SystemExit(1)
+                cmd_model_delete(rm, args.model_id)
+            elif action == "compare":
+                if not args.model_id or not args.model_id2:
+                    print("❌ compare requires two model IDs: python main.py model compare <id1> <id2>")
+                    raise SystemExit(1)
+                cmd_model_compare(rm, args.model_id, args.model_id2)
+            elif action == "tag":
+                if not args.model_id or not args.tag_name:
+                    print("❌ tag requires model_id and --tag <name>: python main.py model tag <id> --tag <name>")
+                    raise SystemExit(1)
+                cmd_model_tag(rm, args.model_id, args.tag_name)
+            elif action == "untag":
+                if not args.model_id:
+                    print("❌ untag requires model_id: python main.py model untag <id> --tag <name> or --remove-tag <name>")
+                    raise SystemExit(1)
+                tag_name = args.tag_name or args.remove_tag
+                if not tag_name:
+                    print("❌ untag requires --tag <name> or --remove-tag <name>")
+                    raise SystemExit(1)
+                cmd_model_untag(rm, args.model_id, tag_name)
+            elif action == "tags":
+                cmd_model_tags(rm)
+        elif cmd == "benchmark":
+            if action == "list":
+                cmd_benchmark_list(rm)
+            elif action == "inspect":
+                if not args.benchmark_id:
+                    print("❌ inspect requires a benchmark_id: python main.py benchmark inspect <id>")
+                    raise SystemExit(1)
+                cmd_benchmark_inspect(rm, args.benchmark_id)
+            elif action == "regressions":
+                cmd_benchmark_regressions(rm, args.benchmark_id)
         raise SystemExit(0)
 
     if args.verbose:

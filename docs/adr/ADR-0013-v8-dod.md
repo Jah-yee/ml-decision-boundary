@@ -1,7 +1,8 @@
 # ADR-0013 — v8 DoD 细化：Model Registry & Lifecycle
 
 **日期**: 2026-06-07
-**状态**: Proposed
+**状态**: Accepted
+**Accepted 日期**: 2026-07-04
 **维护人**: 太子
 
 ---

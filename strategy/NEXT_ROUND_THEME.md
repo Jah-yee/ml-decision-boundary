@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v90 晚场
+# NEXT_ROUND_THEME.md — ml-decision-boundary v91 早场
 
-**更新时间：** 2026-09-18 13:41 UTC
-**版本：** v90 晚场（第41轮晚场）
+**更新时间：** 2026-09-19 01:41 UTC
+**版本：** v91 早场（第42轮早场）
 **维护人：** 太子
 
 ---
@@ -13,25 +13,25 @@
 | v8 (Model Registry) | ✅ 完成 (ADR-0013 Accepted 2026-07-04) |
 | v9 (Docs & Examples) | ✅ 完成 (ADR-0014 Accepted 2026-07-08) |
 | v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
-| **v11 (Multi-Dataset + Experiment History)** | 🟡 **PR #57 Open — OPEN ✅ MERGEABLE ✅，mergeStateStatus CLEAN，0 reviews，0 comments，等皇上 Merge ~30天23h，CI 全部 6/6 ✅（Sep 4 02:10 UTC）** |
+| **v11 (Multi-Dataset + Experiment History)** | 🟡 **PR #57 Open — OPEN ✅ MERGEABLE ✅，mergeStateStatus CLEAN，0 reviews，0 comments，等皇上 Merge ~31天12h，CI 全部 6/6 ✅（Sep 4 02:10 UTC）** |
 
 ---
 
-## v90 晚场状态（第41轮晚场）
+## v91 早场状态（第42轮早场）
 
 ### 通过层级
 
 | 层级 | 状态 | 证据 |
 |------|------|------|
 | P0 | ✅ | compileall 无错误，import OK |
-| P1 | ✅ | 324 passed, 5 skipped（分组验证）；CI 已验证 6/6 绿灯 |
+| P1 | ✅ | 324 passed, 5 skipped（pytest -q，53.61s） |
 | P2 | ✅ | |
 | P3 | ✅ | |
 
 ### 本地分支状态
 
 - **分支**: `feat/v11-model-registry-core`
-- **HEAD**: `2ca9e2d` (v89 早场，等皇上 merge)
+- **HEAD**: `09bbcb1` (Merge origin/master into feat/v11-model-registry-core — resolve PR #57 conflict)
 - **分叉状态**: 本地 ahead 45，等皇上 merge
 
 ---
@@ -43,7 +43,7 @@
 | #1 | Multi-Dataset Support (swiss_roll + make_classification) | ✅ |
 | #2 | Batch Prediction API (`POST /api/predict/batch`) | ✅ |
 | #3 | Experiment History UI (experiments.jsonl + /api/experiments) | ✅ |
-| #4 | ADR-0016 Accepted | 🟡 **PR #57 OPEN ✅ MERGEABLE ✅，mergeStateStatus CLEAN，0 reviews，0 comments，等皇上 Merge ~30天23h，CI 全部 6/6 ✅（Sep 4 02:10 UTC）** |
+| #4 | ADR-0016 Accepted | 🟡 **PR #57 OPEN ✅ MERGEABLE ✅，mergeStateStatus CLEAN，0 reviews，0 comments，等皇上 Merge ~31天12h，CI 全部 6/6 ✅（Sep 4 02:10 UTC）** |
 
 ---
 
@@ -83,6 +83,7 @@
 | **2026-09-17 13:47** | 🟡 **PR #57 等 ~312h（>13天），OPEN ✅ MERGEABLE ✅，CI 全部 6/6 ✅（Sep 4 02:10 UTC），0 reviews，0 comments，最后更新 ~13天前，324 tests ✅ P0 ✅ P1 ✅ — **第43次提醒** 🔴 |
 | **2026-09-18 01:41** | 🟡 **PR #57 等 ~30天，OPEN ✅ MERGEABLE ✅，mergeStateStatus CLEAN，CI 全部 6/6 ✅（Sep 4 02:10 UTC），0 reviews，0 comments，最后更新 ~12h 前（Sep 17 13:49 UTC），324 tests ✅ P0 ✅ P1 ✅ — **第44次提醒** 🔴 |
 | **2026-09-18 13:41** | 🟡 **PR #57 等 ~30天23h，OPEN ✅ MERGEABLE ✅，mergeStateStatus CLEAN，CI 全部 6/6 ✅（Sep 4 02:10 UTC），0 reviews，0 comments，最后更新 ~24h 前（Sep 17 13:49 UTC），P0 ✅ P1 ✅，本地分支 ahead 45 — **第45次提醒** 🔴 |
+| **2026-09-19 01:41** | 🟡 **PR #57 等 ~31天12h，OPEN ✅ MERGEABLE ✅，mergeStateStatus CLEAN，CI 全部 6/6 ✅（Sep 4 02:10 UTC），0 reviews，0 comments，最后更新 ~36h 前（Sep 17 13:49 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped），本地分支 ahead 45 — **第46次提醒** 🔴 |
 
 ---
 
@@ -91,7 +92,7 @@
 1. ✅ ~~GH007 fix~~ → 已完成
 2. ✅ ~~quality-checks~~ → 已修复（--quick flag）
 3. ✅ ~~security-audit~~ → 已修（pillow 12.2.0 → 12.3.0）— CI 全部绿灯 ✅
-4. ⏳ **Review + Merge PR #57** → 等皇上（已等 ~30天23h，0 reviews）
+4. ⏳ **Review + Merge PR #57** → 等皇上（已等 ~31天12h，0 reviews）
 5. ⏳ Accept ADR-0016（Draft → Accepted）→ 等皇上 Merge 后太子自动处理
 6. ⏳ 更新 phases.md（v11 完成）→ 等皇上 Merge 后太子自动处理
 7. ⏳ 开始 v12 规划
@@ -103,12 +104,12 @@
 - **受益人**: 皇上 / 仓库维护者
 - **价值**: v11 功能（Multi-Dataset + Experiment History）正式合入 master，解锁 v12 开发
 - **验证**: PR #57 merged + ADR-0016 Accepted
-- **当前阻塞**: 皇上未 Review + Merge PR #57（已等 ~30天23h，0 reviews）；CI 已全部绿灯 ✅
+- **当前阻塞**: 皇上未 Review + Merge PR #57（已等 ~31天12h，0 reviews）；CI 已全部绿灯 ✅
 
 ---
 
-## v90 晚场 皇上操作记录（太子 2026-09-18 13:41 UTC）
+## v91 早场 皇上操作记录（太子 2026-09-19 01:41 UTC）
 
 | 时间 | 操作 |
 |------|------|
-| 2026-09-18 13:41 | 🟡 **PR #57 OPEN ✅ MERGEABLE ✅，mergeStateStatus CLEAN，0 reviews，0 comments，等皇上 Merge ~30天23h，CI 全部 6/6 ✅（Sep 4 02:10 UTC），最后更新 ~24h 前（Sep 17 13:49 UTC），P0 ✅ P1 ✅，本地分支 ahead 45 — **第45次提醒** 🔴 |
+| 2026-09-19 01:41 | 🟡 **PR #57 等 ~31天12h，OPEN ✅ MERGEABLE ✅，mergeStateStatus CLEAN，0 reviews，0 comments，等皇上 Merge，CI 全部 6/6 ✅（Sep 4 02:10 UTC），最后更新 ~36h 前（Sep 17 13:49 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped），本地分支 ahead 45 — **第46次提醒** 🔴 |

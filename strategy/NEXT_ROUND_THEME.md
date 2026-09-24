@@ -1,7 +1,7 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v96 早场
+# NEXT_ROUND_THEME.md — ml-decision-boundary v97 早场
 
-**更新时间：** 2026-09-23 13:49 UTC
-**版本：** v96 早场（第45轮早场第2次）
+**更新时间：** 2026-09-24 01:40 UTC
+**版本：** v97 早场（第46轮早场）
 **维护人：** 太子
 
 ---
@@ -115,7 +115,7 @@
 | **2026-09-22 01:41** | ⚠️ **PR #57 等 ~35天12h，OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，0 comments，最后更新 ~83.75h 前（Sep 18 13:56 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 78.46s），本地 HEAD e474401 ahead ~164（push 仍 GH007 阻塞），PR head 仍 4f9e532，CI Sep 17 13:49 UTC ✅（6/6）— **第52次提醒** 🔴 |
 | **2026-09-22 13:44** | ⚠️ **PR #57 等 ~35天12h，OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，0 comments，最后更新 ~95.8h 前（Sep 18 13:56 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 73.77s），本地 HEAD 032cddb ahead ~167（push 仍 GH007 阻塞），PR head 仍 4f9e532，CI Sep 17 13:49 UTC ✅（6/6）— **第53次提醒** 🔴 |
 | **2026-09-23 01:47** | ⚠️ **PR #57 等 ~36天12h，OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，0 comments，最后更新 ~4天多前（Sep 18 13:56 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 81.99s），本地 HEAD 032cddb ahead ~167（push 仍 GH007 阻塞），PR head 仍 4f9e532，CI Sep 17 13:49 UTC ✅（6/6）— **第54次提醒** 🔴 |
-| **2026-09-23 13:49** | ⚠️ **PR #57 等 ~37天，OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，0 comments，最后更新 ~5天前（Sep 18 13:56 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 82.37s），本地 HEAD 71ebace ahead ~167（push 仍 GH007 阻塞），PR head 仍 4f9e532，CI Sep 17 13:49 UTC ✅（6/6）— **第55次提醒** 🔴 |
+| **2026-09-24 01:40** | ⚠️ **PR #57 等 ~38天，OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，0 comments，最后更新 ~5.5天前（Sep 18 13:56 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 56.15s），本地 HEAD 2e59569 ahead ~167（push 仍 GH007 阻塞），PR head 仍 4f9e532，CI Sep 17 13:49 UTC ✅（6/6）— **第56次提醒** 🔴 |
 
 ---
 

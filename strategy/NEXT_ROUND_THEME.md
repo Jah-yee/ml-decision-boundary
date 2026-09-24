@@ -17,7 +17,7 @@
 
 ---
 
-## v96 早场状态（第45轮早场第2次）
+## v97 早场状态（第46轮早场）
 
 ### 通过层级
 
@@ -116,6 +116,7 @@
 | **2026-09-22 13:44** | ⚠️ **PR #57 等 ~35天12h，OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，0 comments，最后更新 ~95.8h 前（Sep 18 13:56 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 73.77s），本地 HEAD 032cddb ahead ~167（push 仍 GH007 阻塞），PR head 仍 4f9e532，CI Sep 17 13:49 UTC ✅（6/6）— **第53次提醒** 🔴 |
 | **2026-09-23 01:47** | ⚠️ **PR #57 等 ~36天12h，OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，0 comments，最后更新 ~4天多前（Sep 18 13:56 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 81.99s），本地 HEAD 032cddb ahead ~167（push 仍 GH007 阻塞），PR head 仍 4f9e532，CI Sep 17 13:49 UTC ✅（6/6）— **第54次提醒** 🔴 |
 | **2026-09-24 01:40** | ⚠️ **PR #57 等 ~38天，OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，0 comments，最后更新 ~5.5天前（Sep 18 13:56 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 56.15s），本地 HEAD 2e59569 ahead ~167（push 仍 GH007 阻塞），PR head 仍 4f9e532，CI Sep 17 13:49 UTC ✅（6/6）— **第56次提醒** 🔴 |
+| **2026-09-24 13:37** | ⚠️ **PR #57 等 ~38天12h，OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，0 comments，最后更新 ~5.7天前（Sep 18 13:56 UTC），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 59.60s），本地 HEAD ahead ~167（push 仍 GH007 阻塞），PR head 仍 4f9e532，CI Sep 17 13:49 UTC ✅（6/6）— **第57次提醒** 🔴 |
 
 ---
 

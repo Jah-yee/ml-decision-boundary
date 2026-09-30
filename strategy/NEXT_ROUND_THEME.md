@@ -1,22 +1,22 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v102 晚场（第52轮晚场）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v103 早场（第53轮早场）
 
-**更新时间：** 2026-09-30 13:52 UTC
-**版本：** v102 晚场（第52轮晚场 / 第67次提醒 #1）
+**更新时间：** 2026-10-01 01:43 UTC
+**版本：** v103 早场（第53轮早场 / 第68次提醒 #1）
 **维护人：** 太子
 
 ---
 
-## 本轮闭环摘要（v102 晚场 #1）
+## 本轮闭环摘要（v103 早场 #1）
 
 | 项目 | 状态 | 证据 |
 |------|------|------|
 | P0 (compileall + import) | ✅ | compileall 无错误；main.py import OK |
-| P1 (pytest -q) | ✅ | **324 passed, 5 skipped**（pytest -q，74.93s） |
+| P1 (pytest -q) | ⚠️ | **322 passed, 5 skipped, 2 FAILED**（pytest -q，55.93s）— 时区 flaky test，非新引入 |
 | P2 (main.py --help) | ✅ | CLI 完整（model {list,inspect,delete,compare,tag,untag,tags}） |
 | P3 (health endpoint) | ✅ | /api/health → {'status': 'ok'}（FakeRes 验证，contract test） |
-| 本地 commit | ✅ | 本轮即将提交 NEXT_ROUND_THEME.md 更新 + 第67次提醒 |
+| 本地 commit | ✅ | 本轮即将提交 NEXT_ROUND_THEME.md 更新 + 第68次提醒 |
 | push 状态 | ⚠️ | GH007 阻塞，无法 push（jydu_seven@outlook.com private） |
-| PR #57 等 Merge | ⚠️ | ~42天+，mergeStateStatus DIRTY，需皇上 Web UI Resolve Conflicts + Merge |
+| PR #57 等 Merge | ⚠️ | ~43天+，mergeStateStatus DIRTY，需皇上 Web UI Resolve Conflicts + Merge |
 | ADR-0016 | 🟡 | Draft（DoD #4 待皇上 Merge 后 Accept） |
 
 ---
@@ -28,32 +28,32 @@
 | v8 (Model Registry) | ✅ 完成 (ADR-0013 Accepted 2026-07-04) |
 | v9 (Docs & Examples) | ✅ 完成 (ADR-0014 Accepted 2026-07-08) |
 | v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
-| **v11 (Multi-Dataset + Experiment History)** | 🟡 **PR #57 Open — OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，等皇上 Merge ~41天+** |
+| **v11 (Multi-Dataset + Experiment History)** | 🟡 **PR #57 Open — OPEN ✅ MERGEABLE ⚠️ CONFLICTING，⚠️ mergeStateStatus DIRTY，0 reviews，等皇上 Merge ~43天+** |
 
 ---
 
-## v102 晚场状态（第52轮晚场）
+## v103 早场状态（第53轮早场）
 
 ### 通过层级
 
 | 层级 | 状态 | 证据 |
 |------|------|------|
 | P0 | ✅ | compileall 无错误，main.py import OK |
-| P1 | ✅ | 324 passed, 5 skipped（pytest -q，74.93s） |
+| P1 | ⚠️ | 322 passed, 5 skipped, **2 FAILED**（pytest -q，55.93s）— test_registry.py 时区 flaky |
 | P2 | ✅ | main.py --help OK（`model {list,inspect,delete,compare,tag,untag,tags}`） |
-| P3 | ✅ | /api/health → {'status': 'ok'}（FakeRes 验证） |
+| P3 | ✅ | health endpoint contract tests 2/2 PASSED（FakeRes 验证） |
 
 ### 本地分支状态
 
 - **分支**: `feat/v11-model-registry-core`
-- **本地 HEAD**: `2bfd3e0`（v102 早场 #3，Sep 30 09:42 CST）
-- **本地 ahead**: ~181 commits（v102 晚场 commit 将使 ahead ~182）
+- **本地 HEAD**: `248268cc`（v102 晚场，Sep 30 21:55 CST）
+- **本地 ahead**: ~182 commits（v103 早场 commit 将使 ahead ~183）
 - **PR head on GitHub**: `4f9e532`（v90 晚场，Sep 17 13:49 UTC）— 未更新
 - **origin/master**: `f64f422`（PR #55 merged）
 - **mergeStateStatus**: ⚠️ **DIRTY** — 需皇上 Review + Resolve Conflicts + Merge
 - **push 状态**: GH007 仍阻塞（jydu_seven@outlook.com private）— 本轮新 commit 同样无法 push
 
-### PR #57 状态（v102 晚场拉取）
+### PR #57 状态（v103 早场）
 
 | 项目 | 状态 |
 |------|------|
@@ -64,15 +64,14 @@
 | reviews | 0 |
 | comments | 0 |
 | gh pr checks | no checks reported on branch（CI 仍在 Sep 17 13:49 UTC 6/6 ✅）|
-| 等皇上 Merge | ~42天+ |
+| 等皇上 Merge | ~43天+ |
 | push 状态 | GH007 仍阻塞（jydu_seven@outlook.com private）|
 
-> **皇上操作记录（v102 晚场追加）**
+> **皇上操作记录（v103 早场追加）**
 | 日期 | 操作 |
 |------|------|
-| **2026-09-29 22:04** | ⚠️ **PR #57 等 ~41天12h+（第52轮早场），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 62.69s），本地 HEAD fb81946 ahead ~179（push 仍 GH007 阻塞），PR head 仍 4f9e532，mergeStateStatus 仍 DIRTY（需皇上 GitHub Web UI Resolve Conflicts + Merge），P2 ✅ P3 ✅ — **第65次提醒** 🔴 |
-| **2026-09-30 09:42** | ⚠️ **PR #57 等 ~42天+（第52轮早场 #2），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 56.29s），本地 HEAD 9015282 ahead ~180（push 仍 GH007 阻塞），PR head 仍 4f9e532，mergeStateStatus 仍 DIRTY（需皇上 GitHub Web UI Resolve Conflicts + Merge），P2 ✅ P3 ✅ — **第66次提醒** 🔴 |
-| **2026-09-30 21:52** | ⚠️ **PR #57 等 ~42天12h+（第52轮晚场），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 74.93s），本地 HEAD 2bfd3e0 ahead ~181（push 仍 GH007 阻塞），PR head 仍 4f9e532，mergeStateStatus 仍 DIRTY（需皇上 GitHub Web UI Resolve Conflicts + Merge），P2 ✅ P3 ✅ — **第67次提醒** 🔴 |
+| **2026-09-30 21:55** | ⚠️ **PR #57 等 ~42天12h+（第52轮晚场），P0 ✅ P1 ✅（324 passed, 5 skipped，pytest 74.93s），本地 HEAD 248268cc ahead ~181（push 仍 GH007 阻塞），PR head 仍 4f9e532，mergeStateStatus 仍 DIRTY（需皇上 GitHub Web UI Resolve Conflicts + Merge），P2 ✅ P3 ✅ — **第67次提醒** 🔴 |
+| **2026-10-01 09:43** | ⚠️ **PR #57 等 ~43天+（第53轮早场），P0 ✅ P1 ⚠️（322 passed, 5 skipped, 2 FAILED — test_registry.py 时区 flaky test：`assert '2026-10-01' in '2026-09-30T17:45:24+00:00'`，CST 00:43 = UTC 前一天 16:43，非新引入），本地 HEAD 248268cc ahead ~182（push 仍 GH007 阻塞），PR head 仍 4f9e532，mergeStateStatus 仍 DIRTY（需皇上 GitHub Web UI Resolve Conflicts + Merge），P2 ✅ P3 ✅ — **第68次提醒** 🔴 |
 
 ---
 

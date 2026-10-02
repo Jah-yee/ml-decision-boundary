@@ -95,6 +95,24 @@ class TestDatasetGenerators:
         assert X.shape == (100, 2)
         assert y.shape == (100,)
 
+    def test_swiss_roll_shape(self):
+        X, y = DATASET_GENERATORS["swiss_roll"](100, 0.1, seed=42)
+        assert X.shape == (100, 2)
+        assert y.shape == (100,)
+        assert set(y) <= {0, 1}
+
+    def test_classification_2blobs_shape(self):
+        X, y = DATASET_GENERATORS["classification_2blobs"](100, 0.1, seed=42)
+        assert X.shape == (100, 2)
+        assert y.shape == (100,)
+        assert set(y) == {0, 1}
+
+    def test_classification_concentric_shape(self):
+        X, y = DATASET_GENERATORS["classification_concentric"](100, 0.1, seed=42)
+        assert X.shape == (100, 2)
+        assert y.shape == (100,)
+        assert set(y) == {0, 1}
+
 
 class TestGetModelInfoDict:
     def test_svm_info(self):

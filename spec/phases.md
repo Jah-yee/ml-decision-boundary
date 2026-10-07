@@ -166,18 +166,33 @@
 
 ---
 
-## v11 — Multi-Dataset Expansion & Experiment History (进行中 🟡)
+## v11 — Multi-Dataset Expansion & Experiment History (已完成 ✅)
 
 **入口条件**: v10 DoD 全部完成 ✅ + ADR-0015 Accepted (2026-07-10) + ADR-0016 Draft (2026-07-10)
 
-**本阶段 DoD**（ADR-0016 — 🟡 Draft）：
+**本阶段 DoD**（ADR-0016 — ✅ Accepted 2026-10-07）：
 - [x] ADR-0016: v11 DoD 细化 ✅ (v55 晚场 Draft)
 - [x] Multi-Dataset Support — 新增 swiss_roll + make_classification 变体 ✅ (v56 早场)
 - [x] Batch Prediction API — `POST /api/predict/batch` ✅ (v56 晚场)
 - [x] Experiment History UI — Web UI 历史实验面板 + output/experiments.jsonl ✅ (v57 早场)
-- [ ] ADR-0016 Accepted — DoD #1-3 全部完成后 Accept 🟡
+- [x] ADR-0016 Accepted ✅ (PR #57 merged 2026-10-07)
 
-**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 进行中 🟡**
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 已完成 ✅ 🎉**
+
+---
+
+## v12 — Python API & SDK Foundation (规划中 🟡)
+
+**入口条件**: v11 DoD 全部完成 ✅ + ADR-0016 Accepted (2026-10-07) + ADR-0017 Draft (2026-10-07)
+
+**本阶段 DoD**（ADR-0017 — 🟡 Draft）：
+- [ ] ADR-0017: v12 DoD 细化 🟡 (v111 早场 Draft)
+- [ ] Python SDK 接口 — `from ml_db import MLDB` 顶层 API 🟡
+- [ ] 异步训练任务 — 后台训练 + 轮询状态 🟡
+- [ ] Registry 改进 — 模型版本化 + 标签查询 🟡
+- [ ] ADR-0017 Accepted 🟡
+
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 已完成 ✅ 🎉 | v12 规划中 🟡**
 
 ---
 

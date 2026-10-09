@@ -8,7 +8,7 @@
 
 ## 背景
 
-v11 Multi-Dataset Expansion & Experiment History（ADR-0016）已完成并 Accepted。v11 扩展了数据集支持、批预测 API 和实验历史追踪能力。
+v11 Multi-Dataset Expansion & Experiment History（ADR-0016）— DoD #1-3 已完成，#4（ADR-0016 Accepted）待 PR #57 Merge。v11 扩展了数据集支持、批预测 API 和实验历史追踪能力。
 
 v12 主题定位为 **Python API & SDK Foundation**，为 ml-decision-boundary 建立清晰的 Python 编程接口，为外部集成和自动化流水线奠定基础。
 

@@ -1,7 +1,7 @@
 # ADR-0016 — v11 DoD 细化：Multi-Dataset Expansion & Experiment History
 
 **日期**: 2026-07-10
-**状态**: ✅ Accepted
+**状态**: 🟡 Draft（PR #57 OPEN, MERGEABLE, CLEAN — 待皇上 Merge 后 Accepted）
 **维护人**: 太子
 
 ---
@@ -27,7 +27,7 @@ v11 主题定位为 **Multi-Dataset Expansion & Experiment History**，扩展数
 | 1 | **Multi-Dataset Support** | 新增 swiss_roll 数据集 + make_classification 变体（2-blobs, concentric），并在 API/Web UI 可选 | P1 | ✅ |
 | 2 | **Batch Prediction API** | `POST /api/predict/batch` 端点，支持批量推理请求（JSON array in, JSON array out） | P1 | ✅ |
 | 3 | **Experiment History UI** | 在 Web UI 新增历史实验面板，展示历史训练记录（模型、数据集、准确率、时间戳） | P1 | ✅ |
-| 4 | **ADR-0016 Accepted** | DoD #1-3 全部完成后，将 ADR-0016 状态更新为 Accepted | P0 | ✅ PR #57 merged 2026-10-07 |
+| 4 | **ADR-0016 Accepted** | DoD #1-3 全部完成后，将 ADR-0016 状态更新为 Accepted | P0 | 🟡 PR #57 OPEN, MERGEABLE, CLEAN — 待皇上 Merge |
 
 ---
 
@@ -42,23 +42,15 @@ v11 主题定位为 **Multi-Dataset Expansion & Experiment History**，扩展数
 
 ## 验收标准（DoD #4 完成后勾选）
 
-- [x] ADR-0016 状态: Accepted ✅ (PR #57 merged 2026-10-07)
-- [x] P0: compileall + import smoke 通过 ✅ (v56 早场)
-- [x] P1: pytest -q 通过 ✅ 306 passed, 4 skipped
+- [ ] ADR-0016 状态: Accepted 🟡 (PR #57 OPEN, MERGEABLE, CLEAN — 待皇上 Merge)
+- [x] P0: compileall + import smoke 通过 ✅ (v113 早场)
+- [x] P1: pytest -q 通过 ✅ 324 passed, 5 skipped (v113 早场)
 - [x] Dataset: swiss_roll 可加载 ✅ (v56 早场)
 - [x] Dataset: classification_2blobs 可加载 ✅ (v56 早场)
 - [x] Dataset: classification_concentric 可加载 ✅ (v56 早场)
 - [x] API: `POST /api/predict/batch` 返回 200 + 有效 JSON array ✅ (v56 晚场)
 - [x] Web UI: experiment history 面板显示历史记录 ✅ (v57 早场)
 - [x] output/experiments.jsonl 正确写入实验历史 ✅ (v57 早场)
-
-- [ ] ADR-0016 状态: Accepted 🟡 (请皇上批准)
-- [ ] P0: compileall + import smoke 通过
-- [ ] P1: pytest -q 通过
-- [ ] Dataset: swiss_roll + make_classification 变体可加载
-- [ ] API: `POST /api/predict/batch` 返回 200 + 有效 JSON array
-- [x] Web UI: experiment history 面板显示历史记录 ✅
-- [x] output/experiments.jsonl 正确写入实验历史 ✅
 
 ---
 

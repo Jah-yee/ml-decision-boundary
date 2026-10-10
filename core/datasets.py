@@ -45,10 +45,57 @@ def make_s_curve(n, _noise, seed):
     return X[:, :2], y_bin
 
 
+def make_swiss_roll(n, _noise, seed):
+    """Swiss roll manifold projected to 2D with 2-class binning."""
+    from sklearn.datasets import make_swiss_roll as sk_swiss_roll
+    from sklearn.preprocessing import KBinsDiscretizer
+
+    X, t = sk_swiss_roll(n_samples=n, noise=0.0, random_state=seed)
+    # Bin the manifold parameter t into 2 classes for classification
+    kbd = KBinsDiscretizer(n_bins=2, encode='ordinal', strategy='quantile')
+    y_bin = kbd.fit_transform(t.reshape(-1, 1)).ravel().astype(int)
+    return X[:, :2], y_bin
+
+
+def make_classification_2blobs(n, _noise, seed):
+    """Linearly separable 2-blobs — class_sep=2.0 makes it easy for all models."""
+    from sklearn.datasets import make_classification
+    X, y = make_classification(
+        n_samples=n,
+        n_features=2,
+        n_informative=2,
+        n_redundant=0,
+        n_classes=2,
+        n_clusters_per_class=1,
+        class_sep=2.0,
+        random_state=seed,
+    )
+    return X, y
+
+
+def make_classification_concentric(n, _noise, seed):
+    """Dense concentric clusters — class_sep=5.0 makes very distinct classes."""
+    from sklearn.datasets import make_classification
+    X, y = make_classification(
+        n_samples=n,
+        n_features=2,
+        n_informative=2,
+        n_redundant=0,
+        n_classes=2,
+        n_clusters_per_class=1,
+        class_sep=5.0,
+        random_state=seed,
+    )
+    return X, y
+
+
 DATASET_GENERATORS = {
-    'circles': lambda n, noise, seed: make_circles(n, noise, seed),
-    'moons':    lambda n, noise, seed: make_moons(n, noise, seed),
-    'blobs':    lambda n, noise, seed: make_blobs(n, noise, seed),
-    'xor':      lambda n, noise, seed: make_xor(n, noise, seed),
-    's_curve':  lambda n, noise, seed: make_s_curve(n, noise, seed),
+    'circles':                   lambda n, noise, seed: make_circles(n, noise, seed),
+    'moons':                      lambda n, noise, seed: make_moons(n, noise, seed),
+    'blobs':                      lambda n, noise, seed: make_blobs(n, noise, seed),
+    'xor':                        lambda n, noise, seed: make_xor(n, noise, seed),
+    's_curve':                    lambda n, noise, seed: make_s_curve(n, noise, seed),
+    'swiss_roll':                 lambda n, noise, seed: make_swiss_roll(n, noise, seed),
+    'classification_2blobs':      lambda n, noise, seed: make_classification_2blobs(n, noise, seed),
+    'classification_concentric':  lambda n, noise, seed: make_classification_concentric(n, noise, seed),
 }

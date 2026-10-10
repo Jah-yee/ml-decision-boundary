@@ -9,8 +9,9 @@
 2. 读 `strategy/NEXT_ROUND_THEME.md`（必读）
 3. 执行本轮开发
 
-## 本轮主题（v31 早场 / v8 早场）
+## 本轮主题（v114 早场 / v11 进行中）
 
-- [ ] **ADR-0013 创建** — v8 DoD 细化
-- [ ] **PR#53 merge** — 等待皇上批准
-- [ ] **phases.md 更新** — v8 进行中
+- [x] **phases.md + ADR-0016 事实修正** — 已完成（v114 早场，第81次提醒）
+- [ ] **ADR-0016 Accepted** — v11 DoD #4 待皇上 Merge PR #57（GH007 已解除，PR MERGEABLE + CLEAN）
+- [ ] **PR merge** — 等待皇上点击 GitHub Web UI Merge 按钮
+- [ ] **v12 启动** — 等 PR #57 merge 后开始

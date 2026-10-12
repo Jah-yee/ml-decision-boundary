@@ -10,8 +10,8 @@
 
 | 项目 | 状态 | 证据 |
 |------|------|------|
-| P0 (compileall + import) | ✅ | compileall 无错误（0.24s）；main.py import OK |
-| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（78.99s）|
+| P0 (compileall + import) | ✅ | compileall 无错误；main.py import OK |
+| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（107.34s）|
 | PR #57 | ✅ | OPEN ✅ MERGEABLE ✅ CLEAN ✅（head `b8fff17d`）|
 | CI Checks | ✅ | quality-gates/benchmark/depth-sweep/hyperparam-sweep/security-audit/quality-checks 全 SUCCESS |
 | 工作树 | ✅ | clean |
@@ -49,6 +49,7 @@
 | **2026-10-11 22:12** | 🟢 v116 晚场 #2（第83次提醒 #4）🟢 |
 | **2026-10-12 01:40** | 🟢 v116 晚场 #3：例行检查，P0 ✅ + P1 ✅（324/5/0，81.72s），PR #57 仍 OPEN+MERGEABLE+CLEAN（head `b8fff17d`）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-12-0140.md` — 第83次提醒 #5 🟢 |
 | **2026-10-12 10:04** | 🟢 **v116 晚场 #4：cron 触发例行检查，P0 ✅（compileall 0.17s + import OK）+ P1 ✅（324/5/0，152.73s），PR #57 仍 OPEN+MERGEABLE+CLEAN（head `8752d7d`，CI 6/6 SUCCESS）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-12-1014.md` — 第83次提醒 #6 🟢** |
+| **2026-10-12 22:10** | 🟢 v116 晚场 #5：cron 触发例行检查，P0 ✅（compileall + import OK）+ P1 ✅（324/5/0，107.34s），PR #57 仍 OPEN+MERGEABLE+CLEAN（head `da2744a`，CI 6/6 SUCCESS）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-12-2210.md` — 第83次提醒 #6 🟢 |
 
 ---
 

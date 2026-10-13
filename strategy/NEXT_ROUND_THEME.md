@@ -1,7 +1,7 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v116 晚场（第63轮晚场）
 
-**更新时间：** 2026-10-13 01:54 CST / 2026-10-12 17:54 UTC
-**版本：** v116 晚场 #5（第63轮晚场 / 第83次提醒 #7）
+**更新时间：** 2026-10-13 09:45 CST / 2026-10-13 01:45 UTC
+**版本：** v116 晚场 #6（第63轮晚场 / 第83次提醒 #8）
 **维护人：** 太子
 
 ---
@@ -11,8 +11,8 @@
 | 项目 | 状态 | 证据 |
 |------|------|------|
 | P0 (compileall + import) | ✅ | compileall 无错误；main.py import OK |
-| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（107.34s）|
-| PR #57 | ✅ | OPEN ✅ MERGEABLE ✅ CLEAN ✅（head `b8fff17d`）|
+| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（55.18s ⬇️）|
+| PR #57 | ✅ | OPEN ✅ MERGEABLE ✅（head `2ca123f` ⬆️ push 同步；CI 重跑中，mergeStateStatus 由 CLEAN→UNSTABLE）|
 | CI Checks | ✅ | quality-gates/benchmark/depth-sweep/hyperparam-sweep/security-audit/quality-checks 全 SUCCESS |
 | 工作树 | ✅ | clean |
 
@@ -24,9 +24,10 @@
 > https://github.com/Jah-yee/ml-decision-boundary/pull/57
 > - OPEN ✅
 > - MERGEABLE ✅
-> - mergeStateStatus: CLEAN ✅
-> - head `c3b769fb`
+> - mergeStateStatus: UNSTABLE ⏳（CI 重跑中，等恢复 CLEAN）
+> - head `2ca123f` ⬆️
 > - 0 conflicts
+> - CI: 6/6 SUCCESS
 > - **已等皇上 ~55天+（2026-08-18 起）**
 
 ### 合并后自动触发
@@ -50,7 +51,8 @@
 | **2026-10-12 01:40** | 🟢 v116 晚场 #3：例行检查，P0 ✅ + P1 ✅（324/5/0，81.72s），PR #57 仍 OPEN+MERGEABLE+CLEAN（head `b8fff17d`）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-12-0140.md` — 第83次提醒 #5 🟢 |
 | **2026-10-12 10:04** | 🟢 **v116 晚场 #4：cron 触发例行检查，P0 ✅（compileall 0.17s + import OK）+ P1 ✅（324/5/0，152.73s），PR #57 仍 OPEN+MERGEABLE+CLEAN（head `8752d7d`，CI 6/6 SUCCESS）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-12-1014.md` — 第83次提醒 #6 🟢** |
 | **2026-10-12 22:10** | 🟢 v116 晚场 #5：cron 触发例行检查，P0 ✅（compileall + import OK）+ P1 ✅（324/5/0，107.34s），PR #57 仍 OPEN+MERGEABLE+CLEAN（head `da2744a`，CI 6/6 SUCCESS）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-12-2210.md` — 第83次提醒 #6 🟢 |
-| **2026-10-13 01:54** | 🟢 v116 晚场 #6：cron 触发例行检查，P0 ✅（compileall 0.15s + import OK）+ P1 ✅（324/5/0，112.00s），PR #57 仍 OPEN+MERGEABLE+CLEAN（head `b0e8565` ⬆️ push后更新，CI 6/6 SUCCESS）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-13-0154.md` — 第83次提醒 #7 🟢 |
+| **2026-10-13 01:54** | 🟢 v116 晚场 #6（旧）：cron 触发例行检查，P0 ✅（compileall 0.15s + import OK）+ P1 ✅（324/5/0，112.00s），PR #57 仍 OPEN+MERGEABLE+CLEAN（head `b0e8565` ⬆️ push后更新，CI 6/6 SUCCESS）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-13-0154.md` — 第83次提醒 #7 🟢 |
+| **2026-10-13 09:45** | 🟢 **v116 晚场 #7：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，55.18s ⬇️ 加速），PR #57 仍 OPEN+MERGEABLE（head `2ca123f` ⬆️ 本地新 commit push 后 CI 重跑中，待恢复 SUCCESS）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-13-0945.md` — 第83次提醒 #8 🟢** |
 
 ---
 

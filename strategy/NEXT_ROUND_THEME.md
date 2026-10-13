@@ -12,8 +12,8 @@
 |------|------|------|
 | P0 (compileall + import) | ✅ | compileall 无错误；main.py import OK |
 | P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（55.18s ⬇️）|
-| PR #57 | ✅ | OPEN ✅ MERGEABLE ✅（head `2ca123f` ⬆️ push 同步；CI 重跑中，mergeStateStatus 由 CLEAN→UNSTABLE）|
-| CI Checks | ✅ | quality-gates/benchmark/depth-sweep/hyperparam-sweep/security-audit/quality-checks 全 SUCCESS |
+| PR #57 | ✅ | OPEN ✅ MERGEABLE ✅ **CLEAN**（head `407c56e` ⬆️ push 同步；CI 6/6 SUCCESS 全绿）|
+| CI Checks | ✅ | quality-gates/benchmark/depth-sweep/hyperparam-sweep/security-audit/quality-checks 全 SUCCESS（本轮 6/6 pass，最长 1m32s）|
 | 工作树 | ✅ | clean |
 
 ---
@@ -24,10 +24,10 @@
 > https://github.com/Jah-yee/ml-decision-boundary/pull/57
 > - OPEN ✅
 > - MERGEABLE ✅
-> - mergeStateStatus: UNSTABLE ⏳（CI 重跑中，等恢复 CLEAN）
-> - head `2ca123f` ⬆️
+> - mergeStateStatus: **CLEAN** ✅
+> - head `407c56e` ⬆️
 > - 0 conflicts
-> - CI: 6/6 SUCCESS
+> - CI: 6/6 SUCCESS（quality-gates 1m30s / benchmark 24s / depth-sweep 26s / hyperparam-sweep 1m32s / security-audit 19s / quality-checks 16s）
 > - **已等皇上 ~55天+（2026-08-18 起）**
 
 ### 合并后自动触发
@@ -54,6 +54,7 @@
 | **2026-10-13 01:54** | 🟢 v116 晚场 #6（旧）：cron 触发例行检查，P0 ✅（compileall 0.15s + import OK）+ P1 ✅（324/5/0，112.00s），PR #57 仍 OPEN+MERGEABLE+CLEAN（head `b0e8565` ⬆️ push后更新，CI 6/6 SUCCESS）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-13-0154.md` — 第83次提醒 #7 🟢 |
 | **2026-10-13 09:45** | 🟢 **v116 晚场 #7：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，55.18s ⬇️ 加速），PR #57 仍 OPEN+MERGEABLE（head `2ca123f` ⬆️ 本地新 commit push 后 CI 重跑中，待恢复 SUCCESS）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-13-0945.md` — 第83次提醒 #8 🟢** |
 | **2026-10-13 21:59** | 🟢 **v116 晚场 #8：cron 触发例行检查，P0 ✅（compileall 0.15s + import OK）+ P1 ✅（324/5/0，58.17s），PR #57 仍 OPEN+MERGEABLE+**CLEAN**（head `985eb38`，CI 6/6 SUCCESS 全绿）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-13-2159.md` — 第83次提醒 #9 🟢** |
+| **2026-10-13 22:15** | 🟢 **v116 晚场 #8（补）：push 新 commit `407c56e` 后 CI 重跑完成，PR #57 mergeStateStatus 恢复 **CLEAN** ✅，CI 6/6 SUCCESS（quality-gates 1m30s / benchmark 24s / depth-sweep 26s / hyperparam-sweep 1m32s / security-audit 19s / quality-checks 16s）✅，工作树干净 ✅ — 第83次提醒 #9 完成 🟢** |
 
 ---
 

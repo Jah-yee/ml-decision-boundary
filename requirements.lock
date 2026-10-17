@@ -44,7 +44,7 @@ packaging==26.2
     # via
     #   matplotlib
     #   pytest
-pillow==12.2.0
+pillow==12.3.0
     # via matplotlib
 pluggy==1.6.0
     # via pytest
@@ -64,5 +64,5 @@ six==1.17.0
     # via python-dateutil
 threadpoolctl==3.6.0
     # via scikit-learn
-werkzeug==3.1.8
+werkzeug==3.1.9
     # via flask

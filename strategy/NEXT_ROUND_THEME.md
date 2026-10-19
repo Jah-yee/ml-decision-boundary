@@ -1,19 +1,20 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v116 晚场（第83次提醒 #25）
 
-**更新时间：** 2026-10-19 01:49 CST / 2026-10-18 17:49 UTC
-**版本：** v116 晚场 #24（第83次提醒 #25）
+**更新时间：** 2026-10-19 09:50 CST / 2026-10-19 01:50 UTC
+**版本：** v116 晚场 #25（第83次提醒 #25）
 **维护人：** 太子
 
 ---
 
-## 🟢 v116 晚场闭环完成：PR #57 持续可 Merge，等待皇上点击
+## 🟢 v116 晚场闭环完成：PR #57 CLEAN 可 Merge，等待皇上点击
 
 | 项目 | 状态 | 证据 |
 |------|------|------|
 | P0 (compileall + import) | ✅ | compileall 静默退出 0；main.py import OK |
-| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（101.44s）|
-| PR #57 | ✅ | OPEN ✅ MERGEABLE ✅（head `6a9192e` = 本地 HEAD 同步）|
-| CI Checks | ✅ | 6/6 SUCCESS 全绿（hyperparam-sweep / quality-gates / benchmark / security-audit / quality-checks / depth-sweep）|
+| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（62.40s ⬇️ 加速）|
+| GH007 修复 | ✅ | 上轮 commit `eea3341` 用了真实邮箱触发 GH007 邮箱隐私保护，本轮 amend author 为 noreply `68884430+Jah-yee@users.noreply.github.com`，`5baccda`，push 成功 |
+| PR #57 | ✅ | OPEN ✅ MERGEABLE ✅ **CLEAN** ✅（head `5baccda` = 本地 HEAD 同步）|
+| CI Checks | ✅ | 6/6 SUCCESS 全绿（run #39187298523：quality-gates 1m23s / benchmark 30s / depth-sweep 26s / hyperparam-sweep 1m35s / security-audit 27s / quality-checks 26s）|
 | 工作树 | ✅ | clean |
 
 ---
@@ -73,6 +74,7 @@
 | **2026-10-18 09:55** | 🟢 **v116 晚场 #22（补）：push 新 commit `db422b3` 后 CI 重跑完成，PR #57 mergeStateStatus 恢复 **CLEAN** ✅，CI 6/6 SUCCESS（quality-gates / benchmark / depth-sweep / hyperparam-sweep / security-audit / quality-checks）✅，工作树干净 ✅ — 第83次提醒 #23 完成 🟢** |
 | **2026-10-19 01:49** | 🟢 **v116 晚场 #24：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，68.16s），PR #57 仍 OPEN+MERGEABLE（head `0842286` = 本地 HEAD 同步，CI pending）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-19-0149.md` — 第83次提醒 #25 🟢** |
 | **2026-10-18 21:43** | 🟢 **v116 晚场 #23：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，101.44s），PR #57 仍 OPEN+MERGEABLE（head `6a9192e` ⬆️ = 本地 HEAD 同步，CI 6/6 SUCCESS 全绿：hyperparam-sweep / quality-gates / benchmark / security-audit / quality-checks / depth-sweep）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-18-2143.md` — 第83次提醒 #24 🟢** |
+| **2026-10-19 09:50** | 🟢 **v116 晚场 #25：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，62.40s ⬇️ 加速），修复上轮 GH007 邮箱隐私（commit `eea3341` author amend 为 `68884430+Jah-yee@users.noreply.github.com`，push `5baccda`），PR #57 OPEN+MERGEABLE+**CLEAN**（head `5baccda` = 本地 HEAD 同步，CI 6/6 SUCCESS 全绿：run #39187298523）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-19-0950.md` — 第83次提醒 #25 🟢** |
 
 ---
 
@@ -93,6 +95,6 @@
 - **受益人**: 皇上 / 仓库维护者
 - **价值**: 例行健康检查，确保 v11 收尾阶段代码库稳定可合并
 - **验证**: P0 ✅（compileall + import）+ P1 ✅（324/5/0，141.43s）+ CI 全 SUCCESS
-- **当前状态**: ⚠️ 皇上点击 GitHub Web UI **Merge** 按钮即可完成 ~59天+ 的等待！
-- **最近一次验证**: 2026-10-18 21:43 CST（v116 晚场 #23 / 第83次提醒 #24，无新 push，纯健康检查）✅✅✅
-- **PR #57 最终状态**: head `6a9192e` / OPEN / MERGEABLE / CI 6/6 SUCCESS
+- **当前状态**: ⚠️ 皇上点击 GitHub Web UI **Merge** 按钮即可完成 ~60天+ 的等待！
+- **最近一次验证**: 2026-10-19 09:50 CST（v116 晚场 #25 / 第83次提醒 #25，修复 GH007 后 push，PR 恢复 CLEAN + 6/6 SUCCESS）✅✅✅
+- **PR #57 最终状态**: head `5baccda` / OPEN / MERGEABLE / CLEAN / CI 6/6 SUCCESS

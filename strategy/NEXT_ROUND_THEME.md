@@ -1,12 +1,51 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v116 晚场（第83次提醒 #26）
 
-**更新时间：** 2026-10-19 21:38 CST / 2026-10-19 13:38 UTC
-**版本：** v116 晚场 #26（第83次提醒 #26）
+**更新时间：** 2026-10-20 09:42 CST / 2026-10-20 01:42 UTC
+**版本：** v116 晚场 #28（第83次提醒 #28）
 **维护人：** 太子
 
 ---
 
-## 🟢 v116 晚场 #26 闭环完成：PR #57 CLEAN 可 Merge，等待皇上点击
+## 🚨 v116 晚场 #28 重大发现：PR #57 已被皇上 CLOSED（未 merge）！需皇上决策下一步
+
+| 项目 | 上轮 (#27) | 本轮 (#28) | 变化 |
+|------|----------|----------|------|
+| PR #57 state | OPEN | **CLOSED** 🚨 | ↓↓ 重大 |
+| PR #57 mergedAt | null | null | 未变（仍未 merge） |
+| PR #57 closedAt | null | **2026-10-19T19:47:29Z** 🆕 | 新事件！ |
+| master HEAD | f64f422 (v8) | f64f422 (v8) | 未变 |
+
+**关闭时间**: 北京时间 **2026-10-20 03:47**（CST，距 #27 的 02:41 +1h6m）— 上轮完成后约 1 小时
+**关闭方式**: 皇上**手动关闭**（`state_reason: None`），未填原因
+**合并状态**: **未合并**（mergedAt / mergeCommit / mergedBy 均为 null）
+**master 分支**: 仍停留在 v8 (`f64f422`)，v11 内容未进入主干
+**本地 feat/v11 分支**: head `a7fa0ce` = 远端 head ✅（commit 链完整未丢失）
+
+### 太子建议 — 三个预案（待皇上定）
+
+| 预案 | 描述 | 适用场景 |
+|------|------|---------|
+| A | **Reopen PR #57** | 操作失误 / 临时撤销 |
+| B | **删除 feat/v11 分支 + 重新整理 v11 + 新开 PR #58** | 方向调整 / 代码陈旧 |
+| C | **永久放弃 v11，跳到 v12（ADR-0017）开始** | 战略转向 |
+
+下次 cron 触发前请皇上决定 A/B/C，奴才据此推进。
+
+---
+
+## v116 晚场 #28 验收
+
+| 项目 | 状态 | 证据 |
+|------|------|------|
+| P0 (compileall + import) | ✅ | compileall 静默退出 0；main.py import OK |
+| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（66.84s）|
+| PR #57 | 🚨 | **CLOSED** (`mergedAt: null`)，但 CI 历史全 SUCCESS |
+| CI Checks | ✅ | 6/6 SUCCESS（历史最后 run #39305364099） |
+| 工作树 | ⚠️ | 有遗留 untracked（上轮 #26 run log 未 commit），本轮未触碰 |
+
+---
+
+## v116 晚场 #27 闭环（旧文保留供交叉对照）
 
 | 项目 | 状态 | 证据 |
 |------|------|------|
@@ -75,7 +114,9 @@
 | **2026-10-18 21:43** | 🟢 **v116 晚场 #23：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，101.44s），PR #57 仍 OPEN+MERGEABLE（head `6a9192e` ⬆️ = 本地 HEAD 同步，CI 6/6 SUCCESS 全绿：hyperparam-sweep / quality-gates / benchmark / security-audit / quality-checks / depth-sweep）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-18-2143.md` — 第83次提醒 #24 🟢** |
 | **2026-10-19 09:50** | 🟢 **v116 晚场 #25：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，62.40s ⬇️ 加速），修复上轮 GH007 邮箱隐私（commit `eea3341` author amend 为 `68884430+Jah-yee@users.noreply.github.com`，push `5baccda`），PR #57 OPEN+MERGEABLE+**CLEAN**（head `5baccda` = 本地 HEAD 同步，CI 6/6 SUCCESS 全绿：run #39187298523）✅，工作树干净 ✅，run log: `strategy/runs/2026-10-19-0950.md` — 第83次提醒 #25 🟢** |
 | **2026-10-19 21:38** | 🟢 v116 晚场 #26：例行检查，P0 ✅ + P1 ✅（324/5/0，89.92s），PR #57 CLEAN（head `427136c`），CI 6/6 SUCCESS，run log: `strategy/runs/2026-10-19-2138.md` — 第83次提醒 #26 🟢 |
-| **2026-10-20 02:41** | 🟢 **v116 晚场 #27：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，107.64s），PR #57 OPEN+MERGEABLE+**CLEAN**（head `427136c` = 本地 HEAD 同步，CI 6/6 SUCCESS 全绿：depth-sweep / quality-checks / security-audit / quality-gates / benchmark / hyperparam-sweep）✅，工作树有待上轮遗留（modified NEXT_ROUND_THEME.md + untracked run log），run log: `strategy/runs/2026-10-20-0241.md` — 第83次提醒 #27 🟢** |
+| **2026-10-20 02:41** | 🟢 **v116 晚场 #27：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，107.64s），PR #57 OPEN+MERGEABLE+**CLEAN**（head `427136c` = 本地 HEAD 同步，CI 6/6 SUCCESS 全绿）✅，工作树有待上轮遗留（modified NEXT_ROUND_THEME.md + untracked run log），run log: `strategy/runs/2026-10-20-0241.md` — 第83次提醒 #27 🟢** |
+| **2026-10-20 03:47** | 🚨 **皇上手动 CLOSE PR #57（unmerged）。未触发 CI/state 任何推论事件，master 未推进。这是本轮 #28 重大发现的事实根源。** |
+| **2026-10-20 09:42** | 🚨 **v116 晚场 #28：cron 触发例行检查，P0 ✅（compileall + import OK）+ P1 ✅（324/5/0，66.84s），PR #57 CLOSED（mergedAt: null，未合并；closedAt=`2026-10-19T19:47:29Z`）🚨，CI 历史 6/6 SUCCESS（run #39305364099），工作树有遗留 untracked（上轮 #26 run log 未 commit），run log: `strategy/runs/2026-10-20-0942.md` — 第83次提醒 #28 🚨（必须皇上决策预案 A/B/C）** |
 
 ---
 
@@ -86,8 +127,8 @@
 | v8 (Model Registry) | ✅ 完成 (ADR-0013 Accepted 2026-07-04) |
 | v9 (Docs & Examples) | ✅ 完成 (ADR-0014 Accepted 2026-07-08) |
 | v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
-| **v11 (Multi-Dataset + Experiment History)** | 🟡 **进行中（DoD #1-3 ✅，#4 ADR-0016 Accepted 待 PR #57 Merge）** |
-| **v12 (Python API & SDK Foundation)** | 🟡 **ADR-0017 Draft（等 PR #57 merge 后开始）** |
+| **v11 (Multi-Dataset + Experiment History)** | 🚨 **PR #57 已被皇上手动 CLOSED（未 merge）！DoD #4 状态需重估，等皇上决策 A/B/C** |
+| **v12 (Python API & SDK Foundation)** | 🟡 **ADR-0017 Draft（等皇上 v11 决策后再启动）** |
 
 ---
 
@@ -96,6 +137,6 @@
 - **受益人**: 皇上 / 仓库维护者
 - **价值**: 例行健康检查，确保 v11 收尾阶段代码库稳定可合并
 - **验证**: P0 ✅（compileall + import）+ P1 ✅（324/5/0，89.92s）+ CI 全 SUCCESS
-- **当前状态**: ⚠️ 皇上点击 GitHub Web UI **Merge** 按钮即可完成 ~60天+ 的等待！
-- **最近一次验证**: 2026-10-19 21:38 CST（v116 晚场 #26 / 第83次提醒 #26，PR 维持 CLEAN + 6/6 SUCCESS + head 同步本地 `427136c`）✅✅✅
-- **PR #57 最终状态**: head `427136c` / OPEN / MERGEABLE / CLEAN / CI 6/6 SUCCESS
+- **当前状态**: 🚨 **皇上必须决策预案 A/B/C**（Reopen PR / 新开 PR / 跳 v12）— PR #57 已被手动关闭且未合并
+- **最近一次验证**: 2026-10-20 09:42 CST（v116 晚场 #28 / 第83次提醒 #28，🚨 **CLOSED 状态发现**）
+- **PR #57 当前状态**: head `a7fa0ce` / **CLOSED** (`mergedAt: null`) / CI 历史 6/6 SUCCESS

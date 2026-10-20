@@ -1,25 +1,60 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v116 晚场（第83次提醒 #26）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v116 晚场（第83次提醒 #29）
 
-**更新时间：** 2026-10-20 09:42 CST / 2026-10-20 01:42 UTC
-**版本：** v116 晚场 #28（第83次提醒 #28）
+**更新时间：** 2026-10-20 21:42 CST / 2026-10-20 13:42 UTC
+**版本：** v116 晚场 #29（第83次提醒 #29）
 **维护人：** 太子
 
 ---
 
-## 🚨 v116 晚场 #28 重大发现：PR #57 已被皇上 CLOSED（未 merge）！需皇上决策下一步
+## 🚨 v116 晚场 #29 状态：PR #57 仍 CLOSED，皇上尚未决策 A/B/C（已过 18h+）
 
-| 项目 | 上轮 (#27) | 本轮 (#28) | 变化 |
+| 项目 | 上轮 (#28) | 本轮 (#29) | 变化 |
 |------|----------|----------|------|
-| PR #57 state | OPEN | **CLOSED** 🚨 | ↓↓ 重大 |
+| PR #57 state | CLOSED | **CLOSED** 🚨 | 未变 |
 | PR #57 mergedAt | null | null | 未变（仍未 merge） |
-| PR #57 closedAt | null | **2026-10-19T19:47:29Z** 🆕 | 新事件！ |
+| PR #57 closedAt | 2026-10-19T19:47:29Z | 2026-10-19T19:47:29Z | 未变 |
+| PR #57 mergeStateStatus | CLEAN | CLEAN | 未变 |
 | master HEAD | f64f422 (v8) | f64f422 (v8) | 未变 |
+| 本地 feat/v11 HEAD | a7fa0ce | **1297cd5** ⬆️ | 推进 1 commit（run log + theme） |
 
-**关闭时间**: 北京时间 **2026-10-20 03:47**（CST，距 #27 的 02:41 +1h6m）— 上轮完成后约 1 小时
-**关闭方式**: 皇上**手动关闭**（`state_reason: None`），未填原因
-**合并状态**: **未合并**（mergedAt / mergeCommit / mergedBy 均为 null）
-**master 分支**: 仍停留在 v8 (`f64f422`)，v11 内容未进入主干
-**本地 feat/v11 分支**: head `a7fa0ce` = 远端 head ✅（commit 链完整未丢失）
+**关键事实**:
+- 皇上 2026-10-20 03:47 CST 关闭 PR #57 后，**18 小时+ 未下达 A/B/C 决策**
+- PR #57 已 CLOSED 状态稳定，mergeStateStatus 仍 CLEAN（代码无冲突）
+- 本轮 #29 代码健康度全部通过：P0 ✅ + P1 ✅（324/5/0，56.55s ⬇️ 加速）
+- 本地分支 `feat/v11-model-registry-core` 完整可用（head `1297cd5` = 远端 head）
+- 工作树：仅有 `strategy/runs/2026-10-19-2138.md` 一个 untracked run log（已存在多轮）
+
+**太子建议三预案维持**（详情见下）— **待皇上定夺**。
+
+### 太子建议 — 三个预案（待皇上定）
+
+| 预案 | 描述 | 适用场景 |
+|------|------|---------|
+| A | **Reopen PR #57** | 操作失误 / 临时撤销 |
+| B | **删除 feat/v11 分支 + 重新整理 v11 + 新开 PR #58** | 方向调整 / 代码陈旧 |
+| C | **永久放弃 v11，跳到 v12（ADR-0017）开始** | 战略转向 |
+
+下次 cron 触发前请皇上决定 A/B/C，奴才据此推进。
+
+---
+
+## v116 晚场 #29 验收
+
+| 项目 | 状态 | 证据 |
+|------|------|------|
+| P0 (compileall + import) | ✅ | compileall 静默退出 0；main.py import OK |
+| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（56.55s ⬇️ 比 #28 的 66.84s 加速）|
+| PR #57 | 🚨 | **CLOSED** (`mergedAt: null`, `closedAt: 2026-10-19T19:47:29Z`, `mergeStateStatus: CLEAN`)，CI 历史全 SUCCESS |
+| CI Checks | ✅ | 6/6 SUCCESS（历史最后 run #39305364099） |
+| 工作树 | ⚠️ | 有遗留 untracked `strategy/runs/2026-10-19-2138.md`（上轮 #26 run log 未 commit） |
+| 本地 HEAD | ✅ | `1297cd5` = 远端 `origin/feat/v11-model-registry-core` 同步 |
+
+---
+
+## v116 晚场 #28 闭环（旧文保留供交叉对照）
+
+| 项目 | 状态 | 证据 |
+|------|------|------|
 
 ### 太子建议 — 三个预案（待皇上定）
 
@@ -117,6 +152,7 @@
 | **2026-10-20 02:41** | 🟢 **v116 晚场 #27：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，107.64s），PR #57 OPEN+MERGEABLE+**CLEAN**（head `427136c` = 本地 HEAD 同步，CI 6/6 SUCCESS 全绿）✅，工作树有待上轮遗留（modified NEXT_ROUND_THEME.md + untracked run log），run log: `strategy/runs/2026-10-20-0241.md` — 第83次提醒 #27 🟢** |
 | **2026-10-20 03:47** | 🚨 **皇上手动 CLOSE PR #57（unmerged）。未触发 CI/state 任何推论事件，master 未推进。这是本轮 #28 重大发现的事实根源。** |
 | **2026-10-20 09:42** | 🚨 **v116 晚场 #28：cron 触发例行检查，P0 ✅（compileall + import OK）+ P1 ✅（324/5/0，66.84s），PR #57 CLOSED（mergedAt: null，未合并；closedAt=`2026-10-19T19:47:29Z`）🚨，CI 历史 6/6 SUCCESS（run #39305364099），工作树有遗留 untracked（上轮 #26 run log 未 commit），run log: `strategy/runs/2026-10-20-0942.md` — 第83次提醒 #28 🚨（必须皇上决策预案 A/B/C）** |
+| **2026-10-20 21:42** | 🟢 **v116 晚场 #29：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，56.55s ⬇️ 加速），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN）🚨，皇上仍未决策 A/B/C（已过 18h+），本地 HEAD `1297cd5` = 远端 head ✅，run log: `strategy/runs/2026-10-20-2142.md` — 第83次提醒 #29 🚨（持续等决策）** |
 
 ---
 
@@ -137,6 +173,7 @@
 - **受益人**: 皇上 / 仓库维护者
 - **价值**: 例行健康检查，确保 v11 收尾阶段代码库稳定可合并
 - **验证**: P0 ✅（compileall + import）+ P1 ✅（324/5/0，89.92s）+ CI 全 SUCCESS
-- **当前状态**: 🚨 **皇上必须决策预案 A/B/C**（Reopen PR / 新开 PR / 跳 v12）— PR #57 已被手动关闭且未合并
-- **最近一次验证**: 2026-10-20 09:42 CST（v116 晚场 #28 / 第83次提醒 #28，🚨 **CLOSED 状态发现**）
-- **PR #57 当前状态**: head `a7fa0ce` / **CLOSED** (`mergedAt: null`) / CI 历史 6/6 SUCCESS
+- **当前状态**: 🚨 **皇上必须决策预案 A/B/C**（Reopen PR / 新开 PR / 跳 v12）— PR #57 已被手动关闭且未合并（已 18h+）
+- **最近一次验证**: 2026-10-20 21:42 CST（v116 晚场 #29 / 第83次提醒 #29，仍 🚨 CLOSED 等决策）
+- **PR #57 当前状态**: head `a7fa0ce` / **CLOSED** (`mergedAt: null`, `mergeStateStatus: CLEAN`) / CI 历史 6/6 SUCCESS
+- **本地分支 HEAD**: `1297cd5` = 远端 head（仍完整可用）

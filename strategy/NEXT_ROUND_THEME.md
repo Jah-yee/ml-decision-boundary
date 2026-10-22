@@ -1,32 +1,32 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v117 早场 #2（第84次提醒 #2）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v117 早场 #3（第85次提醒 #1）
 
-**更新时间：** 2026-10-21 10:12 CST / 2026-10-21 02:12 UTC
-**版本：** v117 早场 #2（第84次提醒 #2）
+**更新时间：** 2026-10-22 10:30 CST / 2026-10-22 02:30 UTC
+**版本：** v117 早场 #3（第85次提醒 #1）
 **维护人：** 太子
 
 ---
 
-## 🚨 v117 早场 #2 状态：PR #57 仍 CLOSED，皇上尚未决策 A/B/C（已过 ~31h+）
+## 🚨 v117 早场 #3 状态：PR #57 仍 CLOSED，皇上尚未决策 A/B/C（已过 ~55h+）
 
-| 项目 | 上轮 (#30) | 本轮 (#31) | 变化 |
+| 项目 | 上轮 (#31) | 本轮 (#32) | 变化 |
 |------|----------|----------|------|
 | PR #57 state | CLOSED 🚨 | **CLOSED** 🚨 | 未变 |
 | PR #57 mergedAt | null | null | 未变（仍未 merge） |
 | PR #57 closedAt | 2026-10-19T19:47:29Z | 2026-10-19T19:47:29Z | 未变 |
 | PR #57 mergeStateStatus | CLEAN | CLEAN | 未变 |
-| PR #57 mergeable | — | MERGEABLE | 代码仍可合 |
+| PR #57 mergeable | MERGEABLE | MERGEABLE | 未变（代码仍可合） |
 | master HEAD | f64f422 (v8) | f64f422 (v8) | 未变 |
-| 本地 feat/v11 HEAD | ed4007f | **5b087e6** | 上轮 #1 自身 run log/theme 已 commit+push（**非异常**）|
+| 本地 feat/v11 HEAD | 5b087e6 | **16bdc94** | 上轮 #2 自身 run log/theme 已 commit+push（**非异常**）|
 
 **关键事实**:
-- 皇上 2026-10-20 03:47 CST 关闭 PR #57 后，**已超 31 小时未下达 A/B/C 决策**
+- 皇上 2026-10-20 03:47 CST 关闭 PR #57 后，**已超 55 小时未下达 A/B/C 决策**
 - PR #57 CLOSED 状态稳定，mergeStateStatus CLEAN + mergeable MERGEABLE（代码无冲突，随时可合）
-- 本轮 #31 代码健康度全部通过：P0 ✅ + P1 ✅（324/5/0，57.07s）
-- 本地分支 `feat/v11-model-registry-core` 完整可用（本地 HEAD `5b087e6` = 远端 head ✅）
-- 工作树干净 ✅
+- 本轮 #32 代码健康度全部通过：P0 ✅ + P1 ✅（324/5/0，58.47s）
+- 本地分支 `feat/v11-model-registry-core` 完整可用（本地 HEAD `16bdc94` = 远端 head ✅）
+- 工作树有 2 个遗留 untracked run log（上两轮），本轮一并 commit
 - CI 历史 6/6 SUCCESS（run #39305364099）
 
-> 📌 **HEAD 差异澄清**：上轮 #1 主题文件记录本地 HEAD = `ed4007f`，本轮实测 `5b087e6`。差异来源是 #1 自身的 run log + theme 更新已作为 commit `5b087e6` 提交并推送至远端，属正常推进，非分支漂移或异常。
+> 📌 **HEAD 差异澄清**：上轮 #2 主题文件记录本地 HEAD = `5b087e6`，本轮实测 `16bdc94`。差异来源是 #2 自身的 run log + theme 更新已作为 commit `16bdc94` 提交并推送至远端，属正常推进，非分支漂移或异常。
 
 **太子建议三预案维持**（详情见下）— **待皇上定夺**。
 
@@ -173,6 +173,20 @@
 | **2026-10-20 21:42** | 🟢 **v116 晚场 #29：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，56.55s ⬇️ 加速），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN）🚨，皇上仍未决策 A/B/C（已过 18h+），本地 HEAD `1297cd5` = 远端 head ✅，run log: `strategy/runs/2026-10-20-2142.md` — 第83次提醒 #29 🚨（持续等决策）** |
 
 | **2026-10-21 10:12** | 🚨 **v117 早场 #2：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，57.07s），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~31h+），本地 HEAD `5b087e6` = 远端 head ✅，工作树干净 ✅，run log: `strategy/runs/2026-10-21-1012.md` — 第84次提醒 #2 🚨（持续等决策）** |
+| **2026-10-22 10:30** | 🚨 **v117 早场 #3：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，58.47s），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~55h+），本地 HEAD `16bdc94` = 远端 head ✅，工作树有遗留 untracked（上两轮 run log），run log: `strategy/runs/2026-10-22-1030.md` — 第85次提醒 #1 🚨（持续等决策）** |
+
+---
+
+## v117 早场 #3 验收
+
+| 项目 | 状态 | 证据 |
+|------|------|------|
+| P0 (compileall + import) | ✅ | compileall 静默退出 0；main.py import OK |
+| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 0 FAILED**（58.47s）|
+| PR #57 | 🚨 | CLOSED (`mergedAt: null`, `closedAt: 2026-10-19T19:47:29Z`, `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`) |
+| CI Checks | ✅ | 6/6 SUCCESS（run #39305364099）|
+| 工作树 | ⚠️ | 有遗留 untracked：`strategy/runs/2026-10-21-2159.md` + `strategy/runs/2026-10-22-0158.md`（上两轮 run log 未 commit）|
+| 本地 HEAD | ✅ | `16bdc94` = 远端 `origin/feat/v11-model-registry-core` 同步 |
 
 ---
 
@@ -194,6 +208,6 @@
 - **价值**: 例行健康检查，确保 v11 收尾阶段代码库稳定可合并
 - **验证**: P0 ✅（compileall + import）+ P1 ✅（324/5/0，89.92s）+ CI 全 SUCCESS
 - **当前状态**: 🚨 **皇上必须决策预案 A/B/C**（Reopen PR / 新开 PR / 跳 v12）— PR #57 已被手动关闭且未合并（已 ~31h+）
-- **最近一次验证**: 2026-10-21 10:12 CST（v117 早场 #2 / 第84次提醒 #2，仍 🚨 CLOSED 等决策）
-- **PR #57 当前状态**: head `a7fa0ce` / **CLOSED** (`mergedAt: null`, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`) / CI 历史 6/6 SUCCESS
-- **本地分支 HEAD**: `5b087e6` = 远端 head（已与远端同步，仍完整可用）
+- **最近一次验证**: 2026-10-22 10:30 CST（v117 早场 #3 / 第85次提醒 #1，仍 🚨 CLOSED 等决策）
+- **PR #57 当前状态**: head `16bdc94` / **CLOSED** (`mergedAt: null`, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`) / CI 历史 6/6 SUCCESS
+- **本地分支 HEAD**: `16bdc94` = 远端 head（已与远端同步，仍完整可用）

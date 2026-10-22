@@ -28,7 +28,7 @@
 - 🚨 **CI 已连续 3 轮 FAILURE**：`security-audit` 对 `pillow==12.3.0` 报 24 个 CVE（CVE-2026-112895 ~ CVE-2026-112396），修复版本 13.0.0。theme 文件中「CI 6/6 SUCCESS」引用的是 2026-10-19 的历史 run #39305364099，此后全部 FAILURE — **此为陈旧错误信息，已在本轮修正**
 - ✅ **本轮已修复**：`requirements.lock` pillow 12.3.0 → 13.0.0；`.github/workflows/ci.yml` + `release.yml` Python 3.10 → 3.12（pillow 13.0.0 要求 ≥3.11）；删除 108 个断裂本地 ref
 - 本地验证全绿：P0 ✅ + P1 ✅（324/5/0，61.68s，py3.12+pillow13）+ P2 ✅ + pip-audit ✅（0 vulns）
-- ⚠️ **远端 CI 尚未重跑**：PR #57 CLOSED，push 不触发 CI（CI 仅在 push master/daily/*/fix/*/feature/* 或 pull_request 时触发）
+- ✅ **远端 CI 已验证**：通过新建 `fix/pillow-cve-2026` 分支触发 CI（run #39833870914），**6/6 SUCCESS**，security-audit 输出 `No known vulnerabilities found`。PR #57 CLOSED 期间 push 不触发 CI，故走 fix/* 分支验证
 - ⚠️ **master 也受影响**：`origin/master:requirements.lock` 中 `pillow==12.2.0` 同样有 7 个 CVE + GHSA-78g4-xqwv-q3g8，master 同样需要修复
 
 **📌 HEAD 差异澄清**：上轮 #33 theme 记录的本地 HEAD = `bd486cf`，本轮实测 `181aeca`。差异来源是 #33 自身的 run log + theme 更新已作为 commit 提交并推送至远端，属正常推进，非分支漂移或异常。
@@ -220,7 +220,7 @@
 | pip-audit（lock 审计） | ✅ | `pip-audit --local` → 0 known vulnerabilities |
 | lock 解析 | ✅ | `pip install --dry-run -r requirements.lock` 在 py3.12 下静默成功 |
 | PR #57 | 🚨 | CLOSED (`mergedAt: null`, `closedAt: 2026-10-19T19:47:29Z`, `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`) |
-| CI Checks | 🚨 | **3/3 FAILURE**（security-audit: pillow 24 CVEs）— 本轮已修复，待远端重跑 |
+| CI Checks | ✅ | **6/6 SUCCESS**（run #39833870914，2026-10-22 18:43Z，branch `fix/pillow-cve-2026`）— security-audit: `No known vulnerabilities found` |
 | 工作树 | ✅ | clean（3 个文件修改，均为必要修复）|
 | 本地 HEAD | ✅ | `181aeca` = 远端 `origin/feat/v11-model-registry-core` 同步 |
 | git ref 卫生 | ✅ | 删除 108 个断裂本地 ref（陈旧分支指向缺失对象，阻塞 `git fetch --all`）|

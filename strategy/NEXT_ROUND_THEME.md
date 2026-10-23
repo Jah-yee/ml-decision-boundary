@@ -338,7 +338,7 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | P2 (benchmark quick) | ✅ | `benchmarks/run.py --quick` → PASSED（circles/SVM, acc 0.7900, thr 0.7000）|
 | PR #57 | 🚨 | CLOSED（`mergedAt: null`，已被 #58 取代）|
 | **PR #58** | ✅ | **OPEN + MERGEABLE + CLEAN，CI 6/6 SUCCESS**（run #39968102589）|
-| **PR #59（master 安全）** | ✅ | **OPEN**，pip-audit 0 vuln；本地 P0/P1/P2 全绿；CI 见 run log |
+| **PR #59（master 安全）** | ✅ | **OPEN + MERGEABLE + CLEAN，CI 6/6 SUCCESS**（run #40000945410 + #40000964362）|
 | master CVE | ✅ | **已修**：实测 25 个（pillow 24 + werkzeug 1）→ PR #59 内 pip-audit **No known vulnerabilities found** |
 | master P1 | ✅ | **283 passed, 1 skipped**（修前 2 failed，registry 时区 bug 已修）|
 | CI Checks (feat/v11 HEAD) | ✅ | **4/4 连续 SUCCESS**（#39833849516 → #39834210464 → #39889110714 → #39968102589）|

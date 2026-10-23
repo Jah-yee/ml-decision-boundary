@@ -1,12 +1,57 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v117 晚场 #2（第86次提醒 #3）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v117 晚场 #3（第86次提醒 #4）
 
-**更新时间：** 2026-10-23 02:12 CST / 2026-10-22 18:12 UTC
-**版本：** v117 晚场 #2（第86次提醒 #3）
+**更新时间：** 2026-10-23 10:17 CST / 2026-10-23 02:17 UTC
+**版本：** v117 晚场 #3（第86次提醒 #4）
 **维护人：** 太子
 
 ---
 
-## 🚨 v117 晚场 #2 状态：PR #57 仍 CLOSED，皇上尚未决策 A/B/C（已过 ~83h+）
+## 🚨 v117 晚场 #3 状态：PR #57 仍 CLOSED（已过 ~90h），但 CI 已确认全绿 ✅
+
+### 🟢 本轮关键进展：feat/v11 分支 CI 6/6 SUCCESS 已确认
+
+上轮（#34）仅通过 `fix/pillow-cve-2026` 分支验证 pillow 13.0.0 修复有效，并标注
+「PR CLOSED 期间 push 不触发 CI，故 feat/v11 自身 CI 状态未确认」。
+
+**本轮实测已解除该不确定性**：feat/v11 分支在 pillow 修复同步后已触发 3 个 SUCCESS run。
+
+| run # | 分支 | 时间 (UTC) | 结论 |
+|-------|------|-----------|------|
+| **39834210464** | `feat/v11-model-registry-core` | 2026-10-22T18:45:48Z | **success (6/6)** |
+| 39833870914 | `fix/pillow-cve-2026` | 2026-10-22T18:43:34Z | success |
+| 39833849516 | `feat/v11-model-registry-core` | 2026-10-22T18:43:25Z | success |
+
+run #39834210464 job 明细：quality-checks ✅ / depth-sweep ✅ / benchmark ✅ /
+security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
+
+**→ 预案 A（reopen PR #57）的所有前置条件均已满足：代码 CLEAN 无冲突 + CI 6/6 绿。**
+
+### 本轮状态表
+
+| 项目 | 上轮 (#34) | 本轮 (#35) | 变化 |
+|------|----------|----------|------|
+| PR #57 state | CLOSED 🚨 | **CLOSED** 🚨 | 未变 |
+| PR #57 mergedAt | null | null | 未变 |
+| PR #57 closedAt | 2026-10-19T19:47:29Z | 2026-10-19T19:47:29Z | 未变 |
+| PR #57 mergeStateStatus | CLEAN | CLEAN | 未变 |
+| PR #57 mergeable | MERGEABLE | MERGEABLE | 未变 |
+| CI (feat/v11 HEAD) | 未确认（fix/* 分支验证） | **6/6 SUCCESS** ✅ | **解除阻塞** |
+| P1 (pytest -q) | 324/5/0（61.68s） | **324/5/0（61.59s）** ✅ | 稳定 |
+| P2 (benchmark quick) | ✅ PASSED | ✅ PASSED | 稳定 |
+| 本地 HEAD | `181aeca` | **`0002bfb`** | 上轮自身 commit 已提交 |
+| 工作树 | clean | clean | 未变 |
+
+**关键事实**:
+- 皇上 2026-10-20 03:47 CST 关闭 PR #57 后，**已超 90 小时未下达 A/B/C 决策**（第86次提醒 #4）
+- PR #57 CLOSED 状态稳定，mergeStateStatus CLEAN + mergeable MERGEABLE（代码无冲突）
+- 🟢 **CI 已恢复全绿**：上轮修正的 pillow CVE 已生效，feat/v11 分支自身 CI 6/6 SUCCESS
+- ⚠️ **master 仍有 CVE**：`origin/master:requirements.lock` 中 `pillow==12.2.0` 有 7 个 CVE + GHSA-78g4-xqwv-q3g8
+
+**太子建议三预案维持**（详情见下）— **待皇上定夺**。奴才倾向 **C**（战略转向 v12）：等待已超 90h，且 v11 代码 + CI 均健康（随时可合）。若皇上仍想保留 v11 则选 A（reopen 后 CI 已为绿色，随时可合）；若选 C，master 的 pillow 修复不可跳过。
+
+---
+
+## v117 晚场 #2 状态（旧文保留供交叉对照）：PR #57 仍 CLOSED，皇上尚未决策 A/B/C（已过 ~83h+）
 
 > ⚠️ **本轮重大修正**：theme 文件中「CI 6/6 SUCCESS」为**陈旧错误信息**。实测 CI 最近 3 轮全部 **FAILURE**（security-audit: pillow 24 CVEs）。已在本轮修复（pillow 12.3.0 → 13.0.0 + CI Python 3.10 → 3.12），本地验证 P0/P1/P2/pip-audit 全绿，**远端 CI 尚未重跑**（PR CLOSED，push 不触发 CI）。
 
@@ -207,10 +252,24 @@
 | **2026-10-22 22:02** | 🚨 **v117 晚场 #1：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，58.02s），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~78h+），本地 HEAD `bd486cf` = 远端 head ✅，工作树 clean ✅，run log: `strategy/runs/2026-10-22-2202.md` — 第85次提醒 #2 🚨（持续等决策）** |
 | **2026-10-23 02:12** | 🚨 **v117 晚场 #2：cron 触发例行检查，P0 ✅ + P1 ✅（324/5/0，61.68s，py3.12+pillow13）+ P2 ✅ + pip-audit ✅（0 vulns），PR #57 仍 CLOSED 🚨，皇上仍未决策 A/B/C（已 ~83h+）。🚨 **重大发现：CI 已连续 3 轮 FAILURE**（security-audit: pillow 24 CVEs），theme 中「6/6 SUCCESS」为陈旧错误信息。本轮修复：`pillow==12.3.0`→`13.0.0` + CI Python 3.10→3.12（6+1 处）+ 删除 108 个断裂本地 ref。本地 HEAD `181aeca` = 远端 head ✅，工作树 clean ✅，run log: `strategy/runs/2026-10-23-0212.md` — 第86次提醒 #3 🚨（持续等决策 + CI 已修复待重跑）** |
 | **2026-10-22 10:30** | 🚨 **v117 早场 #3：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，58.47s），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~55h+），本地 HEAD `16bdc94` = 远端 head ✅，工作树有遗留 untracked（上两轮 run log），run log: `strategy/runs/2026-10-22-1030.md` — 第85次提醒 #1 🚨（持续等决策）** |
+| **2026-10-23 10:17** | 🟢🚨 **v117 晚场 #3：cron 触发例行检查，P0 ✅（compileall + import OK）+ P1 ✅（324/5/0，61.59s）+ P2 ✅（benchmark quick PASSED, SVM/circles acc 0.7900），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~90h+）。🟢 **本轮关键解除：feat/v11 分支自身 CI 已确认 6/6 SUCCESS**（run #39834210464 + #39833849516），预案 A 前置条件全部满足。工作树 clean ✅，本地 HEAD `0002bfb` = 远端 head ✅，run log: `strategy/runs/2026-10-23-1017.md` — 第86次提醒 #4 🚨（持续等决策，但 CI 阻塞已解除）** |
 
 ---
 
-## v117 晚场 #2 验收（本轮）
+## v117 晚场 #3 验收（本轮）
+
+| 项目 | 状态 | 证据 |
+|------|------|------|
+| P0 (compileall + import) | ✅ | compileall 退出 0；`main import OK`（py3.12 + pillow 13.0.0）|
+| P1 (pytest -q) | ✅ | **324 passed, 5 skipped, 19 warnings in 61.59s** |
+| P2 (benchmark quick) | ✅ | `benchmarks/run.py --quick` → PASSED（SVM/circles, acc 0.7900, thr 0.7000）|
+| PR #57 | 🚨 | CLOSED (`mergedAt: null`, `closedAt: 2026-10-19T19:47:29Z`, `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`) |
+| CI Checks (feat/v11 HEAD) | ✅ | **6/6 SUCCESS**（run #39834210464，2026-10-22T18:45:48Z）— security-audit ✅ |
+| 工作树 | ✅ | clean（本轮开始时 clean）|
+| 本地 HEAD | ✅ | `0002bfb` = 远端 `origin/feat/v11-model-registry-core` 同步 |
+| master CVE | ⚠️ | `pillow==12.2.0` 仍有 7 个 CVE + GHSA-78g4-xqwv-q3g8，待修 |
+
+## v117 晚场 #2 验收（上轮，旧文保留供交叉对照）
 
 | 项目 | 状态 | 证据 |
 |------|------|------|
@@ -258,7 +317,7 @@
 | v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
 | **v11 (Multi-Dataset + Experiment History)** | 🚨 **PR #57 已被皇上手动 CLOSED（未 merge）！DoD #4 状态需重估，等皇上决策 A/B/C** |
 | **v12 (Python API & SDK Foundation)** | 🟡 **ADR-0017 Draft（等皇上 v11 决策后再启动）** |
-| **CI 安全审计** | 🚨 **pillow CVE 已修复（v117 晚场 #2）** — v11 分支 `requirements.lock` 已升至 `pillow==13.0.0` + CI Python 3.12；**master 分支 `pillow==12.2.0` 仍需修复** |
+| **CI 安全审计** | ✅ **v11 分支已修复并 CI 验证**（v117 晚场 #2 修复 → #3 确认 6/6 SUCCESS）— `pillow==13.0.0` + CI Python 3.12；🚨 **master 分支 `pillow==12.2.0` 仍有 7 CVE + GHSA-78g4-xqwv-q3g8 待修** |
 
 ---
 
@@ -266,8 +325,8 @@
 
 - **受益人**: 皇上 / 仓库维护者
 - **价值**: 例行健康检查，确保 v11 收尾阶段代码库稳定可合并
-- **验证**: P0 ✅（compileall + import）+ P1 ✅（324/5/0，89.92s）+ CI 全 SUCCESS
-- **当前状态**: 🚨 **皇上必须决策预案 A/B/C**（Reopen PR / 新开 PR / 跳 v12）— PR #57 已被手动关闭且未合并（已 ~83h+）
-- **最近一次验证**: 2026-10-23 02:12 CST（v117 晚场 #2 / 第86次提醒 #3，仍 🚨 CLOSED 等决策）
-- **PR #57 当前状态**: **CLOSED** (`mergedAt: null`, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`) / CI 最近 3 轮 **FAILURE**（pillow CVE），本轮已修复待重跑
-- **本地分支 HEAD**: `181aeca` = 远端 head（已与远端同步，含本轮 CI 修复 commit）
+- **验证**: P0 ✅（compileall + import）+ P1 ✅（324/5/0，61.59s）+ P2 ✅（benchmark quick）+ **CI 6/6 SUCCESS（run #39834210464）**
+- **当前状态**: 🚨 **皇上必须决策预案 A/B/C**（Reopen PR / 新开 PR / 跳 v12）— PR #57 已被手动关闭且未合并（已 ~90h+）
+- **最近一次验证**: 2026-10-23 10:17 CST（v117 晚场 #3 / 第86次提醒 #4，CI 已确认 6/6 SUCCESS）
+- **PR #57 当前状态**: **CLOSED** (`mergedAt: null`, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`) / ✅ **CI 已恢复 6/6 SUCCESS**（pillow CVE 已修复并验证）→ 预案 A 前置条件全部满足
+- **本地分支 HEAD**: `0002bfb` = 远端 head（已与远端同步）

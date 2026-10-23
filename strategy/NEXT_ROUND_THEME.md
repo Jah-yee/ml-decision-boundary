@@ -1,10 +1,54 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v118 早场 #1（第87次提醒 #1）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v118 晚场 #1（第88次提醒 #1）
 
-**更新时间：** 2026-10-23 22:12 CST / 2026-10-23 14:12 UTC
-**版本：** v118 早场 #1（第87次提醒 #1）
+**更新时间：** 2026-10-24 02:01 CST / 2026-10-23 18:01 UTC
+**版本：** v118 晚场 #1（第88次提醒 #1）
 **维护人：** 太子
 
 ---
+
+## 🟢 v118 晚场 #1 状态：**PR #58 已 OPEN 且 CI 全绿** + **master 安全修复 PR #59 已开**
+
+> 🚨 **重大纠偏**：历轮 theme 通篇写「PR #57 CLOSED，等皇上决策 A/B/C」——**这是陈旧信息**。
+> 实际上 **PR #58**（v11 重新提交通道）自 2026-10-21T18:00:08Z 起就已 OPEN，
+> head = `feat/v11-model-registry-core`（`58682fb`），mergeStateStatus **CLEAN**，CI **6/6 SUCCESS**。
+> **v11 的合并通道一直是开着的**，A/B/C 早已不再是唯一出口。本轮起不再重复请求 A/B/C 决策。
+
+### 本轮状态表
+
+| 项目 | 上轮 (#36) | 本轮 (#37) | 变化 |
+|------|----------|----------|------|
+| PR #57 state | CLOSED 🚨 | CLOSED 🚨 | 未变（已被 #58 取代）|
+| **PR #58 state** | （theme 未记录）| **OPEN ✅ MERGEABLE ✅ CLEAN ✅** | **通道已通** |
+| PR #58 CI | — | **6/6 SUCCESS**（run #39968102589, 2026-10-23T14:15Z）| ✅ |
+| **PR #59（master 安全）** | 不存在 | **🆕 OPEN** | **本轮新交付** |
+| master CVE | ⚠️「7 个 CVE」（陈旧）| **🚨 实测 25 个（pillow 24 + werkzeug 1）→ 本轮已在 #59 修完，pip-audit 0 vuln** | **已修** |
+| master P1 | 🚨 2 failed（时区 bug）| **✅ 283 passed / 1 skipped**（修完）| **已修** |
+| CI (feat/v11 HEAD) | 3/3 连续 SUCCESS | **4/4 连续 SUCCESS** ✅ | 稳定 |
+| P0 / P1 / P2（feat/v11）| ✅ | ✅ / 324/5/0（75.92s）/ ✅ | 稳定 |
+| 本地 HEAD | `9d43beb` | **`58682fb`** | 上轮自身 commit |
+| 工作树 | clean | clean（本轮写入 run log 后）| 未变 |
+
+### 🆕 本轮交付：PR #59 — master 依赖安全清理（独立于 A/B/C 决策）
+
+- 分支 `fix/master-pillow-cve-2026`（基于 `origin/master` f64f422），commit `5a5a395`
+- `requirements.lock`：`pillow 12.2.0 → 13.0.0`、`werkzeug 3.1.8 → 3.1.9`
+- `.github/workflows/ci.yml`（6 处）+ `release.yml`（1 处）：Python `3.10 → 3.12`（pillow 13 要求 ≥3.11）
+- `tests/test_registry.py`：`_today()` 改用 UTC，修 master 上的 2 个失败用例（详见 run log）
+- **pip-audit：No known vulnerabilities found** ✅；P0 ✅；P1 ✅ 283/1/0；P2 ✅
+- 🔗 https://github.com/Jah-yee/ml-decision-boundary/pull/59
+
+### 👑 请皇上点两个 Merge 按钮
+
+1. **PR #58** — v11 功能合入 master → ADR-0016 DoD #4 闭环
+   🔗 https://github.com/Jah-yee/ml-decision-boundary/pull/58 （OPEN · CLEAN · CI 6/6 SUCCESS）
+2. **PR #59** — master 安全清理（**必合**，与 v11 解耦）
+   🔗 https://github.com/Jah-yee/ml-decision-boundary/pull/59
+
+> 若 #58 先 merge，#59 的 lock/workflow 变更会被其包含，届时择一合并或直接关闭 #59。
+
+---
+
+## v118 早场 #1 状态（旧文保留供交叉对照）
 
 ## 🚨 v118 早场 #1 状态：PR #57 仍 CLOSED（已过 ~92h），CI 连续 3 轮全绿 ✅
 
@@ -281,10 +325,27 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | **2026-10-22 10:30** | 🚨 **v117 早场 #3：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，58.47s），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~55h+），本地 HEAD `16bdc94` = 远端 head ✅，工作树有遗留 untracked（上两轮 run log），run log: `strategy/runs/2026-10-22-1030.md` — 第85次提醒 #1 🚨（持续等决策）** |
 | **2026-10-23 22:12** | 🚨 **v118 早场 #1：cron 触发例行检查，P0 ✅（compileall + import OK, py3.12.3）+ P1 ✅（324/5/0，76.68s）+ P2 ✅（benchmark quick PASSED, acc 0.7900），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~92h+）。CI **连续 3 轮 SUCCESS**（run #39889110714，HEAD `9d43beb`）✅，工作树 clean ✅，本地 HEAD `9d43beb` = 远端 head ✅，run log: `strategy/runs/2026-10-23-2212.md` — 第87次提醒 #1 🚨（持续等决策）** |
 | **2026-10-23 10:17** | 🟢🚨 **v117 晚场 #3：cron 触发例行检查，P0 ✅（compileall + import OK）+ P1 ✅（324/5/0，61.59s）+ P2 ✅（benchmark quick PASSED, SVM/circles acc 0.7900），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~90h+）。🟢 **本轮关键解除：feat/v11 分支自身 CI 已确认 6/6 SUCCESS**（run #39834210464 + #39833849516），预案 A 前置条件全部满足。工作树 clean ✅，本地 HEAD `0002bfb` = 远端 head ✅，run log: `strategy/runs/2026-10-23-1017.md` — 第86次提醒 #4 🚨（持续等决策，但 CI 阻塞已解除）** |
+| **2026-10-24 02:01** | 🟢 **v118 晚场 #1：cron 触发例行检查 + 交付 PR #59。P0 ✅ + P1 ✅（324/5/0，75.92s）+ P2 ✅（benchmark quick acc 0.7900），feat/v11 CI 连续 4 轮 SUCCESS ✅。🚨 **重大纠偏：PR #58 其实早已 OPEN + CLEAN + CI 6/6 SUCCESS**，历轮 theme「等 A/B/C」为陈旧信息，本轮起不再重复请求 A/B/C。🆕 **新交付 PR #59**（master 安全清理：pillow 12.2.0→13.0.0 修 24 CVE、werkzeug 3.1.8→3.1.9 修 PYSEC-2026-4312、CI Python 3.10→3.12、master registry 测试时区 bug 修复；实测 master 共 25 个 CVE → pip-audit 0 vuln；master P1 从 2 failed → 283 passed/1 skipped）。**请皇上点 Merge：#58（v11）+ #59（master 安全，必合）**，run log: `strategy/runs/2026-10-24-0201.md` — 第88次提醒 #1 🟢** |
 
 ---
 
-## v118 早场 #1 验收（本轮）
+## v118 晚场 #1 验收（本轮）
+
+| 项目 | 状态 | 证据 |
+|------|------|------|
+| P0 (compileall + import) | ✅ | compileall 退出 0；`main import OK`（py3.12.3）|
+| P1 (pytest -q, feat/v11) | ✅ | **324 passed, 5 skipped, 0 FAILED**（75.92s）|
+| P2 (benchmark quick) | ✅ | `benchmarks/run.py --quick` → PASSED（circles/SVM, acc 0.7900, thr 0.7000）|
+| PR #57 | 🚨 | CLOSED（`mergedAt: null`，已被 #58 取代）|
+| **PR #58** | ✅ | **OPEN + MERGEABLE + CLEAN，CI 6/6 SUCCESS**（run #39968102589）|
+| **PR #59（master 安全）** | ✅ | **OPEN**，pip-audit 0 vuln；本地 P0/P1/P2 全绿；CI 见 run log |
+| master CVE | ✅ | **已修**：实测 25 个（pillow 24 + werkzeug 1）→ PR #59 内 pip-audit **No known vulnerabilities found** |
+| master P1 | ✅ | **283 passed, 1 skipped**（修前 2 failed，registry 时区 bug 已修）|
+| CI Checks (feat/v11 HEAD) | ✅ | **4/4 连续 SUCCESS**（#39833849516 → #39834210464 → #39889110714 → #39968102589）|
+| 工作树 | ✅ | clean（本轮写入 run log）|
+| 本地 HEAD | ✅ | `58682fb` = 远端 `origin/feat/v11-model-registry-core` 同步 |
+
+## v118 早场 #1 验收（上轮，旧文保留供交叉对照）
 
 | 项目 | 状态 | 证据 |
 |------|------|------|
@@ -356,18 +417,19 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | v8 (Model Registry) | ✅ 完成 (ADR-0013 Accepted 2026-07-04) |
 | v9 (Docs & Examples) | ✅ 完成 (ADR-0014 Accepted 2026-07-08) |
 | v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
-| **v11 (Multi-Dataset + Experiment History)** | 🚨 **PR #57 已被皇上手动 CLOSED（未 merge）！DoD #4 状态需重估，等皇上决策 A/B/C** |
-| **v12 (Python API & SDK Foundation)** | 🟡 **ADR-0017 Draft（等皇上 v11 决策后再启动）** |
-| **CI 安全审计** | ✅ **v11 分支已修复并 CI 验证**（v117 晚场 #2 修复 → #3 确认 6/6 SUCCESS）— `pillow==13.0.0` + CI Python 3.12；🚨 **master 分支 `pillow==12.2.0` 仍有 7 CVE + GHSA-78g4-xqwv-q3g8 待修** |
+| **v11 (Multi-Dataset + Experiment History)** | 🟢 **PR #58 OPEN + CLEAN + CI 6/6 SUCCESS — 合并通道已开，等皇上点 Merge 按钮**（PR #57 已被 #58 取代）|
+| **v12 (Python API & SDK Foundation)** | 🟡 **ADR-0017 Draft（等 PR #58 merge 后启动）** |
+| **CI 安全审计** | ✅ **v11 分支已修复且 CI 全绿**（pillow==13.0.0 + CI Python 3.12）；✅ **master 亦已修复并开 PR #59**（pillow 13.0.0 + werkzeug 3.1.9 + CI Python 3.12，pip-audit 0 vuln）|
 
 ---
 
 ## 价值确认
 
-- **受益人**: 皇上 / 仓库维护者
-- **价值**: 例行健康检查，确保 v11 收尾阶段代码库稳定可合并
-- **验证**: P0 ✅（compileall + import）+ P1 ✅（324/5/0，61.59s）+ P2 ✅（benchmark quick）+ **CI 6/6 SUCCESS（run #39834210464）**
-- **当前状态**: 🚨 **皇上必须决策预案 A/B/C**（Reopen PR / 新开 PR / 跳 v12）— PR #57 已被手动关闭且未合并（已 ~92h+）
-- **最近一次验证**: 2026-10-23 22:12 CST（v118 早场 #1 / 第87次提醒 #1，CI 连续 3 轮 SUCCESS）
-- **PR #57 当前状态**: **CLOSED** (`mergedAt: null`, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`) / ✅ **CI 连续 3 轮 SUCCESS** → 预案 A 前置条件全部满足
-- **本地分支 HEAD**: `9d43beb` = 远端 head（已与远端同步）
+- **受益人**: 皇上 / 仓库维护者 / 所有拉取 master 的用户
+- **价值**: ① master 安全修复（25 CVE → 0）② master 测试从 2 failed → 0 failed ③ v11 合并通道纠偏并打通
+- **验证**: feat/v11 P0 ✅ + P1 ✅（324/5/0，75.92s）+ P2 ✅ + CI 4/4 SUCCESS；master worktree P0 ✅ + P1 ✅（283/1/0）+ P2 ✅ + pip-audit 0 vuln
+- **当前状态**: 👑 **请皇上点两个 Merge 按钮** — PR #58（v11 功能）+ PR #59（master 安全，必合）
+- **最近一次验证**: 2026-10-24 02:01 CST（v118 晚场 #1 / 第88次提醒 #1）
+- **PR #58 当前状态**: **OPEN / MERGEABLE / CLEAN / CI 6/6 SUCCESS**（run #39968102589）
+- **PR #59 当前状态**: **OPEN / MERGEABLE**（master 安全，pip-audit 0 vuln）
+- **本地分支 HEAD**: `58682fb` = 远端 head（已与远端同步）

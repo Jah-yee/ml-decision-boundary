@@ -341,7 +341,7 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | **PR #59（master 安全）** | ✅ | **OPEN + MERGEABLE + CLEAN，CI 6/6 SUCCESS**（run #40000945410 + #40000964362）|
 | master CVE | ✅ | **已修**：实测 25 个（pillow 24 + werkzeug 1）→ PR #59 内 pip-audit **No known vulnerabilities found** |
 | master P1 | ✅ | **283 passed, 1 skipped**（修前 2 failed，registry 时区 bug 已修）|
-| CI Checks (feat/v11 HEAD) | ✅ | **4/4 连续 SUCCESS**（#39833849516 → #39834210464 → #39889110714 → #39968102589）|
+| CI Checks (feat/v11 HEAD) | ✅ | **连续 SUCCESS**：#39968102589 → #40001233773 → **#40001607852**（HEAD `b0d42c8`）|
 | 工作树 | ✅ | clean（本轮写入 run log）|
 | 本地 HEAD | ✅ | `58682fb` = 远端 `origin/feat/v11-model-registry-core` 同步 |
 

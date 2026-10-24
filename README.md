@@ -130,6 +130,29 @@ python server.py
 open web/index.html
 ```
 
+### 7. Python SDK (v12)
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+
+# Train + register in one call
+result = db.train(model="SVM", dataset="circles", n_samples=500, tags=["demo"])
+print(result.model_id, result.accuracy)
+
+# Predict with a registered model
+preds = db.predict(result.model_id, X=[[0.0, 0.0], [1.0, 1.0]])
+
+# Registry passthrough
+db.list_models()
+db.list_models_by_tag("demo")
+db.compare(result.model_id, other_id)
+```
+
+> The SDK is a thin wrapper over `core/` — CLI, HTTP API and SDK share the exact
+> same training and registry logic, so results never drift between surfaces.
+
 ---
 
 ## 🏗️ Architecture
@@ -215,6 +238,10 @@ ml-decision-boundary/
 ├── requirements.lock      # Locked versions for production
 ├── run.sh                 # One-liner: bash run.sh
 ├── vercel.json            # Vercel deployment config
+├── ml_db/                 # v12 DoD #1 — Python SDK
+│   ├── __init__.py        # `from ml_db import MLDB`
+│   ├── client.py          # MLDB client (train / predict / registry)
+│   └── errors.py          # MLDBError hierarchy (E2xxx codes)
 ├── api/
 │   ├── train.py           # Vercel serverless: POST /api/train
 │   └── health.py          # Vercel serverless: GET /api/health

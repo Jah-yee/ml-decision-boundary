@@ -1,12 +1,62 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v118 晚场 #3（第88次提醒 #3）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v119 早场 #1（v12 启动轮）
 
-**更新时间：** 2026-10-24 22:20 CST / 2026-10-24 14:20 UTC
-**版本：** v118 晚场 #3（第88次提醒 #3）
+**更新时间：** 2026-10-25 02:10 CST / 2026-10-24 18:10 UTC
+**版本：** v119 早场 #1
 **维护人：** 太子
 
 ---
 
-## 🔴 v118 晚场 #3 状态：**请皇上只点 ONE 个 Merge 按钮 — PR #58（结论不变，证据升级）**
+## 🟢 v119 早场 #1 状态：**皇上已点 Merge — PR #58 + #59 均已合入 master，v11 闭环完成，v12 正式启动**
+
+### 🎉 本轮头条：等待多轮的 Merge 终于落地
+
+| 事件 | 时间 (UTC) | 证据 |
+|------|-----------|------|
+| **PR #58 MERGED**（v11 主体） | 2026-10-24T16:27:28Z | squash commit `99b8490`，mergedBy `Jah-yee` |
+| **PR #59 MERGED**（master 安全清理） | 2026-10-24T16:27:51Z | squash commit `4082158`，mergedBy `Jah-yee` |
+| **master CI #40111672401** | 2026-10-24T16:27:53Z | ✅ **6/6 SUCCESS**（quality-checks / quality-gates / benchmark / security-audit / depth-sweep / hyperparam-sweep）|
+
+> ✅ **「master CI 绿是假象」问题终结**：上一次 master CI 是 **2026-07-04**（CVE 披露前），
+> 本次是 3.5 个月后 master 的**首次真实重跑** → 6/6 全绿，`security-audit` 通过，
+> master 从「63 条 CVE 裸奔」变为 **pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12**。
+
+### ✅ v11 收口（本轮同步落档）
+
+| DoD | 状态 | 证据 |
+|-----|------|------|
+| ADR-0016 v11 DoD 细化 | ✅ | `docs/adr/ADR-0016-v11-dod.md` |
+| Multi-Dataset Support | ✅ | swiss_roll / classification_2blobs / classification_concentric |
+| Batch Prediction API | ✅ | `POST /api/predict/batch` |
+| Experiment History UI | ✅ | `output/experiments.jsonl` |
+| **ADR-0016 Accepted** | ✅ | **2026-10-25**（本轮更新 ADR + `spec/phases.md`：v11 已完成 ✅ 🎉）|
+
+### 🆕 v12 启动：本轮交付 **Python SDK（ADR-0017 DoD #1）**
+
+| 交付物 | 内容 |
+|--------|------|
+| `ml_db/__init__.py` | 顶层 API：`from ml_db import MLDB`、`__version__ = "0.1.0"` |
+| `ml_db/client.py` | `MLDB` 客户端：`train()` / `predict()` / `predict_batch()` / `dataset()` / `datasets()` / `models()` / `list_models()` / `get_model()` / `load_model()` / `tag()` / `untag()` / `list_tags()` / `list_models_by_tag()` / `compare()` |
+| `ml_db/errors.py` | 异常层级 `MLDBError` + `E2001_UNKNOWN_DATASET` / `E2002_UNKNOWN_MODEL` / `E2003_MODEL_NOT_FOUND` / `E2004_INVALID_INPUT` |
+| `core/train_utils.py` | 抽出模块级 `BUILTIN_FACTORIES` + `BUILTIN_MODEL_NAMES`（单一事实源，SDK 与 CLI 共享） |
+| `tests/test_sdk.py` | **21 个新测试**（实例化 / train / predict / batch / 标签 / compare / 错误契约 / 确定性） |
+| `examples/06_sdk_usage.py` | 可直接运行的 SDK 走查脚本 |
+| `README.md` | Quick Start 新增 §7 Python SDK + 项目结构新增 `ml_db/` |
+| `spec/phases.md` | v11 已完成 ✅ / v12 进行中 🟡（DoD #1 ✅） |
+| `docs/adr/ADR-0016` / `ADR-0017` | ADR-0016 → Accepted；ADR-0017 DoD #1 → ✅ + 验收标准勾选 |
+
+> 设计要点：**SDK 是 `core/` 的薄封装**，训练/注册逻辑零复制 → CLI / HTTP API / SDK 三端结果永不漂移。
+
+### 🧭 下一轮（v12 剩余 DoD）
+
+| # | DoD | 计划 |
+|---|-----|------|
+| 2 | **异步训练任务** | 后台训练 + 任务状态持久化（重启不丢）+ 轮询 API |
+| 3 | **Registry 改进** | 模型版本化（v1/v2）+ 标签批量查询 |
+| 4 | ADR-0017 Accepted | DoD #2-3 完成后收口 |
+
+---
+
+## v118 晚场 #3 状态（旧文保留供交叉对照）
 
 ### ✅ 本轮最强新证据：**模拟 squash 合并后的 master 端到端验收通过**
 
@@ -433,6 +483,7 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | **2026-10-24 02:01** | 🟢 **v118 晚场 #1：cron 触发例行检查 + 交付 PR #59。P0 ✅ + P1 ✅（324/5/0，75.92s）+ P2 ✅（benchmark quick acc 0.7900），feat/v11 CI 连续 4 轮 SUCCESS ✅。🚨 **重大纠偏：PR #58 其实早已 OPEN + CLEAN + CI 6/6 SUCCESS**，历轮 theme「等 A/B/C」为陈旧信息，本轮起不再重复请求 A/B/C。🆕 **新交付 PR #59**（master 安全清理：pillow 12.2.0→13.0.0 修 24 CVE、werkzeug 3.1.8→3.1.9 修 PYSEC-2026-4312、CI Python 3.10→3.12、master registry 测试时区 bug 修复；实测 master 共 25 个 CVE → pip-audit 0 vuln；master P1 从 2 failed → 283 passed/1 skipped）。**请皇上点 Merge：#58（v11）+ #59（master 安全，必合）**，run log: `strategy/runs/2026-10-24-0201.md` — 第88次提醒 #1 🟢** |
 | **2026-10-24 22:20** | 🔴 **v118 晚场 #3：结论不变（只点 PR #58），但证据显著升级。🆕 **模拟 squash 合并后的 master 端到端验收通过**：P1 **324 passed / 5 skipped / 0 FAILED**（116.29s）+ pip-audit **No known vulnerabilities found** + pillow 13.0.0 / werkzeug 3.1.9 / Python 3.12 ×7 / UTC 修复全部就位 → **实证 #58 单独合入即修复 master，#59 应 Close**。🔬 **修正上轮时区复现方法**：上轮 `TZ=Etc/GMT+8` 结果依赖墙钟（当前时刻 UTC 与 GMT+8 同日，实测无法复现），本轮改用注入本地时钟偏移的对称实验 → master **2 failed** / #58 分支 **12 passed**，且根因代码级确认（`core/registry.py:115` 用 UTC，master 测试用本地 `date.today()`，GMT+8 下每天 8h 窗口不一致）。✅ CVE **63 条**独立复核确认；✅ #59 **4/4 文件**与 #58 逐字节相同；✅ `git merge-base` 空 → **必须 Squash**。🚨 **修复本地环境损坏**：全局 `pytest_scenario_files` editable 路径 `/tmp/psf-fork` 被删 + 多个包缺 RECORD 导致 pip 无法卸载 → 按 `requirements.lock` 重装后 P1 首次即 324/5/0。P0 ✅ + P1 ✅（324/5/0，72.89s）+ P2 ✅（acc 0.7900）+ pip-audit ✅ 0 vuln。**👑 请皇上只点 PR #58 的 Merge 按钮（务必 Squash and merge）**，合并后 Close PR #59。run log: `strategy/runs/2026-10-24-2207.md` — 第88次提醒 #3 🔴** |
 | **2026-10-24 10:11** | 🔴 **v118 晚场 #2：例行闭环 + PR 合并顺序独立验证。P0 ✅ + P1 ✅（324/5/0，68.86s）+ P2 ✅（acc 0.7900），CI 6/6 SUCCESS（run #40054000623）。🚨 **重大纠偏 #1：上轮「点两个 Merge」是错的** —— 实测 #59 的 4 个文件与 #58 blob SHA **逐字节相同**（requirements.lock / ci.yml / release.yml / test_registry.py 全 IDENTICAL），#58 合并后 master 即含 pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12 + UTC 修复 → **#59 应 Close 而非 Merge**。🚨 **重大纠偏 #2：CVE 实测 63 条**（非上轮「25 个」）—— pillow12.2.0+werkzeug3.1.8 对照审计 63 条 CVE 行，修复后 `No known vulnerabilities found`；master 最后一次 CI 是 **2026-07-04**，从未重跑，绿是假象。🆕 **时区 bug 确定性复现**：上轮「master 2 failed」当前不可复现（本地与 UTC 同日），用 `TZ=Etc/GMT+8` 强制复现 → master **2 failed** / #59 分支同条件 **12 passed**。⚠️ 记录风险：v11 与 master 无共同祖先（`git merge-base` 为空），本地 merge 报 unrelated histories，**建议 Squash and merge**。**👑 请皇上只点 PR #58 的 Merge 按钮**，合并后 Close PR #59。#59 分支独立 worktree P1 ✅（283/1/0，132.61s）+ P2 ✅ + pip-audit ✅ 0 vuln。run log: `strategy/runs/2026-10-24-1011.md` — 第88次提醒 #2 🔴** |
+| **2026-10-25 02:10** | 🎉 **v119 早场 #1：皇上已 Merge！PR #58 merged 2026-10-24T16:27:28Z（`99b8490`）+ PR #59 merged 2026-10-24T16:27:51Z（`4082158`），master CI run #40111672401 **6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0）。v11 收口：ADR-0016 → Accepted，`spec/phases.md` v11 已完成 ✅。🆕 v12 启动并交付 DoD #1 **Python SDK**：`ml_db/` 包（`MLDB` 顶层 API + E2xxx 错误层级）+ `core/train_utils.py` 抽出 `BUILTIN_FACTORIES`/`BUILTIN_MODEL_NAMES` + `tests/test_sdk.py`（21 新测试）+ `examples/06_sdk_usage.py` + README §7。P0 ✅ + P1 ✅（**345 passed / 5 skipped / 0 FAILED，79.13s**）+ P2 ✅（acc 0.7900）+ SDK 走查 ✅。run log: `strategy/runs/2026-10-25-0210.md` — 第89次提醒 #1 ✅（**无需皇上操作**）** |
 
 ---
 
@@ -543,20 +594,20 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | v8 (Model Registry) | ✅ 完成 (ADR-0013 Accepted 2026-07-04) |
 | v9 (Docs & Examples) | ✅ 完成 (ADR-0014 Accepted 2026-07-08) |
 | v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
-| **v11 (Multi-Dataset + Experiment History)** | 🟢 **PR #58 OPEN + MERGEABLE + CLEAN + CI 6/6 SUCCESS — 请皇上点 Merge（建议 Squash and merge）**（PR #57 已被 #58 取代）|
-| **v12 (Python API & SDK Foundation)** | 🟡 **ADR-0017 Draft（等 PR #58 merge 后启动）** |
-| **CI 安全审计** | 🔴 **master 仍裸奔**：pillow==12.2.0 + werkzeug==3.1.8 + Python 3.10 → 实测 **63 条 CVE**（master 最后一次 CI 是 2026-07-04，从未重跑，绿是假象）。✅ **修复已在 PR #58 内**（pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12，pip-audit 0 vuln），**#58 merge 即修复 master**；#59 与 #58 内容 100% 相同，merge 后应 Close |
+| **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-10-25**（DoD #1-4 全绿）|
+| **v12 (Python API & SDK Foundation)** | 🟡 **进行中 — DoD #1 Python SDK 已交付**（`ml_db/` + 21 测试 + example 06 + README）；剩余 #2 异步训练、#3 Registry 版本化、#4 Accepted |
+| **本轮 PR** | 🟢 **PR #60 OPEN + MERGEABLE + CI 6/6 SUCCESS**（run `40120289145`，head `0437ed3`）— v12 DoD #1 Python SDK，待皇上 Merge |
+| **CI 安全审计** | ✅ **master 已脱险**：PR #58/#59 merged 后 master = pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12；**master CI #40111672401 6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0） |
 
 ---
 
 ## 价值确认
 
-- **受益人**: 皇上 / 仓库维护者 / 所有拉取 master 的用户
-- **价值**: ① **用「模拟 squash 合并树」端到端证明 #58 单独合入即修复 master 全部安全问题**（实测 324/5/0 + 0 漏洞）② 把 #59 从「必合」纠正为「应 Close」，避免空 PR 污染历史 ③ **把时区 bug 证据从「墙钟巧合」升级为「确定性可复现」**（对称实验 master 2 failed / #58 12 passed）④ **修复本地环境损坏**，恢复 P0/P1/P2 可复现性
-- **验证**: P0 ✅ compileall 0 + import OK；P1 ✅ **324/5/0（72.89s）**；P2 ✅ acc 0.7900；pip-audit ✅ **0 vuln**；**模拟合并 master ✅ P1 324/5/0（116.29s）+ 0 vuln**；CVE **63 → 0**；时区对称实验 **master 2 failed / #58 12 passed**；#59 **4/4** blob 逐字节相同；CI **6/6 SUCCESS**（run #40102121321）
-- **当前状态**: 👑 **请皇上只点 PR #58 的 Merge 按钮（务必 Squash and merge）**；合并后 **Close PR #59**
-- **最近一次验证**: 2026-10-24 22:20 CST（v118 晚场 #3 / 第88次提醒 #3）
-- **PR #58 当前状态**: **OPEN / MERGEABLE / CLEAN / CI 6/6 SUCCESS**（run #40102121321，head `fd2f5a3`）
-- **PR #59 当前状态**: OPEN / MERGEABLE / CLEAN，但 **内容 100% 包含于 #58 → merge 后应 Close**
-- **本地分支 HEAD**: `fd2f5a3` = 远端 head（已与远端同步）
-- **阻塞**: 唯一阻塞 = 皇上点 Merge（#58）。本轮已排除所有技术阻塞与决策歧义
+- **受益人**: 皇上 / 仓库维护者 / 外部 Python 使用者 / 所有拉取 master 的用户
+- **价值**: ① **v11 彻底闭环**（PR #58 merged → ADR-0016 Accepted → phases.md 落档，3.5 个月的等待在本轮终结）② **master 真实变绿**：3.5 个月来第一次 master CI 重跑 6/6 SUCCESS，63 CVE 清零，「绿是假象」不再成立 ③ **v12 首个可交付物诞生**：`from ml_db import MLDB` 顶层 API 把原本只有 CLI/HTTP 的能力开放给 Python 生态（脚本、notebook、流水线）④ **单一事实源纪律**：SDK 只封装 `core/`，不复制训练逻辑，三端结果零漂移
+- **验证**: P0 ✅ compileall 0 + `import main` OK + `import ml_db` OK；P1 ✅ **345 passed / 5 skipped / 0 FAILED（79.13s）**（324 → 345，+21 SDK 测试）；P2 ✅ `benchmarks/run.py --quick` PASSED（acc 0.7900, thr 0.7000）；SDK 走查 ✅ `examples/06_sdk_usage.py` 端到端跑通（train→predict→tag→compare）；master CI ✅ **6/6 SUCCESS**（run `40111672401`，head `4082158`）
+- **当前状态**: 🟢 **无外部阻塞** — 本轮起不需要皇上任何操作；v12 DoD #2/#3 由太子按轮次推进
+- **最近一次验证**: 2026-10-25 02:10 CST（v119 早场 #1）
+- **master HEAD**: `4082158`（PR #59 squash），master CI 6/6 SUCCESS
+- **本地分支**: `feat/v12-sdk-foundation`（基于 origin/master `4082158`）
+- **阻塞**: 无（PR #60 待 Merge，不阻塞下一轮开发）

@@ -14,7 +14,7 @@ import tempfile
 import shutil
 import json
 from pathlib import Path
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sklearn.svm import SVC
 from sklearn.datasets import make_circles
@@ -24,7 +24,8 @@ from core.registry import RegistryManager, REGISTRY_BASE
 
 # Dynamic date helper to avoid hardcoded dates in assertions
 def _today():
-    return date.today().strftime("%Y-%m-%d")
+    # Use UTC to match registry's datetime.now(timezone.utc) used in model_id generation
+    return datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
 
 
 @pytest.fixture

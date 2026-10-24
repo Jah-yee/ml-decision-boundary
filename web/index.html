@@ -120,7 +120,7 @@
                 <!-- Model Selection -->
                 <div>
                     <label class="block text-sm font-medium text-gray-400 mb-2">Model</label>
-                    <select id="modelSelect" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500">
+                    <select id="modelSelect" onchange="onModelChange()" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500">
                         <option value="SVM">SVM (Support Vector Machine)</option>
                         <option value="LR">Logistic Regression</option>
                         <option value="Tree">Decision Tree</option>
@@ -128,6 +128,12 @@
                         <option value="KNN">K-Nearest Neighbors</option>
                         <option value="MLP">Neural Network (MLP)</option>
                     </select>
+                    <!-- Parameter Presets (DoD #4) -->
+                    <div class="mt-2 flex gap-1">
+                        <button onclick="applyPreset('lightweight')" class="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white border border-white/10 transition-all" title="Lightweight preset">⚡ Lite</button>
+                        <button onclick="applyPreset('balanced')" class="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white border border-white/10 transition-all" title="Balanced preset">⚖️ Balanced</button>
+                        <button onclick="applyPreset('high_accuracy')" class="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white border border-white/10 transition-all" title="High Accuracy preset">🎯 Accuracy</button>
+                    </div>
                 </div>
 
                 <!-- Parameter Control -->
@@ -141,6 +147,28 @@
                     <input type="range" id="paramSlider2" min="0" max="100" value="50"
                            class="w-full accent-blue-500 mt-2">
                     <span id="paramValue2" class="text-xs text-gray-500">gamma=scale</span>
+                </div>
+
+                <!-- Compare Mode Toggle -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Compare Mode</label>
+                    <div class="flex items-center gap-2 mb-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="compareToggle" onchange="toggleCompareMode()" class="sr-only peer">
+                            <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                        <span class="text-xs text-gray-400" id="compareToggleLabel">Off</span>
+                    </div>
+                    <!-- Compare Model Pills (DoD #3) -->
+                    <div id="comparePills" class="hidden flex flex-wrap gap-1">
+                        <button onclick="toggleCompareModel('SVM')" id="pill-SVM" class="text-xs px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-white hover:border-blue-500 transition-all compare-pill">SVM</button>
+                        <button onclick="toggleCompareModel('LR')" id="pill-LR" class="text-xs px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-white hover:border-blue-500 transition-all compare-pill">LR</button>
+                        <button onclick="toggleCompareModel('Tree')" id="pill-Tree" class="text-xs px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-white hover:border-blue-500 transition-all compare-pill">Tree</button>
+                        <button onclick="toggleCompareModel('RF')" id="pill-RF" class="text-xs px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-white hover:border-blue-500 transition-all compare-pill">RF</button>
+                        <button onclick="toggleCompareModel('KNN')" id="pill-KNN" class="text-xs px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-white hover:border-blue-500 transition-all compare-pill">KNN</button>
+                        <button onclick="toggleCompareModel('MLP')" id="pill-MLP" class="text-xs px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-white hover:border-blue-500 transition-all compare-pill">MLP</button>
+                    </div>
+                    <button id="runCompareBtn" onclick="runComparison()" class="hidden w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold py-2 rounded-lg transition-all">🔍 Run Compare</button>
                 </div>
 
                 <!-- Action Buttons -->
@@ -238,11 +266,39 @@
                         <canvas id="paramEffectChart"></canvas>
                     </div>
                 </div>
+
+                <!-- Experiment History (v11 DoD #3) -->
+                <div class="card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-lg font-semibold">🕐 History</h3>
+                        <button onclick="loadExperimentHistory()" class="text-xs text-gray-400 hover:text-white transition-all" title="Refresh">↻</button>
+                    </div>
+                    <div id="historyEmpty" class="text-sm text-gray-500 py-4 text-center">No experiments yet</div>
+                    <div id="historyList" class="space-y-2 max-h-64 overflow-y-auto hidden">
+                        <!-- history rows injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Comparison View (DoD #3) -->
+        <div id="comparisonView" class="hidden mt-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold">🔍 Side-by-Side Model Comparison</h2>
+                <button onclick="closeComparisonView()" class="text-sm text-gray-400 hover:text-white transition-all">✕ Close</button>
+            </div>
+            <div class="grid gap-6" id="compareResultsGrid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));"></div>
+            <!-- Aggregate Comparison Chart -->
+            <div class="card rounded-2xl p-6 mt-6">
+                <h3 class="text-lg font-semibold mb-4">📊 Accuracy Comparison</h3>
+                <div class="h-48">
+                    <canvas id="compareAccuracyChart"></canvas>
+                </div>
             </div>
         </div>
 
         <!-- All Models Grid -->
-        <div class="mt-12">
+        <div id="modelsGridSection" class="mt-12">
             <h2 class="text-xl font-semibold mb-6">🎯 All Models Comparison</h2>
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="modelsGrid"></div>
         </div>
@@ -261,6 +317,9 @@
         let currentParams = {};
         let serverAvailable = false;
         let useDemoMode = false;
+        let compareModels = new Set();   // selected models for comparison (DoD #3)
+        let modelCatalogue = {};          // cached model catalogue (DoD #4)
+        let compareAccuracyChart = null;  // chart instance for comparison view
 
         // ── Colours ───────────────────────────────────────────────────────────
         const COLORS = {
@@ -277,7 +336,286 @@
             initCharts();
             loadPrecomputedResults();
             await checkServer();
+            // v11 DoD #3: load experiment history on page load
+            await loadExperimentHistory();
+            // DoD #4: pre-load model catalogue for presets
+            await loadModelCatalogue();
+            // DoD #4: apply default preset for initial model
+            await onModelChange();
         });
+
+        // ── DoD #4: Model Catalogue & Parameter Presets ──────────────────────
+        async function loadModelCatalogue() {
+            const models = ['SVM', 'LR', 'Tree', 'RF', 'KNN', 'MLP'];
+            for (const m of models) {
+                try {
+                    const res = await fetch(`/api/models/${m}`);
+                    if (res.ok) modelCatalogue[m] = await res.json();
+                } catch (_) {}
+            }
+        }
+
+        async function onModelChange() {
+            const model = document.getElementById('modelSelect').value;
+            // Update param sliders based on model defaults
+            if (modelCatalogue[model]) {
+                const cat = modelCatalogue[model];
+                const params = cat.parameters;
+                // Update slider labels
+                updateSliderLabels(model, 50, 50);
+            }
+            // Auto-apply balanced preset
+            await applyPreset('balanced');
+        }
+
+        function updateSliderLabels(model, p1, p2) {
+            document.getElementById('paramValue').textContent  = getParamLabel(model, p1, 1);
+            document.getElementById('paramValue2').textContent = getParamLabel(model, p2, 2);
+        }
+
+        async function applyPreset(presetName) {
+            const model = document.getElementById('modelSelect').value;
+            if (!modelCatalogue[model]) return;
+
+            const cat = modelCatalogue[model];
+            const presets = cat.presets || {};
+            const preset = presets[presetName] || presets.balanced || {};
+
+            const params = cat.parameters;
+            const slider1 = document.getElementById('paramSlider');
+            const slider2 = document.getElementById('paramSlider2');
+
+            // Map param values back to slider 0-100
+            if (params.C) {
+                const cRange = params.C.range; // [0.1, 100]
+                const cVal = preset.C !== undefined ? preset.C : params.C.default;
+                slider1.value = paramToSlider(cVal, cRange[0], cRange[1]);
+            }
+            if (params.gamma) {
+                const gOpts = params.gamma.options;
+                const gVal = preset.gamma !== undefined ? preset.gamma : params.gamma.default;
+                const gIdx = gOpts.indexOf(gVal);
+                slider2.value = gIdx >= 0 ? Math.round((gIdx / (gOpts.length - 1)) * 100) : 50;
+            }
+            if (params.max_depth) {
+                const mdRange = [1, 20];
+                const mdVal = preset.max_depth !== undefined ? preset.max_depth : params.max_depth.default;
+                slider1.value = paramToSlider(mdVal, mdRange[0], mdRange[1]);
+            }
+            if (params.min_samples_split) {
+                const msRange = [2, 22];
+                const msVal = preset.min_samples_split !== undefined ? preset.min_samples_split : params.min_samples_split.default;
+                slider2.value = paramToSlider(msVal, msRange[0], msRange[1]);
+            }
+            if (params.n_estimators) {
+                const neRange = [10, 200];
+                const neVal = preset.n_estimators !== undefined ? preset.n_estimators : params.n_estimators.default;
+                slider1.value = paramToSlider(neVal, neRange[0], neRange[1]);
+            }
+            if (params.hidden_layer_sizes) {
+                const hlsRange = [10, 200];
+                const hlsVal = preset.hidden_layer_sizes
+                    ? preset.hidden_layer_sizes[0]
+                    : params.hidden_layer_sizes.default[0];
+                slider1.value = paramToSlider(hlsVal, hlsRange[0], hlsRange[1]);
+            }
+            if (params.alpha) {
+                const aRange = [0.0, 0.1];
+                const aVal = preset.alpha !== undefined ? preset.alpha : params.alpha.default;
+                slider2.value = paramToSlider(aVal, aRange[0], aRange[1]);
+            }
+            if (params.n_neighbors) {
+                const nnRange = [1, 50];
+                const nnVal = preset.n_neighbors !== undefined ? preset.n_neighbors : params.n_neighbors.default;
+                slider1.value = paramToSlider(nnVal, nnRange[0], nnRange[1]);
+            }
+
+            const p1 = parseInt(slider1.value);
+            const p2 = parseInt(slider2.value);
+            document.getElementById('paramValue').textContent  = getParamLabel(model, p1, 1);
+            document.getElementById('paramValue2').textContent = getParamLabel(model, p2, 2);
+        }
+
+        function paramToSlider(val, min, max) {
+            // Clamp and convert param value to slider 0-100
+            const clamped = Math.max(min, Math.min(max, val));
+            return Math.round(((clamped - min) / (max - min)) * 100);
+        }
+
+        // ── DoD #3: Compare Mode ───────────────────────────────────────────────
+        function toggleCompareMode() {
+            const enabled = document.getElementById('compareToggle').checked;
+            document.getElementById('comparePills').classList.toggle('hidden', !enabled);
+            document.getElementById('runCompareBtn').classList.toggle('hidden', !enabled);
+            document.getElementById('compareToggleLabel').textContent = enabled ? 'On' : 'Off';
+            if (!enabled) {
+                compareModels.clear();
+                document.querySelectorAll('.compare-pill').forEach(el => el.classList.remove('bg-blue-600', 'border-blue-500', 'text-white'));
+            }
+        }
+
+        function toggleCompareModel(model) {
+            if (compareModels.has(model)) {
+                compareModels.delete(model);
+                document.getElementById(`pill-${model}`).classList.remove('bg-blue-600', 'border-blue-500', 'text-white');
+            } else {
+                compareModels.add(model);
+                document.getElementById(`pill-${model}`).classList.add('bg-blue-600', 'border-blue-500', 'text-white');
+            }
+        }
+
+        async function runComparison() {
+            if (compareModels.size === 0) return;
+            const dataset = document.getElementById('datasetSelect').value;
+
+            // Show loading
+            const grid = document.getElementById('compareResultsGrid');
+            grid.innerHTML = Array.from(compareModels).map(m => `
+                <div class="card rounded-2xl p-4" id="compare-card-${m}">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="font-semibold text-white">${m}</span>
+                        <span class="text-xs text-gray-400" id="compare-status-${m}">Training...</span>
+                    </div>
+                    <div class="canvas-container rounded-xl overflow-hidden mb-3" style="height:200px">
+                        <canvas id="compare-canvas-${m}" width="280" height="200"></canvas>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="flex-1 text-center">
+                            <div class="text-lg font-bold text-blue-400" id="compare-acc-${m}">--</div>
+                            <div class="text-xs text-gray-400">Accuracy</div>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <div class="text-lg font-bold text-green-400" id="compare-time-${m}">--</div>
+                            <div class="text-xs text-gray-400">Time (s)</div>
+                        </div>
+                    </div>
+                </div>`).join('');
+
+            document.getElementById('comparisonView').classList.remove('hidden');
+            document.getElementById('modelsGridSection').classList.add('hidden');
+
+            // Train all models in parallel
+            const results = {};
+            const p1 = parseInt(document.getElementById('paramSlider').value);
+            const p2 = parseInt(document.getElementById('paramSlider2').value);
+
+            await Promise.all(Array.from(compareModels).map(async (model) => {
+                try {
+                    let res;
+                    if (serverAvailable) {
+                        res = await runRealTraining(model, dataset, p1, p2);
+                    } else {
+                        res = simulateTraining(model, dataset, p1, p2);
+                    }
+                    results[model] = res;
+                    document.getElementById(`compare-status-${model}`).textContent = 'Done ✓';
+                    document.getElementById(`compare-acc-${model}`).textContent =
+                        (res.accuracy * 100).toFixed(1) + '%';
+                    document.getElementById(`compare-time-${model}`).textContent =
+                        (typeof res.train_time === 'number' ? res.train_time : 0).toFixed(4);
+                    drawComparisonCanvas(model, res, `compare-canvas-${model}`);
+                } catch (e) {
+                    document.getElementById(`compare-status-${model}`).textContent = 'Error ✗';
+                }
+            }));
+
+            // Render aggregate accuracy chart
+            renderCompareAccuracyChart(results);
+        }
+
+        function drawComparisonCanvas(modelName, results, canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, W, H);
+
+            const res = 40;
+            function cellXY(i, j) {
+                return [(i / res) * W, H - (j / res) * H];
+            }
+
+            if (results.boundary_grid) {
+                const grid = results.boundary_grid;
+                const cellW = W / res, cellH = H / res;
+                for (let i = 0; i < res; i++) {
+                    for (let j = 0; j < res; j++) {
+                        const v = grid[j][i];
+                        ctx.fillStyle = v > 0.5 ? COLORS.region1 : COLORS.region0;
+                        ctx.fillRect(i * cellW, j * cellH, cellW + 1, cellH + 1);
+                    }
+                }
+                if (results.train_points) {
+                    const { xs, ys, labels } = results.train_points;
+                    const { x_min, x_max, y_min, y_max } = results.bounds;
+                    for (let k = 0; k < xs.length; k++) {
+                        const px = ((xs[k] - x_min) / (x_max - x_min)) * W;
+                        const py = H - ((ys[k] - y_min) / (y_max - y_min)) * H;
+                        ctx.beginPath();
+                        ctx.arc(px, py, 3, 0, Math.PI * 2);
+                        ctx.fillStyle = labels[k] === 0 ? COLORS.class0 : COLORS.class1;
+                        ctx.fill();
+                    }
+                }
+            } else {
+                const pts = results.boundaryPoints;
+                if (!pts) return;
+                const cellW = W / res, cellH = H / res;
+                for (let i = 0; i < res; i++) {
+                    for (let j = 0; j < res; j++) {
+                        const p = pts[i * res + j];
+                        if (!p) continue;
+                        const [px, py] = cellXY(i, j);
+                        ctx.fillStyle = p.z > 0.5
+                            ? `rgba(78, 205, 196, ${0.2 + p.z * 0.5})`
+                            : `rgba(255, 107, 107, ${0.2 + (1 - p.z) * 0.5})`;
+                        ctx.fillRect(px, py, cellW + 1, cellH + 1);
+                    }
+                }
+            }
+
+            // Model label
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.font = 'bold 14px system-ui';
+            ctx.textAlign = 'left';
+            ctx.fillText(modelName, 8, 18);
+        }
+
+        function renderCompareAccuracyChart(results) {
+            const canvas = document.getElementById('compareAccuracyChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (compareAccuracyChart) compareAccuracyChart.destroy();
+            const models = Object.keys(results);
+            const accData = models.map(m => results[m].accuracy);
+            const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4'];
+            compareAccuracyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: models,
+                    datasets: [{
+                        label: 'Accuracy',
+                        data: accData,
+                        backgroundColor: models.map((_, i) => colors[i % colors.length] + '99'),
+                        borderColor: models.map((_, i) => colors[i % colors.length]),
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: false, min: 0.7, max: 1.0 } }
+                }
+            });
+        }
+
+        function closeComparisonView() {
+            document.getElementById('comparisonView').classList.add('hidden');
+            document.getElementById('modelsGridSection').classList.remove('hidden');
+        }
 
         async function checkServer() {
             try {
@@ -396,6 +734,8 @@
                 drawDecisionBoundary(results);
                 updateMetrics(results);
                 updateCharts(model, dataset);
+                // v11 DoD #3: refresh history after training
+                await loadExperimentHistory();
             } catch (e) {
                 console.error('Training error:', e);
                 document.getElementById('status').innerHTML =
@@ -420,6 +760,48 @@
             }
 
             return await res.json();
+        }
+
+        // ── v11 DoD #3: Experiment History UI ───────────────────────────────────
+        async function loadExperimentHistory() {
+            if (!serverAvailable) return;
+            try {
+                const res = await fetch('/api/experiments?limit=20');
+                if (!res.ok) return;
+                const data = await res.json();
+                renderHistory(data.experiments || []);
+            } catch (_) {}
+        }
+
+        function renderHistory(experiments) {
+            const list = document.getElementById('historyList');
+            const empty = document.getElementById('historyEmpty');
+            if (!experiments || experiments.length === 0) {
+                if (list) list.classList.add('hidden');
+                if (empty) empty.classList.remove('hidden');
+                return;
+            }
+            if (empty) empty.classList.add('hidden');
+            if (list) {
+                list.classList.remove('hidden');
+                list.innerHTML = experiments.slice(-10).reverse().map(exp => `
+                    <div class="bg-white/5 rounded-lg p-2 text-xs">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-semibold text-blue-400">${escapeHtml(exp.model || '-')}</span>
+                            <span class="text-gray-500">${escapeHtml(exp.dataset || '-')}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-green-400 font-medium">${exp.accuracy != null ? (exp.accuracy * 100).toFixed(1) + '%' : '-'}</span>
+                            <span class="text-gray-500">${exp.train_time != null ? exp.train_time.toFixed(3) + 's' : '-'}</span>
+                        </div>
+                    </div>`).join('');
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
         }
 
         // ── Fallback demo (fake data) ──────────────────────────────────────────

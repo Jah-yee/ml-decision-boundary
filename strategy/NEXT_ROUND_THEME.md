@@ -596,6 +596,7 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
 | **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-10-25**（DoD #1-4 全绿）|
 | **v12 (Python API & SDK Foundation)** | 🟡 **进行中 — DoD #1 Python SDK 已交付**（`ml_db/` + 21 测试 + example 06 + README）；剩余 #2 异步训练、#3 Registry 版本化、#4 Accepted |
+| **本轮 PR** | 🟢 **PR #60 OPEN + MERGEABLE + CI 6/6 SUCCESS**（run `40120289145`，head `0437ed3`）— v12 DoD #1 Python SDK，待皇上 Merge |
 | **CI 安全审计** | ✅ **master 已脱险**：PR #58/#59 merged 后 master = pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12；**master CI #40111672401 6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0） |
 
 ---
@@ -609,4 +610,4 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 - **最近一次验证**: 2026-10-25 02:10 CST（v119 早场 #1）
 - **master HEAD**: `4082158`（PR #59 squash），master CI 6/6 SUCCESS
 - **本地分支**: `feat/v12-sdk-foundation`（基于 origin/master `4082158`）
-- **阻塞**: 无
+- **阻塞**: 无（PR #60 待 Merge，不阻塞下一轮开发）

@@ -59,7 +59,7 @@ master 测试却用**本地** `date.today()` 断言 → GMT+8 下每天 **8 小�
 ### 👑 请皇上动手（仍然只有一步）
 
 1. **点 PR #58 的 Merge 按钮** — https://github.com/Jah-yee/ml-decision-boundary/pull/58
-   （OPEN · MERGEABLE · CLEAN · CI **6/6 SUCCESS** run `40054104342`）
+   （OPEN · MERGEABLE · CLEAN · CI **6/6 SUCCESS** run `40102121321`，head `fd2f5a3`）
    💡 **务必 Squash and merge**（无共同祖先，普通 merge 会带入 44 条无关历史）
 2. **合并后 Close PR #59** — https://github.com/Jah-yee/ml-decision-boundary/pull/59
 
@@ -447,13 +447,13 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | CVE（master lock 独立审计） | 🚨→✅ | **63 条**（pillow 62 + werkzeug 1）→ 修复后 **No known vulnerabilities found** |
 | 时区 bug（对称确定性实验） | ✅ | master **2 failed** / #58 分支 **12 passed**（同一注入时钟）|
 | #59 冗余性 | ✅ | **4/4 文件** blob SHA 与 #58 **逐字节相同** → 应 Close |
-| PR #58 | ✅ | **OPEN · MERGEABLE · CLEAN**，CI **6/6 SUCCESS**（run `40054104342`）|
+| PR #58 | ✅ | **OPEN · MERGEABLE · CLEAN**，CI **6/6 SUCCESS**（run `40102121321`，head `fd2f5a3`；此前 run `40054104342` 亦 6/6）|
 | PR #59 | ✅ | OPEN · MERGEABLE · CLEAN，CI 6/6 ×2 SUCCESS — **但内容 100% 含于 #58** |
 | master | 🚨 | `f64f422` 仍含 pillow 12.2.0 / werkzeug 3.1.8 / py3.10 ×6 → **63 CVE**；最后一次 master CI = **2026-07-04** |
 | 无共同祖先 | 🚨 | `git merge-base` 空 → **必须 Squash and merge** |
 | 本地环境 | ✅（已修复）| `pytest_scenario_files` editable 路径被删 + 多包缺 RECORD → 已按 lock 重装 |
 | 工作树 | ✅ | clean（本轮仅新增 run log + 更新 theme）|
-| 本地 HEAD | ✅ | `2e09d34` = 远端 `origin/feat/v11-model-registry-core` 同步 |
+| 本地 HEAD | ✅ | `fd2f5a3` = 远端 `origin/feat/v11-model-registry-core` 同步 |
 
 ## v118 晚场 #1 验收（旧文保留供交叉对照）
 
@@ -553,10 +553,10 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 
 - **受益人**: 皇上 / 仓库维护者 / 所有拉取 master 的用户
 - **价值**: ① **用「模拟 squash 合并树」端到端证明 #58 单独合入即修复 master 全部安全问题**（实测 324/5/0 + 0 漏洞）② 把 #59 从「必合」纠正为「应 Close」，避免空 PR 污染历史 ③ **把时区 bug 证据从「墙钟巧合」升级为「确定性可复现」**（对称实验 master 2 failed / #58 12 passed）④ **修复本地环境损坏**，恢复 P0/P1/P2 可复现性
-- **验证**: P0 ✅ compileall 0 + import OK；P1 ✅ **324/5/0（72.89s）**；P2 ✅ acc 0.7900；pip-audit ✅ **0 vuln**；**模拟合并 master ✅ P1 324/5/0（116.29s）+ 0 vuln**；CVE **63 → 0**；时区对称实验 **master 2 failed / #58 12 passed**；#59 **4/4** blob 逐字节相同；CI **6/6 SUCCESS**（run #40054104342）
+- **验证**: P0 ✅ compileall 0 + import OK；P1 ✅ **324/5/0（72.89s）**；P2 ✅ acc 0.7900；pip-audit ✅ **0 vuln**；**模拟合并 master ✅ P1 324/5/0（116.29s）+ 0 vuln**；CVE **63 → 0**；时区对称实验 **master 2 failed / #58 12 passed**；#59 **4/4** blob 逐字节相同；CI **6/6 SUCCESS**（run #40102121321）
 - **当前状态**: 👑 **请皇上只点 PR #58 的 Merge 按钮（务必 Squash and merge）**；合并后 **Close PR #59**
 - **最近一次验证**: 2026-10-24 22:20 CST（v118 晚场 #3 / 第88次提醒 #3）
-- **PR #58 当前状态**: **OPEN / MERGEABLE / CLEAN / CI 6/6 SUCCESS**（run #40054104342，head `2e09d34`）
+- **PR #58 当前状态**: **OPEN / MERGEABLE / CLEAN / CI 6/6 SUCCESS**（run #40102121321，head `fd2f5a3`）
 - **PR #59 当前状态**: OPEN / MERGEABLE / CLEAN，但 **内容 100% 包含于 #58 → merge 后应 Close**
-- **本地分支 HEAD**: `2e09d34` = 远端 head（已与远端同步）
+- **本地分支 HEAD**: `fd2f5a3` = 远端 head（已与远端同步）
 - **阻塞**: 唯一阻塞 = 皇上点 Merge（#58）。本轮已排除所有技术阻塞与决策歧义

@@ -1,12 +1,56 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v118 晚场 #1（第88次提醒 #1）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v118 晚场 #2（第88次提醒 #2）
 
-**更新时间：** 2026-10-24 02:01 CST / 2026-10-23 18:01 UTC
-**版本：** v118 晚场 #1（第88次提醒 #1）
+**更新时间：** 2026-10-24 10:11 CST / 2026-10-24 02:11 UTC
+**版本：** v118 晚场 #2（第88次提醒 #2）
 **维护人：** 太子
 
 ---
 
-## 🟢 v118 晚场 #1 状态：**PR #58 已 OPEN 且 CI 全绿** + **master 安全修复 PR #59 已开**
+## 🔴 v118 晚场 #2 状态：**请皇上只点 ONE 个 Merge 按钮 — PR #58**
+
+### 🚨 本轮重大纠偏：上轮「请点两个 Merge 按钮」是错的
+
+上轮 theme 写「请皇上点两个 Merge 按钮（#58 + #59）」。本轮实测证明 **#59 的 4 个文件与 #58 分支逐字节相同（blob SHA 一致）**：
+
+| 文件 | #58 blob | #59 blob | 结论 |
+|------|---------|---------|------|
+| `requirements.lock` | `68ab6fb` | `68ab6fb` | **IDENTICAL** |
+| `.github/workflows/ci.yml` | `0df4ecd` | `0df4ecd` | **IDENTICAL** |
+| `.github/workflows/release.yml` | `682c370` | `682c370` | **IDENTICAL** |
+| `tests/test_registry.py` | `6f7c439` | `6f7c439` | **IDENTICAL** |
+
+`git show origin/feat/v11-model-registry-core:<file>` 实测：#58 合并后 master 即为
+`pillow==13.0.0` / `werkzeug==3.1.9` / 6+1 处 `python-version: '3.12'` / `_today()` 已用 UTC。
+
+> **→ #58 合并 = master 安全清理已完成。#59 合并后是空 PR，应 Close，不要 Merge。**
+
+### 👑 请皇上动手（只有一步）
+
+1. **点 PR #58 的 Merge 按钮** — https://github.com/Jah-yee/ml-decision-boundary/pull/58
+   （OPEN · MERGEABLE · CLEAN · CI 6/6 SUCCESS run #40002051063）
+   💡 **建议用 Squash and merge** —— v11 分支与 master 无共同祖先（`git merge-base` 为空），
+   squash 可避免把无关历史写进 master。本地 `git merge` 会报 `unrelated histories`。
+2. **合并后 Close PR #59** — https://github.com/Jah-yee/ml-decision-boundary/pull/59
+
+### 本轮新增独立证据
+
+| 验证项 | 方法 | 结果 |
+|--------|------|------|
+| CVE 修复真伪 | 独立 worktree + `pip-audit --path` 对照审计 | pillow12.2.0+werkzeug3.1.8 → **63 条 CVE**；pillow13.0.0+werkzeug3.1.9 → **No known vulnerabilities found** ✅ |
+| master 仍裸奔 | `git show origin/master:requirements.lock` | `pillow==12.2.0` / `werkzeug==3.1.8` / 6 处 Python 3.10 → **63 CVE 仍在** |
+| master CI "绿"是假象 | `gh run list --branch master` | 最后一次 CI = **2026-07-04**（CVE 披露前），从未重跑 |
+| 时区 bug 确定性复现 | `TZ=Etc/GMT+8 pytest -q tests/test_registry.py` | master → **2 failed**；#59 分支同条件 → **12 passed** ✅ |
+| #59 冗余性 | 4 文件 blob SHA 对比 + `git show` | **4/4 IDENTICAL** → #58 merge 后 #59 为 no-op |
+
+**本轮 P0/P1/P2（feat/v11 #58）**：P0 ✅（compileall exit 0 + import OK, py3.12.3）·
+P1 ✅ **324 passed / 5 skipped / 0 FAILED（68.86s）** · P2 ✅（benchmark quick, circles/SVM, acc 0.7900, thr 0.7000）·
+CI ✅ 6/6 SUCCESS（run #40002051063）
+
+**#59 分支独立 worktree 实测**：P1 ✅ **283 passed / 1 skipped / 0 FAILED（132.61s）** · P2 ✅（acc 0.7900）· pip-audit ✅ 0 vuln
+
+---
+
+## 🟢 v118 晚场 #1 状态（上轮，已被本轮纠正）：**PR #58 已 OPEN 且 CI 全绿** + **master 安全修复 PR #59 已开**
 
 > 🚨 **重大纠偏**：历轮 theme 通篇写「PR #57 CLOSED，等皇上决策 A/B/C」——**这是陈旧信息**。
 > 实际上 **PR #58**（v11 重新提交通道）自 2026-10-21T18:00:08Z 起就已 OPEN，
@@ -326,6 +370,7 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | **2026-10-23 22:12** | 🚨 **v118 早场 #1：cron 触发例行检查，P0 ✅（compileall + import OK, py3.12.3）+ P1 ✅（324/5/0，76.68s）+ P2 ✅（benchmark quick PASSED, acc 0.7900），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~92h+）。CI **连续 3 轮 SUCCESS**（run #39889110714，HEAD `9d43beb`）✅，工作树 clean ✅，本地 HEAD `9d43beb` = 远端 head ✅，run log: `strategy/runs/2026-10-23-2212.md` — 第87次提醒 #1 🚨（持续等决策）** |
 | **2026-10-23 10:17** | 🟢🚨 **v117 晚场 #3：cron 触发例行检查，P0 ✅（compileall + import OK）+ P1 ✅（324/5/0，61.59s）+ P2 ✅（benchmark quick PASSED, SVM/circles acc 0.7900），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~90h+）。🟢 **本轮关键解除：feat/v11 分支自身 CI 已确认 6/6 SUCCESS**（run #39834210464 + #39833849516），预案 A 前置条件全部满足。工作树 clean ✅，本地 HEAD `0002bfb` = 远端 head ✅，run log: `strategy/runs/2026-10-23-1017.md` — 第86次提醒 #4 🚨（持续等决策，但 CI 阻塞已解除）** |
 | **2026-10-24 02:01** | 🟢 **v118 晚场 #1：cron 触发例行检查 + 交付 PR #59。P0 ✅ + P1 ✅（324/5/0，75.92s）+ P2 ✅（benchmark quick acc 0.7900），feat/v11 CI 连续 4 轮 SUCCESS ✅。🚨 **重大纠偏：PR #58 其实早已 OPEN + CLEAN + CI 6/6 SUCCESS**，历轮 theme「等 A/B/C」为陈旧信息，本轮起不再重复请求 A/B/C。🆕 **新交付 PR #59**（master 安全清理：pillow 12.2.0→13.0.0 修 24 CVE、werkzeug 3.1.8→3.1.9 修 PYSEC-2026-4312、CI Python 3.10→3.12、master registry 测试时区 bug 修复；实测 master 共 25 个 CVE → pip-audit 0 vuln；master P1 从 2 failed → 283 passed/1 skipped）。**请皇上点 Merge：#58（v11）+ #59（master 安全，必合）**，run log: `strategy/runs/2026-10-24-0201.md` — 第88次提醒 #1 🟢** |
+| **2026-10-24 10:11** | 🔴 **v118 晚场 #2：例行闭环 + PR 合并顺序独立验证。P0 ✅ + P1 ✅（324/5/0，68.86s）+ P2 ✅（acc 0.7900），CI 6/6 SUCCESS（run #40002051063）。🚨 **重大纠偏 #1：上轮「点两个 Merge」是错的** —— 实测 #59 的 4 个文件与 #58 blob SHA **逐字节相同**（requirements.lock / ci.yml / release.yml / test_registry.py 全 IDENTICAL），#58 合并后 master 即含 pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12 + UTC 修复 → **#59 应 Close 而非 Merge**。🚨 **重大纠偏 #2：CVE 实测 63 条**（非上轮「25 个」）—— pillow12.2.0+werkzeug3.1.8 对照审计 63 条 CVE 行，修复后 `No known vulnerabilities found`；master 最后一次 CI 是 **2026-07-04**，从未重跑，绿是假象。🆕 **时区 bug 确定性复现**：上轮「master 2 failed」当前不可复现（本地与 UTC 同日），用 `TZ=Etc/GMT+8` 强制复现 → master **2 failed** / #59 分支同条件 **12 passed**。⚠️ 记录风险：v11 与 master 无共同祖先（`git merge-base` 为空），本地 merge 报 unrelated histories，**建议 Squash and merge**。**👑 请皇上只点 PR #58 的 Merge 按钮**，合并后 Close PR #59。#59 分支独立 worktree P1 ✅（283/1/0，132.61s）+ P2 ✅ + pip-audit ✅ 0 vuln。run log: `strategy/runs/2026-10-24-1011.md` — 第88次提醒 #2 🔴** |
 
 ---
 
@@ -417,19 +462,20 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | v8 (Model Registry) | ✅ 完成 (ADR-0013 Accepted 2026-07-04) |
 | v9 (Docs & Examples) | ✅ 完成 (ADR-0014 Accepted 2026-07-08) |
 | v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
-| **v11 (Multi-Dataset + Experiment History)** | 🟢 **PR #58 OPEN + CLEAN + CI 6/6 SUCCESS — 合并通道已开，等皇上点 Merge 按钮**（PR #57 已被 #58 取代）|
+| **v11 (Multi-Dataset + Experiment History)** | 🟢 **PR #58 OPEN + MERGEABLE + CLEAN + CI 6/6 SUCCESS — 请皇上点 Merge（建议 Squash and merge）**（PR #57 已被 #58 取代）|
 | **v12 (Python API & SDK Foundation)** | 🟡 **ADR-0017 Draft（等 PR #58 merge 后启动）** |
-| **CI 安全审计** | ✅ **v11 分支已修复且 CI 全绿**（pillow==13.0.0 + CI Python 3.12）；✅ **master 亦已修复并开 PR #59**（pillow 13.0.0 + werkzeug 3.1.9 + CI Python 3.12，pip-audit 0 vuln）|
+| **CI 安全审计** | 🔴 **master 仍裸奔**：pillow==12.2.0 + werkzeug==3.1.8 + Python 3.10 → 实测 **63 条 CVE**（master 最后一次 CI 是 2026-07-04，从未重跑，绿是假象）。✅ **修复已在 PR #58 内**（pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12，pip-audit 0 vuln），**#58 merge 即修复 master**；#59 与 #58 内容 100% 相同，merge 后应 Close |
 
 ---
 
 ## 价值确认
 
 - **受益人**: 皇上 / 仓库维护者 / 所有拉取 master 的用户
-- **价值**: ① master 安全修复（25 CVE → 0）② master 测试从 2 failed → 0 failed ③ v11 合并通道纠偏并打通
-- **验证**: feat/v11 P0 ✅ + P1 ✅（324/5/0，75.92s）+ P2 ✅ + CI 4/4 SUCCESS；master worktree P0 ✅ + P1 ✅（283/1/0）+ P2 ✅ + pip-audit 0 vuln
-- **当前状态**: 👑 **请皇上点两个 Merge 按钮** — PR #58（v11 功能）+ PR #59（master 安全，必合）
-- **最近一次验证**: 2026-10-24 02:01 CST（v118 晚场 #1 / 第88次提醒 #1）
-- **PR #58 当前状态**: **OPEN / MERGEABLE / CLEAN / CI 6/6 SUCCESS**（run #39968102589）
-- **PR #59 当前状态**: **OPEN / MERGEABLE**（master 安全，pip-audit 0 vuln）
-- **本地分支 HEAD**: `58682fb` = 远端 head（已与远端同步）
+- **价值**: ① master 安全修复（实测 63 条 CVE → 0）② v11 合并通道纠偏并打通 ③ **合并指令纠偏：只需点一个 Merge 按钮，避免空 PR 污染历史**
+- **验证**: feat/v11 P0 ✅ + P1 ✅（324/5/0，68.86s）+ P2 ✅（acc 0.7900）+ CI 6/6 SUCCESS（run #40002051063）；#59 分支独立 worktree P1 ✅（283/1/0，132.61s）+ P2 ✅ + pip-audit ✅ 0 vuln；CVE 对照审计 63 → 0；TZ 强制复现时区 bug 2 failed → 12 passed
+- **当前状态**: 👑 **请皇上只点 PR #58 的 Merge 按钮（建议 Squash and merge）**；合并后 **Close PR #59**
+- **最近一次验证**: 2026-10-24 10:11 CST（v118 晚场 #2 / 第88次提醒 #2）
+- **PR #58 当前状态**: **OPEN / MERGEABLE / CLEAN / CI 6/6 SUCCESS**（run #40002051063，head `c685bd8`）
+- **PR #59 当前状态**: OPEN / MERGEABLE / CLEAN，但 **内容 100% 包含于 #58 → merge 后应 Close**
+- **本地分支 HEAD**: `c685bd8` = 远端 head（已与远端同步）
+- **阻塞**: 唯一阻塞 = 皇上点 Merge（#58）。本轮已排除所有技术阻塞与决策歧义

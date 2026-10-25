@@ -6,7 +6,7 @@
 
 ---
 
-## 🟢 v119 晚场 状态：**v12 DoD #3 Registry 改进完成，ADR-0017 Accepted，PR #60 待更新**
+## 🟢 v119 晚场 状态：**v12 DoD #3 Registry 改进完成，ADR-0017 Accepted，PR #60 已更新，CI 6/6 SUCCESS**
 
 ### 🆕 本轮交付：Registry 改进（v12 DoD #3）
 
@@ -47,7 +47,28 @@
 | **P1** | `pytest -q` | ✅ **438 passed, 5 skipped, 0 FAILED**（140.95s，424 → 438，+14）|
 | **P2** | `benchmarks/run.py --quick` | ✅ PASSED（circles/SVM, acc 0.7900, thr 0.7000）→ `benchmarks/reports/2026-10-25.md` |
 | **P3** | API 契约 + health | ✅ `spec/API.md` 新建 + `curl localhost:5000/api/health` → **HTTP 200**；`/api/registry` 7 组参数用例状态码与 spec 一致（200/200/200/200/400/400/404）|
-| **CI** | GitHub Actions | ⏳ 待 push 后重跑 |
+| **CI** | GitHub Actions | ✅ run `40201496276` **6/6 SUCCESS**（benchmark / depth-sweep / hyperparam-sweep / security-audit / quality-checks / quality-gates）|
+
+### 🔗 PR #60
+
+| 项目 | 状态 |
+|------|------|
+| PR #60 | **OPEN · 本轮已更新**（未 merge）|
+| 标题 | `feat(v12): SDK Foundation — DoD #1 SDK / #2 Async training / #3 Registry 版本化 + 标签批量查询` |
+| Base | `master` (`4082158`) |
+| Head | `feat/v12-sdk-foundation` @ `ef78b9c` |
+| 合并态 | `mergeable=MERGEABLE` · `mergeStateStatus=CLEAN` |
+| URL | https://github.com/Jah-yee/ml-decision-boundary/pull/60 |
+
+### 🔖 Commit 记录（本轮）
+
+| Commit | 说明 |
+|--------|------|
+| `ef78b9c` | `feat(v12): DoD #3 — Registry 模型版本化 + 标签批量查询`（11 files, +1451 / -37）|
+
+> **作者邮箱说明**：本轮首次 commit 使用 `jydu_seven@outlook.com` 被 GitHub 拒绝（GH007 —— 私有邮箱保护）。
+> 改为仓库既有的 `166608075+Jah-yee@users.noreply.github.com`（同一 `Jah-yee` 账号）后 push 成功。
+> 如需统一为 outlook 邮箱，需先在 GitHub → Settings → Emails 将其设为公开。
 
 > **本轮 P1 说明**：首轮全量跑出现过 1 个 `test_benchmarks_full_suite_runs` 失败，经定位为**并发写同一 registry 目录**导致的 flake（review 子代理同时在跑 `pytest -q`）；单跑通过，停并发后全量重跑 **438 passed / 0 failed**。
 
@@ -56,15 +77,6 @@
 
 `python-dotenv` 包目录被清空且丢失 `RECORD`（上次 pip 清理遗留）→ Flask 启动报 `AttributeError: module 'dotenv' has no attribute 'find_dotenv'`。
 修复：删除空目录 + 残留 dist-info → `pip install --user --break-system-packages python-dotenv==1.2.2` → 服务正常启动。
-
-### 🔗 PR #60
-
-| 项目 | 状态 |
-|------|------|
-| PR #60 | OPEN · 待本轮 commit push 后更新 |
-| 标题 | `feat(v12): DoD #2 — Async training task queue`（待改）|
-| Base | `master` (`4082158`) |
-| URL | https://github.com/Jah-yee/ml-decision-boundary/pull/60 |
 
 ### 🧭 下一轮（v13 规划）
 

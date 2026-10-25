@@ -1,12 +1,12 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v119 早场 #2（v12 DoD #2）
 
-**更新时间：** 2026-10-25 09:56 CST / 2026-10-25 01:56 UTC
+**更新时间：** 2026-10-25 10:10 CST / 2026-10-25 02:10 UTC
 **版本：** v119 早场 #2
 **维护人：** 太子
 
 ---
 
-## 🟢 v119 早场 #2 状态：**v12 DoD #2 异步训练任务完成**
+## 🟢 v119 早场 #2 状态：**v12 DoD #2 异步训练任务完成，PR #60 已更新，CI 6/6 SUCCESS**
 
 ### 🆕 本轮交付：异步训练任务（v12 DoD #2）
 
@@ -35,6 +35,18 @@
 | **P1** | `pytest -q` | ✅ **380 passed, 5 skipped, 0 FAILED**（80.68s）|
 | **P2** | `benchmarks/run.py --quick` | ✅ PASSED（circles/SVM, acc 0.7900, thr 0.7000）|
 | **P3** | API 端点契约 | ✅ `/api/train_async` 202 + `/api/tasks` 404/列表 |
+| **CI** | GitHub Actions | ✅ 6/6 SUCCESS |
+
+### 🔗 PR #60
+
+| 项目 | 状态 |
+|------|------|
+| PR #60 | OPEN · MERGEABLE · UNSTABLE |
+| 标题 | `feat(v12): DoD #2 — Async training task queue` |
+| Head | `aca5977` |
+| Base | `master` (`4082158`) |
+| CI | ✅ 6/6 SUCCESS（quality-gates / benchmark / depth-sweep / hyperparam-sweep / security-audit / quality-checks）|
+| URL | https://github.com/Jah-yee/ml-decision-boundary/pull/60 |
 
 ### 🧭 下一轮（v12 剩余 DoD）
 

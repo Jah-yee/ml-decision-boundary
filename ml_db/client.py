@@ -16,6 +16,7 @@ Quick start:
     preds = db.predict(result.model_id, X=[[0.0, 0.0], [1.0, 1.0]])
 """
 
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -104,6 +105,10 @@ class MLDB:
                 `<registry_base>/tasks`). Useful for tests.
         """
         self.seed = seed
+        if registry_base is None:
+            # Allow MLDB_REGISTRY_BASE to redirect the default registry root
+            # (same knob as the CLI singleton and the local Flask server).
+            registry_base = os.environ.get("MLDB_REGISTRY_BASE") or None
         self.registry = (
             RegistryManager(Path(registry_base)) if registry_base else RegistryManager()
         )
@@ -473,6 +478,36 @@ class MLDB:
     def list_models_by_tag(self, tag: str) -> List[Dict[str, Any]]:
         """Metadata for all models carrying `tag`."""
         return self.registry.list_models_by_tag(tag)
+
+    def list_models_by_tags(
+        self,
+        tags: Sequence[str],
+        mode: str = "any",
+    ) -> List[Dict[str, Any]]:
+        """Metadata for models matching a batch of tags.
+
+        Args:
+            tags: tag names to match.
+            mode: ``"any"`` matches models with at least one tag;
+                ``"all"`` matches models with every tag.
+        """
+        return self.registry.list_models_by_tags(tags, mode=mode)
+
+    def tag_index(self) -> Dict[str, List[str]]:
+        """Map of tag → model ids (newest first within each tag)."""
+        return self.registry.tag_index()
+
+    def list_model_families(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Map of family key → its model versions (v1 first)."""
+        return self.registry.list_model_families()
+
+    def get_model_versions(self, model_id: str) -> List[Dict[str, Any]]:
+        """All versions of the family that `model_id` belongs to."""
+        return self.registry.get_model_versions(model_id)
+
+    def get_latest_version(self, model_id: str) -> Dict[str, Any]:
+        """The newest version of the family that `model_id` belongs to."""
+        return self.registry.get_latest_version(model_id)
 
     def compare(self, model_id_1: str, model_id_2: str) -> Dict[str, Any]:
         """Compare two registered models (accuracy, dataset, tags, ...)."""

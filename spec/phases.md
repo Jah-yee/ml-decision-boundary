@@ -183,14 +183,14 @@
 
 ## v12 — Python API & SDK Foundation (进行中 🟡)
 
-**入口条件**: v11 DoD 全部完成 ✅ + ADR-0016 Accepted ✅ (2026-10-25) + ADR-0017 Draft (2026-10-07)
+**入口条件**: v11 DoD 全部完成 ✅ + ADR-0016 Accepted ✅ (2026-10-25) + ADR-0017 Accepted ✅ (2026-10-25)
 
-**本阶段 DoD**（ADR-0017 — 🟡 Draft，DoD #1-#2 已实现）：
+**本阶段 DoD**（ADR-0017 — ✅ Accepted，DoD #1-#4 已实现）：
 - [x] ADR-0017: v12 DoD 细化 ✅ (v111 早场 Draft)
 - [x] Python SDK 接口 — `from ml_db import MLDB` 顶层 API ✅ (v119 早场，`ml_db/` 包 + 21 个测试)
 - [x] 异步训练任务 — `core/task_queue.py` + `train_async()` / `get_task()` / `list_tasks()` / `wait_for_task()` + `/api/train_async` + `/api/tasks` HTTP 端点 ✅ (v119 早场 #2)
-- [ ] Registry 改进 — 模型版本化（v1/v2）+ 标签批量查询 🟡
-- [ ] ADR-0017 Accepted 🟡
+- [x] Registry 改进 — 模型版本化（v1/v2）+ 标签批量查询 ✅ (v119 晚场，family key + `_normalize()` 向后兼容 + `/api/registry` 端点 + 58 个测试)
+- [x] ADR-0017 Accepted ✅ (v119 晚场，DoD #1-#4 全部完成)
 
 **v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 已完成 ✅ 🎉 | v12 进行中 🟡**
 

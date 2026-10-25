@@ -182,6 +182,67 @@ db.cancel_task(task["id"])
 
 ---
 
+### 7c. Model Versioning & Batch Tag Query (v12 DoD #3)
+
+Models that share the same **family** (identical `model_type` + dataset +
+hyperparameters) are versioned `v1 → v2 → v3 ...`. Retraining the same setup
+never overwrites the previous run — it becomes the next version.
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+
+# Train the same config twice → two versions of one family
+db.train(model="SVM", dataset="circles", C=1.0, kernel="rbf")
+db.train(model="SVM", dataset="circles", C=1.0, kernel="rbf")
+
+# All versions of a model
+for m in db.get_model_versions(db.list_models()[0]["id"]):
+    print(f"v{m['version']}  {m['id']}  acc={m['accuracy']}")
+
+# The newest version of that family
+db.get_latest_version(model_id)["version"]
+
+# Group every model by family
+db.list_model_families()
+
+# Batch tag query — "any" = union, "all" = intersection
+db.list_models_by_tags(["prod", "best"], mode="any")   # has prod OR best
+db.list_models_by_tags(["prod", "best"], mode="all")   # has prod AND best
+
+# Reverse tag index, newest first within each tag
+db.tag_index()
+```
+
+Same operations from the CLI:
+
+```bash
+python main.py model list --tags prod best --match any   # batch tag query
+python main.py model list --tags prod best --match all
+python main.py model versions 2026-10-25_abc123          # all versions of a family
+python main.py model families                            # group by family
+python main.py model list                                 # includes a VER column
+```
+
+And over HTTP (`GET /api/registry`) — see [`spec/API.md`](spec/API.md):
+
+```bash
+curl "localhost:5000/api/registry?tags=prod,best&match=all"
+curl "localhost:5000/api/registry?id=2026-10-25_abc123&versions=1"
+curl "localhost:5000/api/registry?families=1"
+```
+
+> **Backward compatible**: registries created before v12 keep working untouched.
+> Legacy metadata files are never rewritten — missing `version` defaults to `1`
+> and missing `family` is derived on read. Model ID format is unchanged.
+> Tagging a legacy model writes only the `tags` field, so its file keeps its shape.
+>
+> Set `MLDB_REGISTRY_BASE=/path/to/registry` to point the CLI, the SDK and the
+> local Flask server at one registry root (handy for local verification).
+
+---
+
 ## 🏗️ Architecture
 
 ```

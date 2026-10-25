@@ -1,14 +1,78 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v119 早场 #2（v12 DoD #2）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v119 晚场（v12 DoD #3 + ADR-0017 Accepted）
 
-**更新时间：** 2026-10-25 10:10 CST / 2026-10-25 02:10 UTC
-**版本：** v119 早场 #2
+**更新时间：** 2026-10-25 21:50 CST / 2026-10-25 13:50 UTC
+**版本：** v119 晚场
 **维护人：** 太子
 
 ---
 
-## 🟢 v119 早场 #2 状态：**v12 DoD #2 异步训练任务完成，PR #60 已更新，CI 6/6 SUCCESS**
+## 🟢 v119 晚场 状态：**v12 DoD #3 Registry 改进完成，ADR-0017 Accepted，PR #60 待更新**
 
-### 🆕 本轮交付：异步训练任务（v12 DoD #2）
+### 🆕 本轮交付：Registry 改进（v12 DoD #3）
+
+| 交付物 | 内容 |
+|--------|------|
+| `core/registry.py` | `family_key()` / `_next_version()` / `list_model_families()` / `get_model_versions()` / `get_latest_version()` / `list_models_by_tags()` / `tag_index()` / `_normalize()` |
+| `ml_db/client.py` | SDK 新增 `list_models_by_tags()` / `tag_index()` / `list_model_families()` / `get_model_versions()` / `get_latest_version()` |
+| `main.py` | CLI 新增 `model list --tags A B --match any\|all`、`model versions <id>`、`model families`；`list`/`inspect` 增加 VER 列 |
+| `api/registry.py` | **新** Vercel serverless `GET /api/registry`（单模型 / 版本 / 家族 / 批量标签）|
+| `web/server.py` | 本地 Flask 新增 `/api/registry` + `/api/health` 别名（与 serverless 同契约）|
+| `tests/test_registry_versioning.py` | **58 个新测试**（family key / 版本化 / 旧数据兼容 / 批量标签 / SDK / API 契约 / 双实现 parity）|
+| `spec/API.md` | **新** HTTP API 契约文档（P3 要求）|
+
+### 设计要点
+
+1. **family key** = `model_type|dataset_name|<sorted hyperparameters>` —— 超参键字典序排序 + 值 `repr` 渲染，故 `{"C":1.0}` 与 `{"C":1}` 属不同 family（可能训练出不同结果）。
+2. **版本递增**：同 family 重新训练 → `v1 → v2 → v3 ...`；不同 family 各自从 `v1` 开始。
+3. **零迁移向后兼容**：v12 之前的元数据 JSON **不重写**，读取时由 `_normalize()` 动态补齐 `version=1` + 派生 `family`；模型 ID 格式（`YYYY-MM-DD_<6hex>`）完全不变。
+4. **批量标签语义**：`mode="any"` = 并集（至少命中一个）、`mode="all"` = 交集（必须全部命中）；结果按 `created_at` 降序。空标签列表 / 非法 mode → `ValueError`。
+5. **三端同源**：Registry / SDK / CLI / HTTP 共享同一 `core/registry.py` 逻辑，结果永不漂移。
+
+### 🔍 本地 review 修复（独立子代理 review + 自查）
+
+| # | 问题 | 修复 |
+|---|------|------|
+| 1 | `tag_model()` / `untag_model()` 走 `get_metadata()`（已规范化）→ 给旧模型打标签会把派生的 `version`/`family` **写入旧 JSON**，违反“不重写旧文件”约束 | 新增 `_read_raw_metadata()`；打/去标签只读原始元数据、只写回 `tags` 字段 → 旧文件形状不变 |
+| 2 | `tag_index()` 与 `list_tags()` 实现完全重复，且 docstring 声称 “Unlike list_tags…”（与事实不符） | `tag_index()` 作为唯一实现，`list_tags()` 改为委托（向后兼容不变）|
+| 3 | `?tags=`（显式传空串）静默返回全量列表 —— 与 spec 声明的 400 不符 | 两端改为 `if tags_arg is not None:` → 解析后为空一律 400 |
+| 4 | serverless 与 Flask 两实现缺少一致性约束 | 新增 `TestRegistryAPIContractParity`（参数化 7 组用例比对状态码与响应键）|
+| 5 | `_legacy_family()` 对 `dataset` 为字符串 / `hyperparameters` 为 `None` 的畸形旧数据会抛 `AttributeError` | 改为类型安全取值（`isinstance` 判定）|
+| 6 | CLI / SDK / Flask 各自硬编码 registry 根，无法对 scratch registry 做端到端验证 | 统一支持 `MLDB_REGISTRY_BASE` 环境变量（`get_registry_manager()` / `MLDB()` / Flask 路由）|
+
+### 验收结果
+
+| 层级 | 命令 | 结果 |
+|------|------|------|
+| **P0** | `compileall -q .` + import smoke | ✅ exit 0 + `import main` OK |
+| **P1** | `pytest -q` | ✅ **438 passed, 5 skipped, 0 FAILED**（140.95s，424 → 438，+14）|
+| **P2** | `benchmarks/run.py --quick` | ✅ PASSED（circles/SVM, acc 0.7900, thr 0.7000）→ `benchmarks/reports/2026-10-25.md` |
+| **P3** | API 契约 + health | ✅ `spec/API.md` 新建 + `curl localhost:5000/api/health` → **HTTP 200**；`/api/registry` 7 组参数用例状态码与 spec 一致（200/200/200/200/400/400/404）|
+| **CI** | GitHub Actions | ⏳ 待 push 后重跑 |
+
+> **本轮 P1 说明**：首轮全量跑出现过 1 个 `test_benchmarks_full_suite_runs` 失败，经定位为**并发写同一 registry 目录**导致的 flake（review 子代理同时在跑 `pytest -q`）；单跑通过，停并发后全量重跑 **438 passed / 0 failed**。
+
+
+### ⚠️ 本轮环境修复（非产品代码）
+
+`python-dotenv` 包目录被清空且丢失 `RECORD`（上次 pip 清理遗留）→ Flask 启动报 `AttributeError: module 'dotenv' has no attribute 'find_dotenv'`。
+修复：删除空目录 + 残留 dist-info → `pip install --user --break-system-packages python-dotenv==1.2.2` → 服务正常启动。
+
+### 🔗 PR #60
+
+| 项目 | 状态 |
+|------|------|
+| PR #60 | OPEN · 待本轮 commit push 后更新 |
+| 标题 | `feat(v12): DoD #2 — Async training task queue`（待改）|
+| Base | `master` (`4082158`) |
+| URL | https://github.com/Jah-yee/ml-decision-boundary/pull/60 |
+
+### 🧭 下一轮（v13 规划）
+
+v12 DoD #1-#4 全部完成，**ADR-0017 已 Accepted** → 可以开始 v13 主题规划。
+
+---
+
+## v119 早场 #2 状态（旧文保留供交叉对照）
 
 | 交付物 | 内容 |
 |--------|------|

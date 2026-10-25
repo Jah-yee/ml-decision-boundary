@@ -4,6 +4,7 @@ core/registry.py — Model Registry & Lifecycle Management
 v8 DoD #1: Auto-registers training results to ~/.ml-decision-boundary/registry/
 v8 DoD #2: save_model() / load_model() interfaces
 v9 DoD #3: compare / tag / untag / list_tags / list_models_by_tag
+v12 DoD #3: model versioning (v1/v2) + batch tag query (list_models_by_tags)
 
 Registry structure:
   ~/.ml-decision-boundary/registry/
@@ -19,10 +20,11 @@ Registry structure:
 import json
 import hashlib
 import joblib
+import os
 import time
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Sequence
 from dataclasses import dataclass, asdict, field
 
 
@@ -46,6 +48,8 @@ class ModelMetadata:
     accuracy: float            # primary metric (test accuracy)
     plugin_state: Optional[Dict[str, Any]] = None  # v8 DoD #2: plugin serialization state
     tags: List[str] = field(default_factory=list)  # v9 DoD #3: user-assigned labels
+    version: int = 1                             # v12 DoD #3: version within the model family
+    family: str = ""                             # v12 DoD #3: family key (type+dataset+params)
 
 
 @dataclass
@@ -108,6 +112,160 @@ class RegistryManager:
         ).hexdigest()[:6]
         return suffix
 
+    # ── v12 DoD #3: Model versioning ───────────────────────────────────────────
+
+    @staticmethod
+    def family_key(
+        model_type: str,
+        dataset_name: str,
+        hyperparameters: Dict[str, Any],
+    ) -> str:
+        """Build the stable family key a model belongs to.
+
+        A family groups models that differ only by run (same model type,
+        same dataset, same hyperparameters).  Re-training the same setup
+        produces ``v2``, ``v3`` ... of that family.
+
+        The key is deterministic: hyperparameter keys are sorted and values
+        are rendered with ``repr`` so that ``{"C": 1.0}`` and
+        ``{"C": 1}`` produce different families (they may train differently).
+        """
+        params = hyperparameters or {}
+        parts = [str(model_type or "unknown"), str(dataset_name or "unknown")]
+        for key in sorted(params.keys()):
+            parts.append(f"{key}={params[key]!r}")
+        return "|".join(parts)
+
+    def _next_version(self, family: str) -> int:
+        """Return the next version number for `family` (1 when unseen)."""
+        if not family:
+            return 1
+        versions = [
+            int(m.get("version", 1) or 1)
+            for m in self.list_models()
+            if m.get("family") == family
+        ]
+        return max(versions) + 1 if versions else 1
+
+    def list_model_families(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Return ``{family_key: [model metadata, ...]}`` grouped by family.
+
+        Each family list is ordered by version ascending (v1 first).
+        Families are returned newest-first by their latest member's
+        ``created_at`` so that recent work surfaces at the top.
+        """
+        families: Dict[str, List[Dict[str, Any]]] = {}
+        for model in self.list_models():
+            key = model.get("family") or self._legacy_family(model)
+            families.setdefault(key, []).append(model)
+        for key, members in families.items():
+            members.sort(key=lambda m: (int(m.get("version", 1) or 1), m.get("created_at", "")))
+        return dict(
+            sorted(
+                families.items(),
+                key=lambda kv: max((m.get("created_at", "") for m in kv[1]), default=""),
+                reverse=True,
+            )
+        )
+
+    @staticmethod
+    def _legacy_family(model: Dict[str, Any]) -> str:
+        """Derive the family key of a pre-v12 model (no ``family`` field)."""
+        dataset = model.get("dataset")
+        dataset_name = (
+            dataset.get("name", "unknown") if isinstance(dataset, dict) else str(dataset or "unknown")
+        )
+        hyperparameters = model.get("hyperparameters")
+        if not isinstance(hyperparameters, dict):
+            hyperparameters = {}
+        return RegistryManager.family_key(
+            model.get("model_type", "unknown"),
+            dataset_name,
+            hyperparameters,
+        )
+
+    def get_model_versions(self, model_id: str) -> List[Dict[str, Any]]:
+        """Return every version of the family that `model_id` belongs to.
+
+        Raises:
+            FileNotFoundError: if model_id is not registered.
+        """
+        meta = self.get_metadata(model_id)
+        family = meta.get("family") or self._legacy_family(meta)
+        versions = [
+            m for m in self.list_models()
+            if (m.get("family") or self._legacy_family(m)) == family
+        ]
+        versions.sort(key=lambda m: (int(m.get("version", 1) or 1), m.get("created_at", "")))
+        return versions
+
+    def get_latest_version(self, model_id: str) -> Dict[str, Any]:
+        """Return the newest version of the family that `model_id` belongs to.
+
+        Raises:
+            FileNotFoundError: if model_id is not registered.
+        """
+        versions = self.get_model_versions(model_id)
+        if not versions:
+            raise FileNotFoundError(
+                f"Model '{model_id}' not found. Run 'ml-db model list'."
+            )
+        return versions[-1]
+
+    # ── v12 DoD #3: Batch tag query ───────────────────────────────────────────
+
+    def list_models_by_tags(
+        self,
+        tags: Sequence[str],
+        mode: str = "any",
+    ) -> List[Dict[str, Any]]:
+        """Return models matching a batch of tags.
+
+        Args:
+            tags: tag names to match.
+            mode: ``"any"`` (default) matches models carrying **at least one**
+                of the tags; ``"all"`` matches models carrying **every** tag.
+
+        Returns:
+            Matching model metadata, newest first (same ordering as
+            :meth:`list_models`).
+
+        Raises:
+            ValueError: if `mode` is not ``"any"`` or ``"all"``, or if
+                `tags` is empty.
+        """
+        if mode not in ("any", "all"):
+            raise ValueError(
+                f"Invalid tag match mode '{mode}'. Expected 'any' or 'all'."
+            )
+        wanted = [t.strip() for t in (tags or []) if t and t.strip()]
+        if not wanted:
+            raise ValueError("At least one tag is required for a batch tag query.")
+
+        result = []
+        for model in self.list_models():
+            model_tags = set(model.get("tags", []))
+            if mode == "all":
+                if model_tags.issuperset(wanted):
+                    result.append(model)
+            elif model_tags & set(wanted):
+                result.append(model)
+        return result
+
+    def tag_index(self) -> Dict[str, List[str]]:
+        """Return ``{tag: [model_id, ...]}`` with model ids newest-first.
+
+        Canonical implementation of the reverse tag index; :meth:`list_tags`
+        delegates here.  Within each bucket the ids are ordered by
+        ``created_at`` descending (newest first), matching the ordering of
+        :meth:`list_models`.
+        """
+        index: Dict[str, List[str]] = {}
+        for model in self.list_models():
+            for tag in model.get("tags", []):
+                index.setdefault(tag, []).append(model["id"])
+        return index
+
     # ── Save / Load ────────────────────────────────────────────────────────────
 
     def save_model(
@@ -138,6 +296,10 @@ class RegistryManager:
         date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         short_id = self._short_id()
         model_id = f"{date_str}_{short_id}"
+
+        # v12 DoD #3: family key + next version number within that family
+        family = self.family_key(model_type, dataset_name, hyperparameters)
+        version = self._next_version(family)
 
         # Dataset hash
         dataset_hash = "unknown"
@@ -171,6 +333,8 @@ class RegistryManager:
             accuracy=round(test_accuracy, 4),
             plugin_state=plugin_state,
             tags=[],  # v9 DoD #3: initialized empty
+            version=version,       # v12 DoD #3
+            family=family,         # v12 DoD #3
         )
 
         # Write metadata JSON
@@ -225,14 +389,29 @@ class RegistryManager:
         return joblib.load(joblib_path)
 
     def get_metadata(self, model_id: str) -> Dict[str, Any]:
-        """Return metadata dict for a model without loading the model object."""
+        """Return metadata dict for a model without loading the model object.
+
+        Legacy models registered before v12 DoD #3 are normalized on read:
+        ``version`` defaults to 1 and ``family`` is derived from the model's
+        type / dataset / hyperparameters, so old registries keep working.
+        """
         json_path = self.models_dir / f"{model_id}.json"
         if not json_path.exists():
             raise FileNotFoundError(
                 f"Model '{model_id}' not found. Run 'ml-db model list'."
             )
         with open(json_path, encoding="utf-8") as f:
-            return json.load(f)
+            metadata = json.load(f)
+        return self._normalize(metadata)
+
+    @classmethod
+    def _normalize(cls, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Fill in v12 DoD #3 fields that legacy metadata files lack."""
+        metadata.setdefault("tags", [])
+        metadata.setdefault("version", 1)
+        if not metadata.get("family"):
+            metadata["family"] = cls._legacy_family(metadata)
+        return metadata
 
     def _write_metadata(self, model_id: str, metadata: Dict[str, Any]) -> None:
         """Write metadata dict back to the JSON file. Internal use only."""
@@ -248,7 +427,7 @@ class RegistryManager:
         for json_file in self.models_dir.glob("*.json"):
             try:
                 with open(json_file, encoding="utf-8") as f:
-                    models.append(json.load(f))
+                    models.append(self._normalize(json.load(f)))
             except Exception:
                 # Skip corrupted metadata files
                 continue
@@ -286,6 +465,21 @@ class RegistryManager:
 
     # ── v9 DoD #3: Tags & Compare ──────────────────────────────────────────────
 
+    def _read_raw_metadata(self, model_id: str) -> Dict[str, Any]:
+        """Return the metadata dict exactly as stored on disk (no normalization).
+
+        Used by mutating operations (tag/untag) so that legacy pre-v12
+        metadata files are not silently migrated: only the field the caller
+        actually changes is written back.
+        """
+        json_path = self.models_dir / f"{model_id}.json"
+        if not json_path.exists():
+            raise FileNotFoundError(
+                f"Model '{model_id}' not found. Run 'ml-db model list'."
+            )
+        with open(json_path, encoding="utf-8") as f:
+            return json.load(f)
+
     def tag_model(self, model_id: str, tag: str) -> None:
         """
         Add a tag to a model.  v9 DoD #3.
@@ -298,8 +492,10 @@ class RegistryManager:
             raise FileNotFoundError(
                 f"Model '{model_id}' not found. Run 'ml-db model list'."
             )
-        meta = self.get_metadata(model_id)
-        tags: List[str] = meta.get("tags", [])
+        # Read raw (un-normalized) metadata: tagging must not rewrite the
+        # other fields of a legacy pre-v12 metadata file.  v12 DoD #3.
+        meta = self._read_raw_metadata(model_id)
+        tags: List[str] = list(meta.get("tags", []))
         if tag in tags:
             raise ValueError(f"Tag '{tag}' already exists on model '{model_id}'.")
         tags.append(tag)
@@ -318,8 +514,9 @@ class RegistryManager:
             raise FileNotFoundError(
                 f"Model '{model_id}' not found. Run 'ml-db model list'."
             )
-        meta = self.get_metadata(model_id)
-        tags: List[str] = meta.get("tags", [])
+        # Read raw (un-normalized) metadata — see tag_model().  v12 DoD #3.
+        meta = self._read_raw_metadata(model_id)
+        tags: List[str] = list(meta.get("tags", []))
         if tag not in tags:
             raise ValueError(f"Tag '{tag}' not found on model '{model_id}'.")
         tags.remove(tag)
@@ -329,12 +526,11 @@ class RegistryManager:
     def list_tags(self) -> Dict[str, List[str]]:
         """
         Return a reverse index: {tag: [model_ids]}.  v9 DoD #3.
+
+        Alias of :meth:`tag_index` (v12 DoD #3) — kept for backward
+        compatibility with the v9 CLI/SDK surface.
         """
-        tag_index: Dict[str, List[str]] = {}
-        for model in self.list_models():
-            for tag in model.get("tags", []):
-                tag_index.setdefault(tag, []).append(model["id"])
-        return tag_index
+        return self.tag_index()
 
     def list_models_by_tag(self, tag: str) -> List[Dict[str, Any]]:
         """
@@ -590,8 +786,14 @@ _default_manager: Optional[RegistryManager] = None
 
 
 def get_registry_manager() -> RegistryManager:
-    """Get or create the default RegistryManager singleton."""
+    """Get or create the default RegistryManager singleton.
+
+    The registry root can be redirected with the ``MLDB_REGISTRY_BASE``
+    environment variable (used by the CLI, the local Flask server and tests
+    to work against a scratch registry instead of the user's real one).
+    """
     global _default_manager
     if _default_manager is None:
-        _default_manager = RegistryManager()
+        base = os.environ.get("MLDB_REGISTRY_BASE")
+        _default_manager = RegistryManager(Path(base) if base else REGISTRY_BASE)
     return _default_manager

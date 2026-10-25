@@ -9,6 +9,7 @@ matplotlib.use('Agg')  # headless backend for server environments
 import matplotlib.pyplot as plt
 
 import json
+import os
 import uuid
 import datetime
 import time
@@ -118,6 +119,76 @@ def api_datasets():
     })
 
 
+@app.route('/api/registry', methods=['GET'])
+def api_registry():
+    """Query the model registry (v12 DoD #3).
+
+    Mirrors the Vercel serverless contract in api/registry.py so the same
+    URL behaves identically locally and in production.
+
+    Query params:
+      id       -> single model metadata
+      tags     -> comma-separated tag names to match
+      match    -> "any" (default) or "all"
+      versions -> "1"/"true" -> all versions of the requested model
+      families -> "1"/"true" -> model-family grouping
+    """
+    from ml_db.client import MLDB
+
+    model_id = request.args.get('id')
+    tags_arg = request.args.get('tags')
+    match = request.args.get('match') or 'any'
+    want_families = request.args.get('families', '').lower() in ('1', 'true', 'yes')
+    want_versions = request.args.get('versions', '').lower() in ('1', 'true', 'yes')
+
+    try:
+        # MLDB_REGISTRY_BASE lets local runs (and tests) point at a different
+        # registry root without touching the user's real registry.
+        db = MLDB(registry_base=os.environ.get('MLDB_REGISTRY_BASE') or None)
+
+        if model_id:
+            try:
+                if want_versions:
+                    versions = db.get_model_versions(model_id)
+                    return jsonify({
+                        'id': model_id,
+                        'family': versions[0].get('family') if versions else '',
+                        'count': len(versions),
+                        'versions': versions,
+                    })
+                return jsonify(db.get_model(model_id))
+            except Exception as e:
+                return jsonify({'error': str(e)}), 404
+
+        if want_families:
+            families = db.list_model_families()
+            return jsonify({
+                'families': families,
+                'count': len(families),
+                'version_total': sum(len(v) for v in families.values()),
+            })
+
+        if tags_arg is not None:
+            tags = [t.strip() for t in tags_arg.split(',') if t.strip()]
+            if not tags:
+                return jsonify({'error': "Query parameter 'tags' must not be empty."}), 400
+            try:
+                models = db.list_models_by_tags(tags, mode=match)
+            except ValueError as e:
+                return jsonify({'error': str(e)}), 400
+            return jsonify({
+                'models': models,
+                'count': len(models),
+                'tags': tags,
+                'match': match,
+            })
+
+        models = db.list_models()
+        return jsonify({'models': models, 'count': len(models)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/predict/batch', methods=['POST'])
 def api_predict_batch():
     """Batch prediction: POST /api/predict/batch with JSON body."""
@@ -182,7 +253,11 @@ def api_predict_batch():
 
 
 @app.route('/health', methods=['GET'])
+@app.route('/api/health', methods=['GET'])
 def health():
+    """Health check. `/api/health` mirrors the Vercel serverless route
+    (spec/CHARTER.md P3) so the same URL works locally and in production.
+    """
     return jsonify({'status': 'ok'})
 
 

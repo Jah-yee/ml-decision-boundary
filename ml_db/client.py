@@ -26,10 +26,12 @@ from sklearn.model_selection import train_test_split
 
 from core.datasets import DATASET_GENERATORS
 from core.registry import RegistryManager
+from core.task_queue import TaskNotFoundError, TaskQueue
 from core.train_utils import BUILTIN_MODEL_NAMES, build_model
 from ml_db.errors import (
     InvalidInputError,
     ModelNotFoundError,
+    TaskNotFoundError as SDKTaskNotFoundError,
     UnknownDatasetError,
     UnknownModelError,
 )
@@ -86,11 +88,29 @@ class MLDB:
         seed: default random seed for dataset generation and train/test split.
     """
 
-    def __init__(self, registry_base: Optional[Union[str, Path]] = None, seed: int = 42):
+    def __init__(
+        self,
+        registry_base: Optional[Union[str, Path]] = None,
+        seed: int = 42,
+        tasks_dir: Optional[Union[str, Path]] = None,
+    ):
+        """Create an SDK client.
+
+        Args:
+            registry_base: override the registry root (defaults to
+                `~/.ml-decision-boundary/registry`). Useful for tests.
+            seed: default random seed for dataset generation and train/test split.
+            tasks_dir: override the async-task directory (defaults to
+                `<registry_base>/tasks`). Useful for tests.
+        """
         self.seed = seed
         self.registry = (
             RegistryManager(Path(registry_base)) if registry_base else RegistryManager()
         )
+        if tasks_dir is not None:
+            self.tasks = TaskQueue(Path(tasks_dir), registry=self.registry)
+        else:
+            self.tasks = TaskQueue(self.registry.registry_base / "tasks", registry=self.registry)
 
     # ── Introspection ─────────────────────────────────────────────────────────
 
@@ -212,6 +232,136 @@ class MLDB:
             result.metadata = self.registry.get_metadata(model_id)
 
         return result
+
+    # ── Async training (v12 DoD #2) ───────────────────────────────────────────
+
+    def train_async(
+        self,
+        model: str = "SVM",
+        dataset: str = "circles",
+        params: Optional[Dict[str, Any]] = None,
+        n_samples: int = 500,
+        noise: float = 0.3,
+        test_size: float = 0.2,
+        register: bool = True,
+        tags: Optional[Sequence[str]] = None,
+    ) -> Dict[str, Any]:
+        """Start a background training job and return the task record.
+
+        The job runs on a worker thread; poll :meth:`get_task` (or use
+        :meth:`wait_for_task`) to follow its progress.  Task state is
+        persisted to disk, so it survives a process restart.
+
+        Args:
+            model: model family, e.g. "SVM", "RF", "Tree".
+            dataset: dataset name, see `MLDB.datasets()`.
+            params: hyperparameter overrides (defaults to sklearn defaults).
+            n_samples: number of synthetic points to generate.
+            noise: dataset noise level.
+            test_size: fraction held out for evaluation.
+            register: persist the fitted model into the registry.
+            tags: optional tags to attach to the registered model.
+
+        Returns:
+            Task record dict with keys ``id``, ``status``, ``created_at``, ...
+
+        Raises:
+            UnknownDatasetError / UnknownModelError / InvalidInputError —
+            validated eagerly so a bad request fails fast, not in the worker.
+        """
+        # Validate eagerly — the caller gets an immediate, actionable error
+        # instead of a failed task several seconds later.
+        if dataset not in DATASET_GENERATORS:
+            raise UnknownDatasetError(dataset, self.datasets())
+        if not 0.0 < test_size < 1.0:
+            raise InvalidInputError(f"test_size must be in (0, 1), got {test_size}.")
+        if n_samples < 2:
+            raise InvalidInputError(f"n_samples must be >= 2, got {n_samples}.")
+        if model not in BUILTIN_MODEL_NAMES:
+            try:
+                build_model(model, dict(params or {}))
+            except ValueError:
+                raise UnknownModelError(model, self.models()) from None
+
+        kwargs = dict(
+            model=model,
+            dataset=dataset,
+            params=dict(params or {}),
+            n_samples=n_samples,
+            noise=noise,
+            test_size=test_size,
+            register=register,
+            tags=list(tags or []),
+        )
+
+        def _job() -> Dict[str, Any]:
+            result = self.train(**kwargs)
+            return result.to_dict()
+
+        return self.tasks.submit(
+            _job,
+            name="train",
+            meta={
+                "model": model,
+                "dataset": dataset,
+                "params": dict(params or {}),
+                "n_samples": n_samples,
+                "noise": noise,
+                "test_size": test_size,
+                "register": register,
+                "tags": list(tags or []),
+            },
+        )
+
+    def get_task(self, task_id: str) -> Dict[str, Any]:
+        """Return the current state of a background task.
+
+        Raises:
+            TaskNotFoundError: if the task id is unknown.
+        """
+        try:
+            return self.tasks.get(task_id)
+        except TaskNotFoundError as exc:
+            raise SDKTaskNotFoundError(task_id) from exc
+
+    def list_tasks(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List background tasks, newest first (optionally filtered by state)."""
+        return self.tasks.list_tasks(status=status)
+
+    def wait_for_task(
+        self,
+        task_id: str,
+        timeout: Optional[float] = None,
+        poll_interval: float = 0.05,
+    ) -> Dict[str, Any]:
+        """Block until a background task finishes and return its final record.
+
+        Args:
+            task_id: task to wait on.
+            timeout: max seconds to wait; ``None`` waits forever.
+            poll_interval: seconds between status polls.
+
+        Raises:
+            TaskNotFoundError: if the task id is unknown.
+            TimeoutError: if the task does not finish within ``timeout``.
+        """
+        try:
+            return self.tasks.wait(
+                task_id, timeout=timeout, poll_interval=poll_interval
+            )
+        except TaskNotFoundError as exc:
+            raise SDKTaskNotFoundError(task_id) from exc
+
+    def cancel_task(self, task_id: str) -> Dict[str, Any]:
+        """Request cancellation of a background task.
+
+        Raises:
+            TaskNotFoundError: if the task id is unknown.
+        """
+        try:
+            return self.tasks.cancel(task_id)
+        except TaskNotFoundError as exc:
+            raise SDKTaskNotFoundError(task_id) from exc
 
     # ── Inference ─────────────────────────────────────────────────────────────
 

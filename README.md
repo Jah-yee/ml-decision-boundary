@@ -150,8 +150,35 @@ db.list_models_by_tag("demo")
 db.compare(result.model_id, other_id)
 ```
 
+### 7b. Async Training (v12 DoD #2)
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+
+# Start a background training job — returns immediately
+task = db.train_async(model="RF", dataset="moons", n_samples=2000)
+print(task["id"], task["status"])  # e.g. "2026-10-25_abc123" "pending"
+
+# Poll the task state
+print(db.get_task(task["id"])["status"])
+
+# Or block until it finishes
+final = db.wait_for_task(task["id"], timeout=120)
+print(final["status"], final["result"]["accuracy"])
+
+# List all tasks, optionally filtered by state
+db.list_tasks(status="succeeded")
+
+# Cancel a still-running task
+db.cancel_task(task["id"])
+```
+
 > The SDK is a thin wrapper over `core/` — CLI, HTTP API and SDK share the exact
 > same training and registry logic, so results never drift between surfaces.
+> Async tasks are persisted to `~/.ml-decision-boundary/registry/tasks/` and
+> survive process restarts (interrupted tasks are marked `failed` on recovery).
 
 ---
 
@@ -238,12 +265,14 @@ ml-decision-boundary/
 ├── requirements.lock      # Locked versions for production
 ├── run.sh                 # One-liner: bash run.sh
 ├── vercel.json            # Vercel deployment config
-├── ml_db/                 # v12 DoD #1 — Python SDK
+├── ml_db/                 # v12 DoD #1-#2 — Python SDK
 │   ├── __init__.py        # `from ml_db import MLDB`
-│   ├── client.py          # MLDB client (train / predict / registry)
+│   ├── client.py          # MLDB client (train / predict / async / registry)
 │   └── errors.py          # MLDBError hierarchy (E2xxx codes)
 ├── api/
 │   ├── train.py           # Vercel serverless: POST /api/train
+│   ├── train_async.py     # v12 DoD #2: POST /api/train_async (202 + task_id)
+│   ├── tasks.py           # v12 DoD #2: GET /api/tasks (poll / list)
 │   └── health.py          # Vercel serverless: GET /api/health
 ├── core/                  # Core ML logic
 │   ├── __init__.py
@@ -251,6 +280,7 @@ ml-decision-boundary/
 │   ├── datasets.py        # Synthetic data generation (circles/moons/blobs/xor)
 │   ├── visualizer.py      # matplotlib decision boundary rendering
 │   ├── registry.py        # v8 Model Registry (JSON persistence)
+│   ├── task_queue.py      # v12 DoD #2: persistent async task queue
 │   ├── interfaces.py      # Plugin contract (ModelBuilder ABC)
 │   ├── validation.py       # Error validation + user-facing errors
 │   ├── error_messages.py  # Error message definitions

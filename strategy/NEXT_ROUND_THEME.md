@@ -1,12 +1,51 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v119 早场 #1（v12 启动轮）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v119 早场 #2（v12 DoD #2）
 
-**更新时间：** 2026-10-25 02:10 CST / 2026-10-24 18:10 UTC
-**版本：** v119 早场 #1
+**更新时间：** 2026-10-25 09:56 CST / 2026-10-25 01:56 UTC
+**版本：** v119 早场 #2
 **维护人：** 太子
 
 ---
 
-## 🟢 v119 早场 #1 状态：**皇上已点 Merge — PR #58 + #59 均已合入 master，v11 闭环完成，v12 正式启动**
+## 🟢 v119 早场 #2 状态：**v12 DoD #2 异步训练任务完成**
+
+### 🆕 本轮交付：异步训练任务（v12 DoD #2）
+
+| 交付物 | 内容 |
+|--------|------|
+| `core/task_queue.py` | 持久化任务队列：`submit()` / `get()` / `list_tasks()` / `wait()` / `cancel()` / `delete()` / `clear()` |
+| `ml_db/client.py` | SDK 新增 `train_async()` / `get_task()` / `list_tasks()` / `wait_for_task()` / `cancel_task()` |
+| `ml_db/errors.py` | 新增 `TaskNotFoundError`（E2005_TASK_NOT_FOUND） |
+| `ml_db/__init__.py` | 导出 `TaskNotFoundError`，版本号 → `0.2.0` |
+| `api/train_async.py` | `POST /api/train_async` — 启动后台训练，返回 202 + task_id |
+| `api/tasks.py` | `GET /api/tasks` — 单任务轮询 / 全量列表 / status 过滤 |
+| `tests/test_task_queue.py` | **35 个新测试**（队列 / SDK / API 契约 / 恢复 / 取消） |
+
+### 设计要点
+
+1. **零复制**：任务队列接受 `fn() -> dict`，训练逻辑仍走 `core/train_utils`，CLI / HTTP API / SDK 三端结果永不漂移。
+2. **持久化**：任务状态写 `~/.ml-decision-boundary/registry/tasks/<id>.json`，原子写（write-temp + `os.replace`），重启不丢。
+3. **恢复**：启动时扫描 `pending`/`running` 状态的孤儿任务，标记 `failed`（reason: `interrupted`），不会永远卡住。
+4. **同步/异步一致性**：`train_async()` 与 `train()` 走同一 `train()` 内部路径，accuracy 逐位一致（已验证）。
+
+### 验收结果
+
+| 层级 | 命令 | 结果 |
+|------|------|------|
+| **P0** | `compileall -q .` + import smoke | ✅ exit 0 + `main import OK` + `ml_db 0.2.0` |
+| **P1** | `pytest -q` | ✅ **380 passed, 5 skipped, 0 FAILED**（80.68s）|
+| **P2** | `benchmarks/run.py --quick` | ✅ PASSED（circles/SVM, acc 0.7900, thr 0.7000）|
+| **P3** | API 端点契约 | ✅ `/api/train_async` 202 + `/api/tasks` 404/列表 |
+
+### 🧭 下一轮（v12 剩余 DoD）
+
+| # | DoD | 计划 |
+|---|-----|------|
+| 3 | **Registry 改进** | 模型版本化（v1/v2）+ 标签批量查询 |
+| 4 | ADR-0017 Accepted | DoD #3 完成后收口 |
+
+---
+
+## v119 早场 #1 状态（旧文保留供交叉对照）
 
 ### 🎉 本轮头条：等待多轮的 Merge 终于落地
 

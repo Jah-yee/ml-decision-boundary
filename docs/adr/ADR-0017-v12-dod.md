@@ -1,8 +1,9 @@
 # ADR-0017 — v12 DoD 细化：Python API & SDK Foundation
 
 **日期**: 2026-10-07
-**状态**: 🟡 Draft（DoD #1 已实现 — 2026-10-25）
+**状态**: 🟡 Draft（DoD #1 ✅ / #2 ✅ / #3 🟡 / #4 🟡）
 **维护人**: 太子
+**更新**: 2026-10-25 (v119 早场 #2 — DoD #2 异步训练任务完成)
 
 ---
 
@@ -25,7 +26,7 @@ v12 主题定位为 **Python API & SDK Foundation**，为 ml-decision-boundary �
 | # | DoD 项目 | 描述 | 优先级 | 状态 |
 |---|---------|------|--------|------|
 | 1 | **Python SDK 接口** | 建立 `from ml_db import MLDB` 顶层 API，封装训练/预测/注册全流程 | P1 | ✅ (v119 早场) |
-| 2 | **异步训练任务** | 后台训练任务 + 轮询状态 API，支撑长时间训练不被 HTTP 超时中断 | P1 | 🟡 |
+| 2 | **异步训练任务** | 后台训练任务 + 轮询状态 API，支撑长时间训练不被 HTTP 超时中断 | P1 | ✅ (v119 早场 #2) |
 | 3 | **Registry 改进** | 模型版本化（v1/v2）+ 标签批量查询（`--tag KEY`） | P1 | 🟡 |
 | 4 | **ADR-0017 Accepted** | DoD #1-3 全部完成后，将 ADR-0017 状态更新为 Accepted | P0 | 🟡 |
 
@@ -42,11 +43,11 @@ v12 主题定位为 **Python API & SDK Foundation**，为 ml-decision-boundary �
 
 ## 验收标准（DoD #4 完成后勾选）
 
-- [ ] ADR-0017 状态: Draft（DoD #1 ✅ / #2-#4 待办）
+- [ ] ADR-0017 状态: Draft（DoD #1 ✅ / #2 ✅ / #3-#4 待办）
 - [x] P0: compileall + import smoke 通过 ✅ (v119 早场)
-- [x] P1: pytest -q 通过 ✅ 345 passed, 5 skipped (v119 早场)
+- [x] P1: pytest -q 通过 ✅ 380 passed, 5 skipped (v119 早场 #2)
 - [x] SDK: `from ml_db import MLDB; m = MLDB()` 可实例化 ✅ (v119 早场)
 - [x] SDK: `m.train(...)` 返回训练结果 ✅ (v119 早场)
 - [x] SDK: `m.predict(...)` 返回预测结果 ✅ (v119 早场)
-- [ ] Async: 后台任务状态可轮询
+- [x] Async: 后台任务状态可轮询 ✅ (v119 早场 #2)
 - [ ] Registry: 模型版本可查询

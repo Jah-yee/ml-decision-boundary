@@ -68,3 +68,19 @@ class InvalidInputError(MLDBError):
     """
 
     code = "E2004_INVALID_INPUT"
+
+
+class TaskNotFoundError(MLDBError):
+    """Raised when an async training task id is unknown.
+
+    Code: E2005_TASK_NOT_FOUND
+    """
+
+    code = "E2005_TASK_NOT_FOUND"
+
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+        super().__init__(
+            f"Task '{task_id}' not found. "
+            "Use MLDB.list_tasks() to see available tasks."
+        )

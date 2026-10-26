@@ -26,6 +26,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from core.datasets import DATASET_GENERATORS
+from core.provenance import build_provenance
 from core.registry import RegistryManager
 from core.task_queue import TaskNotFoundError, TaskQueue
 from core.train_utils import BUILTIN_MODEL_NAMES, build_model
@@ -230,6 +231,15 @@ class MLDB:
                 n_samples=n_samples,
                 train_accuracy=train_accuracy,
                 test_accuracy=test_accuracy,
+                provenance=build_provenance(
+                    seed=self.seed,
+                    dataset_name=dataset,
+                    n_samples=n_samples,
+                    noise=noise,
+                    test_size=test_size,
+                    hyperparameters=resolved_params,
+                    model_type=model_type,
+                ),
             )
             for tag in tags or []:
                 self.registry.tag_model(model_id, tag)
@@ -508,6 +518,20 @@ class MLDB:
     def get_latest_version(self, model_id: str) -> Dict[str, Any]:
         """The newest version of the family that `model_id` belongs to."""
         return self.registry.get_latest_version(model_id)
+
+    def get_provenance(self, model_id: str) -> Dict[str, Any]:
+        """Return a model's provenance record (empty for pre-v13 models)."""
+        try:
+            return self.registry.get_provenance(model_id)
+        except FileNotFoundError as exc:
+            raise ModelNotFoundError(model_id) from exc
+
+    def compare_provenance(self, model_id_1: str, model_id_2: str) -> Dict[str, Any]:
+        """Compare the provenance of two registered models."""
+        try:
+            return self.registry.compare_provenance(model_id_1, model_id_2)
+        except FileNotFoundError as exc:
+            raise ModelNotFoundError(model_id_1) from exc
 
     def compare(self, model_id_1: str, model_id_2: str) -> Dict[str, Any]:
         """Compare two registered models (accuracy, dataset, tags, ...)."""

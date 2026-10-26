@@ -1,7 +1,7 @@
 # API Contract — ml-decision-boundary
 
-**Status**: Active (v12)
-**Last updated**: 2026-10-25 (v12 DoD #3)
+**Status**: Active (v13 in progress)
+**Last updated**: 2026-10-26 (v13 DoD #1 provenance)
 
 本文件记录 HTTP API 的行为契约。P3 验收要求「API/Web 行为在 spec 中记录」。
 
@@ -151,8 +151,31 @@ Registry 查询端点。覆盖三类查询：单模型元数据、模型版本/�
 
 ---
 
+## Provenance 语义（v13 DoD #1）
+
+新注册的模型元数据包含 `provenance` 对象：
+
+```json
+{
+  "seed": 42,
+  "dataset": {"name": "circles", "n_samples": 500, "noise": 0.3, "test_size": 0.2},
+  "hyperparameters": {"C": 1.0},
+  "model_type": "SVM",
+  "environment": {"python": "3.12.3", "numpy": "...", "scikit_learn": "...", "joblib": "..."},
+  "git": {"commit": "...", "branch": "...", "dirty": false},
+  "captured_at": "2026-10-26T01:30:00+00:00",
+  "fingerprint": "sha256:0123456789abcdef"
+}
+```
+
+Fingerprint 使用 canonical JSON + SHA-256，覆盖 seed、dataset、hyperparameters、环境版本与 git commit；不覆盖 `captured_at` 与 `git.dirty`。v13 前的旧模型读取时返回空 `{}`，原 JSON 文件不重写。
+
+本轮先通过 Registry / SDK / CLI 暴露 provenance；HTTP 端点列入下一轮，避免扩张已冻结的 API 契约。
+
+---
+
 ## 相关文档
 
-- ADR: `docs/adr/ADR-0017-v12-dod.md`
+- ADR: `docs/adr/ADR-0018-v13-dod.md`
 - 阶段状态: `spec/phases.md`
 - SDK 用法: `ml_db/client.py`

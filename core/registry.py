@@ -27,6 +27,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Sequence
 from dataclasses import dataclass, asdict, field
 
+from core.provenance import build_provenance, provenance_diff
+
 
 REGISTRY_BASE = Path.home() / ".ml-decision-boundary" / "registry"
 REGRESSION_THRESHOLD = 0.05  # 5% accuracy drop triggers regression flag
@@ -50,6 +52,7 @@ class ModelMetadata:
     tags: List[str] = field(default_factory=list)  # v9 DoD #3: user-assigned labels
     version: int = 1                             # v12 DoD #3: version within the model family
     family: str = ""                             # v12 DoD #3: family key (type+dataset+params)
+    provenance: Dict[str, Any] = field(default_factory=dict)  # v13 DoD #1
 
 
 @dataclass
@@ -283,6 +286,7 @@ class RegistryManager:
         test_accuracy: float = 0.0,
         plugin_origin: bool = False,
         plugin_state: Optional[Dict[str, Any]] = None,
+        provenance: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Persist a trained model to the registry.
@@ -335,6 +339,13 @@ class RegistryManager:
             tags=[],  # v9 DoD #3: initialized empty
             version=version,       # v12 DoD #3
             family=family,         # v12 DoD #3
+            provenance=provenance or build_provenance(
+                seed=None,
+                dataset_name=dataset_name,
+                n_samples=n_samples,
+                hyperparameters=hyperparameters,
+                model_type=model_type,
+            ),
         )
 
         # Write metadata JSON
@@ -411,7 +422,25 @@ class RegistryManager:
         metadata.setdefault("version", 1)
         if not metadata.get("family"):
             metadata["family"] = cls._legacy_family(metadata)
+        metadata.setdefault("provenance", {})
         return metadata
+
+    # ── v13 DoD #1: provenance ────────────────────────────────────────────────
+
+    def get_provenance(self, model_id: str) -> Dict[str, Any]:
+        """Return a model's provenance; legacy models return an empty dict."""
+        metadata = self.get_metadata(model_id)
+        return dict(metadata.get("provenance") or {})
+
+    def compare_provenance(self, model_id_a: str, model_id_b: str) -> Dict[str, Any]:
+        """Compare the provenance of two registered models."""
+        result = provenance_diff(
+            self.get_provenance(model_id_a),
+            self.get_provenance(model_id_b),
+        )
+        result["left_model_id"] = model_id_a
+        result["right_model_id"] = model_id_b
+        return result
 
     def _write_metadata(self, model_id: str, metadata: Dict[str, Any]) -> None:
         """Write metadata dict back to the JSON file. Internal use only."""

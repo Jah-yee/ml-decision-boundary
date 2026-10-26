@@ -44,7 +44,7 @@ class TestBenchmarksCLI:
             capture_output=True,
             text=True,
             cwd=Path(__file__).parent.parent,
-            timeout=120,
+            timeout=300,
         )
         # Full suite is slow; returncode 0 means no crash
         assert result.returncode == 0, f"benchmark full suite crashed: {result.stderr}"

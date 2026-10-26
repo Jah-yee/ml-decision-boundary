@@ -15,6 +15,7 @@ from core.datasets import (
     make_s_curve,
     DATASET_GENERATORS,
 )
+from core.provenance import build_provenance
 from core.train_utils import (
     build_model,
     slider_to_params,
@@ -121,8 +122,8 @@ Examples:
 
     # ml-db model list
     list_parser = subparsers.add_parser("model", help="Model registry management")
-    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families"],
-                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff"],
+                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff")
     list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete/compare/tag/untag)")
     list_parser.add_argument("model_id2", nargs="?", help="Second model ID (for compare)")
     list_parser.add_argument("--tag", dest="tag_name", help="Tag name (for tag/untag/list --tag)")
@@ -328,6 +329,51 @@ def cmd_model_versions(rm, model_id: str):
         created = m.get("created_at", "unknown")[:25]
         acc = m.get("accuracy", m.get("metrics", {}).get("test_accuracy", 0.0))
         print(f"v{m.get('version', 1):<5} {m['id']:<22} {m['model_type']:<8} {acc:<10.4f} {created}")
+
+
+def cmd_model_provenance(rm, model_id):
+    """Show the provenance record of a model."""
+    try:
+        prov = rm.get_provenance(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    print(f"\n🧾 Provenance: {model_id}")
+    if not prov:
+        print("   No provenance recorded — this model was registered before v13.")
+        return
+    dataset = prov.get("dataset", {})
+    env = prov.get("environment", {})
+    git = prov.get("git", {})
+    print(f"   Fingerprint:  {prov.get('fingerprint', 'N/A')}")
+    print(f"   Seed:         {prov.get('seed', 'N/A')}")
+    print(f"   Model type:   {prov.get('model_type', 'N/A')}")
+    print(f"   Dataset:      {dataset.get('name', 'N/A')} (n={dataset.get('n_samples', 'N/A')}, noise={dataset.get('noise', 'N/A')}, test_size={dataset.get('test_size', 'N/A')})")
+    print(f"   Hyperparams:  {prov.get('hyperparameters', {})}")
+    print(f"   Environment:  {env}")
+    print(f"   Git:          {git}")
+    print(f"   Captured at:  {prov.get('captured_at', 'N/A')}")
+
+
+def cmd_model_diff(rm, model_id1, model_id2):
+    """Compare the provenance of two models."""
+    try:
+        diff = rm.compare_provenance(model_id1, model_id2)
+    except FileNotFoundError:
+        print("❌ One of the models was not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    print(f"\n🧾 Provenance diff: {model_id1} ↔ {model_id2}")
+    print(f"   Left fingerprint:  {diff.get('left_fingerprint') or 'N/A'}")
+    print(f"   Right fingerprint: {diff.get('right_fingerprint') or 'N/A'}")
+    print(f"   Identical:         {diff.get('identical')}")
+    print(f"   Fingerprint match: {diff.get('fingerprint_match')}")
+    differences = diff.get("differences") or []
+    if differences:
+        print(f"\n   Differences ({len(differences)}):")
+        for item in differences:
+            print(f"      - {item['field']}: {item['left']} → {item['right']}")
+    else:
+        print("\n   ✅ No differences.")
 
 
 def cmd_model_families(rm):
@@ -623,6 +669,15 @@ def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42, 
                 train_accuracy=train_accuracy,
                 test_accuracy=test_accuracy,
                 plugin_origin=False,
+                provenance=build_provenance(
+                    seed=seed,
+                    dataset_name=dataset,
+                    n_samples=500,
+                    noise=0.3,
+                    test_size=0.2,
+                    hyperparameters=params,
+                    model_type=model_type,
+                ),
             )
             if verbose:
                 print(f"  📦 Registered model: {model_id}")
@@ -1013,6 +1068,16 @@ if __name__ == "__main__":
             elif action == "families":
                 # v12 DoD #3: list all model families
                 cmd_model_families(rm)
+            elif action == "provenance":
+                if not args.model_id:
+                    print("❌ provenance requires a model_id: python main.py model provenance <id>")
+                    raise SystemExit(1)
+                cmd_model_provenance(rm, args.model_id)
+            elif action == "diff":
+                if not args.model_id or not args.model_id2:
+                    print("❌ diff requires two model IDs: python main.py model diff <id1> <id2>")
+                    raise SystemExit(1)
+                cmd_model_diff(rm, args.model_id, args.model_id2)
         elif cmd == "benchmark":
             if action == "list":
                 cmd_benchmark_list(rm)

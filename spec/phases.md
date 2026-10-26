@@ -192,7 +192,22 @@
 - [x] Registry 改进 — 模型版本化（v1/v2）+ 标签批量查询 ✅ (v119 晚场，family key + `_normalize()` 向后兼容 + `/api/registry` 端点 + 58 个测试)
 - [x] ADR-0017 Accepted ✅ (v119 晚场，DoD #1-#4 全部完成)
 
-**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 已完成 ✅ 🎉 | v12 进行中 🟡**
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 已完成 ✅ 🎉 | v12 已完成 ✅**
+
+---
+
+## v13 — Experiment Provenance & Reproducibility (进行中 🟡)
+
+**入口条件**: v12 DoD 全部完成 ✅ + ADR-0017 Accepted ✅ (2026-10-25) + PR #60 已交付（待 Merge）
+
+**本阶段 DoD**（ADR-0018 — 🟡 Proposed）：
+- [ ] ADR-0018: v13 DoD 细化 ✅ (2026-10-26，Proposed)
+- [ ] Provenance capture — seed / dataset / hyperparameters / environment / git commit / fingerprint ✅ (实现中)
+- [ ] Provenance compare — SDK + CLI 查看与比较来源差异 ✅ (实现中)
+- [ ] 旧模型零迁移兼容 ✅ (实现中)
+- [ ] 回归验证与 CI 全绿 ⏳ (待验收)
+
+**v0-v12 已完成 ✅ | v13 进行中 🟡**
 
 ---
 

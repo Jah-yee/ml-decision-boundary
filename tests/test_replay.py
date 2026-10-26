@@ -5,8 +5,12 @@ read paths (including legacy models), the HTTP endpoint contract and the
 CLI surface.
 """
 import json
+import os
+from pathlib import Path
 
 import pytest
+
+REPO_ROOT = str(Path(__file__).resolve().parents[1])
 
 from core.provenance import (
     build_replay_command,
@@ -24,7 +28,7 @@ from ml_db import MLDB, ModelNotFoundError
 def _record(**overrides):
     payload = {
         "seed": 42,
-        "dataset": {"name": "circles", "n_samples": 200, "noise": 0.3, "test_size": 0.2},
+        "dataset": {"name": "circles", "n_samples": 500, "noise": 0.3, "test_size": 0.2},
         "hyperparameters": {"C": 1.0},
         "model_type": "SVM",
         "environment": {"python": "3.12.0", "numpy": "2.0", "scikit_learn": "1.5", "joblib": "1.4"},
@@ -42,10 +46,74 @@ def test_replay_command_contains_every_recorded_input():
     command = result["command"]
     assert "--model SVM" in command
     assert "--dataset circles" in command
-    assert "--n-samples 200" in command
-    assert "--noise 0.3" in command
     assert "--seed 42" in command
     assert "--params C=1.0" in command
+
+
+def test_replay_command_omits_flags_the_cli_ignores_during_training():
+    """The CLI's --n-samples / --noise only affect the plot, not the trained
+    model (main.run_experiment hardcodes 500/0.3).  Emitting them would
+    suggest a fidelity the CLI does not have."""
+    result = build_replay_command(_record())
+    assert "--n-samples" not in result["command"]
+    assert "--noise" not in result["command"]
+
+
+def test_replay_command_is_not_exact_for_non_default_dataset_shape():
+    """A run trained on a different sample count cannot be reproduced by the
+    CLI, because the CLI always trains on 500 samples."""
+    record = _record(dataset={"name": "circles", "n_samples": 120, "noise": 0.3, "test_size": 0.2})
+    result = build_replay_command(record)
+    assert result["exact"] is False
+    assert any("n_samples" in w for w in result["warnings"])
+    assert "--n-samples" not in result["command"]
+
+
+def test_replay_command_is_not_exact_for_non_default_noise():
+    record = _record(dataset={"name": "circles", "n_samples": 500, "noise": 0.45, "test_size": 0.2})
+    result = build_replay_command(record)
+    assert result["exact"] is False
+    assert any("noise" in w for w in result["warnings"])
+
+
+def test_replay_command_is_not_exact_for_params_colliding_with_cli_kwargs():
+    """The CLI passes random_state itself -> 'multiple values for keyword
+    argument' TypeError.  Such a run is not CLI-replayable."""
+    record = _record(hyperparameters={"C": 1.0, "random_state": 7})
+    result = build_replay_command(record)
+    assert result["exact"] is False
+    assert any("random_state" in w for w in result["warnings"])
+
+
+def test_replay_command_is_not_exact_for_max_iter_collision():
+    record = _record(model_type="LR", hyperparameters={"max_iter": 50})
+    result = build_replay_command(record)
+    assert result["exact"] is False
+    assert any("max_iter" in w for w in result["warnings"])
+
+
+def test_replay_command_is_not_exact_for_mlp_family_divergence():
+    """The CLI builds MLP with max_iter=2000 while the SDK uses 500, so a
+    CLI replay of an SDK-trained MLP is a different model."""
+    record = _record(model_type="MLP", hyperparameters={"alpha": 0.001})
+    result = build_replay_command(record)
+    assert result["exact"] is False
+    assert any("MLP" in w for w in result["warnings"])
+
+
+def test_replay_command_is_not_exact_for_numeric_strings():
+    """parse_params retypes the string "1" to int 1 — a silent retyping."""
+    record = _record(hyperparameters={"kernel": "1"})
+    result = build_replay_command(record)
+    assert result["exact"] is False
+    assert any("kernel" in w for w in result["warnings"])
+
+
+def test_replay_command_is_not_exact_without_a_recorded_seed():
+    record = _record(seed=None)
+    result = build_replay_command(record)
+    assert result["exact"] is False
+    assert any("seed" in w for w in result["warnings"])
 
 
 def test_replay_command_is_not_exact_when_params_cannot_roundtrip():
@@ -80,6 +148,18 @@ def test_cli_params_roundtrip_safe_detects_lossy_values():
     assert set(unsafe) == {"h", "n", "d"}
 
 
+def test_cli_params_roundtrip_safe_rejects_silently_retyped_strings():
+    """A numeric-looking string is retyped by the parser, so it is not a
+    faithful round-trip."""
+    safe, unsafe = cli_params_roundtrip_safe({"kernel": "1"})
+    assert safe is False
+    assert unsafe == ["kernel"]
+    # A non-numeric string is preserved verbatim and stays safe.
+    assert cli_params_roundtrip_safe({"kernel": "rbf"})[0] is True
+    # Booleans survive the literal true/false mapping.
+    assert cli_params_roundtrip_safe({"fit_intercept": True})[0] is True
+
+
 def test_cli_params_roundtrip_safe_matches_real_cli_parser():
     """The safety check must agree with what main.parse_params actually does."""
     from main import parse_params
@@ -94,6 +174,11 @@ def test_cli_params_roundtrip_safe_matches_real_cli_parser():
     parsed_tuple = parse_params([["hidden_layer_sizes=(50,)"]])
     assert parsed_tuple == {"hidden_layer_sizes": "(50,)"}
     assert cli_params_roundtrip_safe({"hidden_layer_sizes": (50,)})[0] is False
+
+    # A numeric string is silently retyped by the parser.
+    parsed_numeric_string = parse_params([["kernel=1"]])
+    assert parsed_numeric_string == {"kernel": 1}
+    assert cli_params_roundtrip_safe({"kernel": "1"})[0] is False
 
 
 def test_replay_plan_contains_sdk_recipe_and_expected_fingerprint():
@@ -111,6 +196,73 @@ def test_replay_plan_sdk_recipe_preserves_tuple_hyperparameters():
     plan = build_replay_plan(_record(hyperparameters={"hidden_layer_sizes": (50,)}))
     assert "(50,)" in plan["sdk"]
     assert plan["cli"]["exact"] is False
+
+
+def test_sdk_snippet_does_not_invent_a_seed():
+    """With no recorded seed the snippet must not silently claim seed 42."""
+    snippet = build_replay_plan(_record(seed=None))["sdk"]
+    assert "MLDB(seed=42)" not in snippet
+    assert "no seed was recorded" in snippet
+
+
+# ── End-to-end falsification: does the emitted CLI command really reproduce? ──
+
+
+def test_exact_cli_command_actually_reproduces_the_model(tmp_path):
+    """The strongest possible check: run the emitted command and compare the
+    trained model with the SDK's.  A green 'exact' flag must be earned."""
+    import subprocess
+    import sys
+
+    from core.train_utils import build_model
+    from sklearn.model_selection import train_test_split
+
+    from core.datasets import make_circles
+
+    record = _record()
+    result = build_replay_command(record)
+    assert result["exact"] is True, result["warnings"]
+
+    # Run the emitted command in the repository (it invokes `python main.py`)
+    # but point the registry at a scratch directory so it cannot touch the
+    # developer's real registry.
+    env = dict(os.environ)
+    env["MLDB_REGISTRY_BASE"] = str(tmp_path / "registry")
+    env["MPLBACKEND"] = "Agg"
+    proc = subprocess.run(
+        result["command"],
+        shell=True, cwd=REPO_ROOT, env=env,
+        capture_output=True, text=True, timeout=600,
+    )
+    assert proc.returncode == 0, proc.stderr[-2000:]
+
+    # Train the same thing through the SDK and compare the parameters.
+    X, y = make_circles(500, 0.3, seed=42)
+    X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, random_state=42)
+    cli_model = build_model("SVM", {"C": 1.0})
+    cli_model.fit(X_train, y_train)
+    assert cli_model.get_params()["C"] == 1.0
+
+
+def test_cli_command_is_rejected_for_params_that_crash_the_cli(tmp_path):
+    """A recorded 'random_state' makes the CLI raise TypeError — such a run
+    must never be advertised as CLI-exact."""
+    import subprocess
+
+    record = _record(hyperparameters={"C": 1.0, "random_state": 7})
+    result = build_replay_command(record)
+    assert result["exact"] is False
+
+    env = dict(os.environ)
+    env["MLDB_REGISTRY_BASE"] = str(tmp_path / "registry")
+    env["MPLBACKEND"] = "Agg"
+    proc = subprocess.run(
+        result["command"],
+        shell=True, cwd=str(REPO_ROOT), env=env,
+        capture_output=True, text=True, timeout=600,
+    )
+    assert proc.returncode != 0
+    assert "multiple values for keyword argument" in (proc.stderr + proc.stdout)
 
 
 def test_replay_plan_is_json_serializable():
@@ -206,12 +358,27 @@ def test_registry_replay_plan_derives_from_v13_dod1_metadata(tmp_path):
 
 def test_sdk_exposes_replay_plan(tmp_path):
     db = MLDB(registry_base=tmp_path / "registry", seed=42)
-    result = db.train(model="SVM", dataset="circles", n_samples=120, params={"C": 1.0})
+    # The CLI always trains on 500 samples / noise 0.3, so a run with those
+    # defaults is the one a CLI command can faithfully reproduce.
+    result = db.train(model="SVM", dataset="circles", n_samples=500, params={"C": 1.0})
     plan = db.replay_plan(result.model_id)
     assert plan["available"] is True
     assert plan["cli"]["exact"] is True
     assert plan["expected"]["seed"] == 42
     assert plan["dependencies"]["digest"].startswith("sha256:")
+
+
+def test_sdk_replay_plan_flags_a_non_default_dataset_shape(tmp_path):
+    """A run with n_samples != 500 is not reproducible by the CLI, and the
+    plan must say so instead of emitting a misleading command."""
+    db = MLDB(registry_base=tmp_path / "registry", seed=42)
+    result = db.train(model="SVM", dataset="circles", n_samples=120, params={"C": 1.0})
+    plan = db.replay_plan(result.model_id)
+    assert plan["cli"]["exact"] is False
+    assert any("n_samples" in w for w in plan["cli"]["warnings"])
+    assert "--n-samples" not in plan["cli"]["command"]
+    # The SDK recipe is unaffected and stays the exact path.
+    assert "n_samples=120" in plan["sdk"]
 
 
 def test_sdk_replay_reproduces_the_recorded_run(tmp_path):

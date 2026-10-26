@@ -198,6 +198,37 @@ CLI_MODEL_CHOICES: Tuple[str, ...] = (
     "SVM", "LR", "Tree", "RF", "KNN", "MLP", "NB", "GB", "ET", "AB",
 )
 
+#: Hyperparameter names that the CLI passes *itself* to the estimator
+#: (``main.train_model``), e.g. ``SVC(**params, random_state=42)``.
+#: A recorded value for one of these keys makes the CLI raise
+#: ``TypeError: got multiple values for keyword argument`` instead of
+#: training, so such a run is never CLI-replayable.
+CLI_HARDCODED_KWARGS: Dict[str, Tuple[str, ...]] = {
+    "SVM": ("random_state",),
+    "LR": ("random_state", "max_iter"),
+    "Tree": ("random_state",),
+    "RF": ("random_state",),
+    "KNN": (),
+    "MLP": ("random_state", "max_iter"),
+    "NB": (),
+    "GB": ("random_state",),
+    "ET": ("random_state",),
+    "AB": ("random_state", "algorithm"),
+}
+
+#: Model families whose CLI construction differs from the SDK's
+#: (``core.train_utils.build_model``), so a CLI replay can never reproduce
+#: an SDK-trained model of that family.  ``MLP`` differs in ``max_iter``
+#: (CLI 2000 vs SDK 500).
+CLI_DIVERGENT_FAMILIES: Tuple[str, ...] = ("MLP",)
+
+#: Dataset constants the CLI training path actually uses
+#: (``main.run_experiment`` hardcodes these; the ``--n-samples`` / ``--noise``
+#: flags only affect the *plot*, not the trained model).
+CLI_TRAIN_N_SAMPLES = 500
+CLI_TRAIN_NOISE = 0.3
+CLI_TRAIN_TEST_SIZE = 0.2
+
 #: Parameter values the CLI's ``parse_params`` cannot round-trip faithfully.
 #:
 #: ``main.parse_params`` coerces to int/float/bool and otherwise keeps the
@@ -263,10 +294,15 @@ def cli_params_roundtrip_safe(params: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """Check whether hyperparameter values survive the CLI ``--params`` parser.
 
     The CLI parses ``KEY=VALUE`` pairs and coerces them to ``int``, ``float``
-    or ``bool``; everything else stays a string.  Values that must retain
-    their type (tuples, lists, ``None``, dicts) are therefore *not*
-    faithfully representable, and neither are numeric strings that a
-    caller might have meant as strings.
+    or ``bool``; everything else stays a string.  A value is only faithful
+    when it round-trips with the *same type and the same value*:
+
+    * tuples / lists / sets / dicts / ``None`` lose their type (``(50,)``
+      becomes the string ``"(50,)"``);
+    * numeric **strings** are silently retyped (``"1"`` becomes ``int`` 1),
+      which changes both the model and its fingerprint;
+    * ``bool`` survives, but only because ``parse_params`` maps the
+      literals ``"true"`` / ``"false"`` back to a bool.
 
     Args:
         params: the resolved hyperparameters.
@@ -286,10 +322,36 @@ def cli_params_roundtrip_safe(params: Dict[str, Any]) -> Tuple[bool, List[str]]:
         if isinstance(value, (int, float)):
             continue
         if isinstance(value, str):
-            # A bare string is preserved verbatim by the CLI parser.
+            # A bare string is preserved verbatim *unless* it happens to look
+            # numeric or boolean — then the parser retypes it.
+            if _parse_params_value(value) != value:
+                unsafe.append(key)
             continue
         unsafe.append(key)
     return (not unsafe, unsafe)
+
+
+def _parse_params_value(value: str) -> Any:
+    """Replicate ``main.parse_params`` coercion for a single raw string.
+
+    Kept in sync with ``main.parse_params``; ``tests/test_replay.py``
+    locks the two together so a future change to the CLI parser cannot
+    silently invalidate the replay-honesty rules.
+    """
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        pass
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        pass
+    lowered = str(value).lower()
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+    return value
 
 
 def _format_cli_value(value: Any) -> str:
@@ -304,11 +366,23 @@ def _format_cli_value(value: Any) -> str:
 def build_replay_command(record: Dict[str, Any]) -> Dict[str, Any]:
     """Build a copy-pasteable CLI command that reproduces a recorded run.
 
-    The command is only marked ``exact: True`` when every hyperparameter
-    round-trips through ``main.py --params`` *and* the model family is one
-    the CLI accepts.  ``test_size`` is not exposed by the CLI at all, so a
-    command is never exact when the recorded run used a non-default
-    ``test_size``; that limitation is reported in ``warnings``.
+    The command is only marked ``exact: True`` when the CLI would really
+    reproduce the recorded run.  That is a deliberately strict bar, because
+    the CLI's training path differs from the SDK's in several ways:
+
+    * ``main.run_experiment`` hardcodes ``n_samples=500``, ``noise=0.3`` and
+      ``test_size=0.2``.  The ``--n-samples`` / ``--noise`` flags only feed
+      the *plot*, not the trained model — so they are never emitted (they
+      would be a lie) and a recorded run with other values is not exact.
+    * The CLI passes ``random_state`` / ``max_iter`` / ``algorithm`` itself,
+      so a recorded value for one of those keys makes the CLI crash with
+      ``TypeError: got multiple values for keyword argument``.
+    * ``MLP`` is built with ``max_iter=2000`` by the CLI but ``max_iter=500``
+      by the SDK, so a CLI replay of an SDK-trained MLP is a different model.
+    * ``test_size`` and the recorded ``seed`` are not always CLI-expressible.
+
+    Anything the CLI cannot express faithfully is reported in ``warnings``,
+    and the caller is expected to fall back to the (always exact) SDK recipe.
 
     Args:
         record: a provenance record as produced by :func:`build_provenance`.
@@ -337,17 +411,33 @@ def build_replay_command(record: Dict[str, Any]) -> Dict[str, Any]:
     if dataset_name and dataset_name != "unknown":
         tokens += ["--dataset", str(dataset_name)]
 
+    # The CLI's training path hardcodes the dataset shape (see
+    # CLI_TRAIN_N_SAMPLES / CLI_TRAIN_NOISE).  The --n-samples / --noise
+    # flags affect the visualisation only, so emitting them would suggest a
+    # fidelity the CLI does not have.  They are omitted on purpose.
     n_samples = dataset.get("n_samples")
-    if isinstance(n_samples, int) and n_samples > 0:
-        tokens += ["--n-samples", str(n_samples)]
-
+    if n_samples is not None and int(n_samples) != CLI_TRAIN_N_SAMPLES:
+        warnings.append(
+            f"n_samples={n_samples!r} is not used by the CLI training path "
+            f"(it always trains on {CLI_TRAIN_N_SAMPLES} samples); "
+            "use the SDK recipe for an exact replay."
+        )
     noise = dataset.get("noise")
-    if isinstance(noise, (int, float)):
-        tokens += ["--noise", repr(noise)]
+    if noise is not None and float(noise) != CLI_TRAIN_NOISE:
+        warnings.append(
+            f"noise={noise!r} is not used by the CLI training path "
+            f"(it always uses {CLI_TRAIN_NOISE}); "
+            "use the SDK recipe for an exact replay."
+        )
 
     seed = record.get("seed")
     if seed is not None:
         tokens += ["--seed", str(seed)]
+    else:
+        warnings.append(
+            "no seed was recorded for this run, so the CLI command cannot "
+            "guarantee the same split; use the SDK recipe."
+        )
 
     safe, unsafe = cli_params_roundtrip_safe(params)
     if unsafe:
@@ -356,11 +446,31 @@ def build_replay_command(record: Dict[str, Any]) -> Dict[str, Any]:
             + " cannot be represented by the CLI --params parser; "
             "use the SDK recipe for an exact replay."
         )
+
+    # Keys the CLI passes to the estimator itself would make it crash.
+    hardcoded = CLI_HARDCODED_KWARGS.get(model_type, ())
+    colliding = [k for k in params if k in hardcoded]
+    if colliding:
+        warnings.append(
+            "hyperparameters " + ", ".join(repr(k) for k in sorted(colliding))
+            + f" are set by the CLI itself for {model_type} and would make it "
+            "fail with 'multiple values for keyword argument'; "
+            "use the SDK recipe for an exact replay."
+        )
+
+    # Families whose CLI construction differs from the SDK's.
+    if model_type in CLI_DIVERGENT_FAMILIES:
+        warnings.append(
+            f"the CLI builds {model_type} differently from the SDK "
+            "(different solver defaults), so a CLI replay is not equivalent; "
+            "use the SDK recipe for an exact replay."
+        )
+
     for key in sorted(params):
         tokens += ["--params", f"{key}={_format_cli_value(params[key])}"]
 
     test_size = dataset.get("test_size")
-    if test_size is not None and float(test_size) != 0.2:
+    if test_size is not None and float(test_size) != CLI_TRAIN_TEST_SIZE:
         warnings.append(
             f"test_size={test_size!r} is not exposed by the CLI; "
             "use the SDK recipe for an exact replay."
@@ -399,7 +509,14 @@ def _sdk_replay_snippet(record: Dict[str, Any]) -> str:
     lines = [
         "from ml_db import MLDB",
         "",
-        "db = MLDB(seed=%s)" % (_lit(seed) if seed is not None else "42"),
+    ]
+    if seed is not None:
+        lines.append("db = MLDB(seed=%s)" % _lit(seed))
+    else:
+        # No seed was recorded — fall back to the SDK default but say so, so
+        # the snippet is not mistaken for a faithful replay of the original.
+        lines.append("db = MLDB()  # NOTE: no seed was recorded for this run")
+    lines += [
         "result = db.train(",
         "    model=%s," % _lit(model_type),
         "    dataset=%s," % _lit(dataset.get("name", "unknown")),
@@ -463,5 +580,5 @@ def build_replay_plan(
             "hyperparameters": dict(record.get("hyperparameters") or {}),
             "git_commit": (record.get("git") or {}).get("commit"),
         },
-        "replayable": bool(cli.get("exact")) or True,  # SDK path always exists.
+        "replayable": True,  # the SDK path always exists.
     }

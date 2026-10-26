@@ -629,3 +629,85 @@ security-audit ✅ / quality-gates ✅ / hyperparam-sweep ✅
 | **2026-10-22 22:02** | 🚨 **v117 晚场 #1：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，58.02s），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~78h+），本地 HEAD `bd486cf` = 远端 head ✅，工作树 clean ✅，run log: `strategy/runs/2026-10-22-2202.md` — 第85次提醒 #2 🚨（持续等决策）** |
 | **2026-10-23 02:12** | 🚨 **v117 晚场 #2：cron 触发例行检查，P0 ✅ + P1 ✅（324/5/0，61.68s，py3.12+pillow13）+ P2 ✅ + pip-audit ✅（0 vulns），PR #57 仍 CLOSED 🚨，皇上仍未决策 A/B/C（已 ~83h+）。🚨 **重大发现：CI 已连续 3 轮 FAILURE**（security-audit: pillow 24 CVEs），theme 中「6/6 SUCCESS」为陈旧错误信息。本轮修复：`pillow==12.3.0`→`13.0.0` + CI Python 3.10→3.12（6+1 处）+ 删除 108 个断裂本地 ref。本地 HEAD `181aeca` = 远端 head ✅，工作树 clean ✅，run log: `strategy/runs/2026-10-23-0212.md` — 第86次提醒 #3 🚨（持续等决策 + CI 已修复待重跑）** |
 | **2026-10-22 10:30** | 🚨 **v117 早场 #3：cron 触发例行检查，P0 ✅（compileall 静默 + import OK）+ P1 ✅（324/5/0，58.47s），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~55h+），本地 HEAD `16bdc94` = 远端 head ✅，工作树有遗留 untracked（上两轮 run log），run log: `strategy/runs/2026-10-22-1030.md` — 第85次提醒 #1 🚨（持续等决策）** |
+
+---
+
+## 🟢 v119 晚场 回顾：Registry 改进（v12 DoD #3）
+
+| 交付物 | 内容 |
+|--------|------|
+| `core/registry.py` | `family_key()` / `_next_version()` / `list_model_families()` / `get_model_versions()` / `get_latest_version()` / `list_models_by_tags()` / `tag_index()` / `_normalize()` |
+| `ml_db/client.py` | SDK 新增 `list_models_by_tags()` / `tag_index()` / `list_model_families()` / `get_model_versions()` / `get_latest_version()` |
+| `main.py` | CLI 新增 `model list --tags A B --match any\|all`、`model versions <id>`、`model families`；`list`/`inspect` 增加 VER 列 |
+| `api/registry.py` | **新** Vercel serverless `GET /api/registry`（单模型 / 版本 / 家族 / 批量标签）|
+| `web/server.py` | 本地 Flask 新增 `/api/registry` + `/api/health` 别名（与 serverless 同契约）|
+| `tests/test_registry_versioning.py` | **58 个新测试**（family key / 版本化 / 旧数据兼容 / 批量标签 / SDK / API 契约 / 双实现 parity）|
+| `spec/API.md` | **新** HTTP API 契约文档（P3 要求）|
+
+### 设计要点
+
+1. **family key** = `model_type|dataset_name|<sorted hyperparameters>` —— 超参键字典序排序 + 值 `repr` 渲染，故 `{"C":1.0}` 与 `{"C":1}` 属不同 family（可能训练出不同结果）。
+2. **版本递增**：同 family 重新训练 → `v1 → v2 → v3 ...`；不同 family 各自从 `v1` 开始。
+3. **零迁移向后兼容**：v12 之前的元数据 JSON **不重写**，读取时由 `_normalize()` 动态补齐 `version=1` + 派生 `family`；模型 ID 格式（`YYYY-MM-DD_<6hex>`）完全不变。
+4. **批量标签语义**：`mode="any"` = 并集（至少命中一个）、`mode="all"` = 交集（必须全部命中）；结果按 `created_at` 降序。空标签列表 / 非法 mode → `ValueError`。
+5. **三端同源**：Registry / SDK / CLI / HTTP 共享同一 `core/registry.py` 逻辑，结果永不漂移。
+
+### 🔍 本地 review 修复（独立子代理 review + 自查）
+
+| # | 问题 | 修复 |
+|---|------|------|
+| 1 | `tag_model()` / `untag_model()` 走 `get_metadata()`（已规范化）→ 给旧模型打标签会把派生的 `version`/`family` **写入旧 JSON**，违反“不重写旧文件”约束 | 新增 `_read_raw_metadata()`；打/去标签只读原始元数据、只写回 `tags` 字段 → 旧文件形状不变 |
+| 2 | `tag_index()` 与 `list_tags()` 实现完全重复，且 docstring 声称 “Unlike list_tags…”（与事实不符） | `tag_index()` 作为唯一实现，`list_tags()` 改为委托（向后兼容不变）|
+| 3 | `?tags=`（显式传空串）静默返回全量列表 —— 与 spec 声明的 400 不符 | 两端改为 `if tags_arg is not None:` → 解析后为空一律 400 |
+| 4 | serverless 与 Flask 两实现缺少一致性约束 | 新增 `TestRegistryAPIContractParity`（参数化 7 组用例比对状态码与响应键）|
+| 5 | `_legacy_family()` 对 `dataset` 为字符串 / `hyperparameters` 为 `None` 的畸形旧数据会抛 `AttributeError` | 改为类型安全取值（`isinstance` 判定）|
+| 6 | CLI / SDK / Flask 各自硬编码 registry 根，无法对 scratch registry 做端到端验证 | 统一支持 `MLDB_REGISTRY_BASE` 环境变量（`get_registry_manager()` / `MLDB()` / Flask 路由）|
+
+### 验收结果
+
+| 层级 | 命令 | 结果 |
+|------|------|------|
+| **P0** | `compileall -q .` + import smoke | ✅ exit 0 + `import main` OK |
+| **P1** | `pytest -q` | ✅ **438 passed, 5 skipped, 0 FAILED**（140.95s，424 → 438，+14）|
+| **P2** | `benchmarks/run.py --quick` | ✅ PASSED（circles/SVM, acc 0.7900, thr 0.7000）→ `benchmarks/reports/2026-10-25.md` |
+| **P3** | API 契约 + health | ✅ `spec/API.md` 新建 + `curl localhost:5000/api/health` → **HTTP 200**；`/api/registry` 7 组参数用例状态码与 spec 一致（200/200/200/200/400/400/404）|
+| **CI** | GitHub Actions | ✅ run `40201496276` **6/6 SUCCESS**（benchmark / depth-sweep / hyperparam-sweep / security-audit / quality-checks / quality-gates）|
+
+### 🔗 PR #60
+
+| 项目 | 状态 |
+|------|------|
+| PR #60 | **OPEN · 本轮已更新**（未 merge）|
+| 标题 | `feat(v12): SDK Foundation — DoD #1 SDK / #2 Async training / #3 Registry 版本化 + 标签批量查询` |
+| Base | `master` (`4082158`) |
+| Head | `feat/v12-sdk-foundation` @ `ef78b9c` |
+| 合并态 | `mergeable=MERGEABLE` · `mergeStateStatus=CLEAN` |
+| URL | https://github.com/Jah-yee/ml-decision-boundary/pull/60 |
+
+### 🔖 Commit 记录（本轮）
+
+| Commit | 说明 |
+|--------|------|
+| `ef78b9c` | `feat(v12): DoD #3 — Registry 模型版本化 + 标签批量查询`（11 files, +1451 / -37）|
+
+> **作者邮箱说明**：本轮首次 commit 使用 `jydu_seven@outlook.com` 被 GitHub 拒绝（GH007 —— 私有邮箱保护）。
+> 改为仓库既有的 `166608075+Jah-yee@users.noreply.github.com`（同一 `Jah-yee` 账号）后 push 成功。
+> 如需统一为 outlook 邮箱，需先在 GitHub → Settings → Emails 将其设为公开。
+
+> **本轮 P1 说明**：首轮全量跑出现过 1 个 `test_benchmarks_full_suite_runs` 失败，经定位为**并发写同一 registry 目录**导致的 flake（review 子代理同时在跑 `pytest -q`）；单跑通过，停并发后全量重跑 **438 passed / 0 failed**。
+
+
+### ⚠️ 本轮环境修复（非产品代码）
+
+`python-dotenv` 包目录被清空且丢失 `RECORD`（上次 pip 清理遗留）→ Flask 启动报 `AttributeError: module 'dotenv' has no attribute 'find_dotenv'`。
+修复：删除空目录 + 残留 dist-info → `pip install --user --break-system-packages python-dotenv==1.2.2` → 服务正常启动。
+
+### 🧭 下一轮（v13 规划）
+
+v12 DoD #1-#4 全部完成，**ADR-0017 已 Accepted** → 可以开始 v13 主题规划。
+
+---
+
+### 皇上操作记录（已归档条目）
+
+| **2026-10-23 22:12** | 🚨 **v118 早场 #1：cron 触发例行检查，P0 ✅（compileall + import OK, py3.12.3）+ P1 ✅（324/5/0，76.68s）+ P2 ✅（benchmark quick PASSED, acc 0.7900），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~92h+）。CI **连续 3 轮 SUCCESS**（run #39889110714，HEAD `9d43beb`）✅，工作树 clean ✅，本地 HEAD `9d43beb` = 远端 head ✅，run log: `strategy/runs/2026-10-23-2212.md` — 第87次提醒 #1 🚨（持续等决策）** |

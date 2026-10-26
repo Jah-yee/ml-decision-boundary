@@ -1,7 +1,7 @@
 # ADR-0018 — v13 DoD 细化：Experiment Provenance & Reproducibility
 
 **日期**: 2026-10-26
-**状态**: 🟡 Proposed（DoD #1 实现中）
+**状态**: 🟡 Proposed（DoD #1 实现完成，待 Accepted）
 **维护人**: 太子
 
 ---
@@ -24,10 +24,10 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 
 | # | DoD 项目 | 描述 | 优先级 | 状态 |
 |---|---------|------|--------|------|
-| 1 | Provenance capture | 注册模型时记录 seed / dataset params / resolved hyperparameters / environment / git commit / canonical fingerprint | P1 | 🟡 实现中 |
-| 2 | Provenance compare | SDK + CLI 支持查看 provenance 与比较两个模型的来源差异 | P1 | 🟡 实现中 |
-| 3 | Backward compatibility | v13 前模型无需迁移；读取时返回空 provenance，不重写旧 JSON | P1 | 🟡 实现中 |
-| 4 | Regression verification | 新增专项测试，完整 P0/P1/P2/P3 验收，CI 全绿 | P0 | ⏳ 待验收 |
+| 1 | Provenance capture | 注册模型时记录 seed / dataset params / resolved hyperparameters / environment / git commit / canonical fingerprint | P1 | ✅ 完成 (855f045) |
+| 2 | Provenance compare | SDK + CLI 支持查看 provenance 与比较两个模型的来源差异 | P1 | ✅ 完成 (855f045) |
+| 3 | Backward compatibility | v13 前模型无需迁移；读取时返回空 provenance，不重写旧 JSON | P1 | ✅ 完成 (855f045) |
+| 4 | Regression verification | 新增专项测试，完整 P0/P1/P2/P3 验收，CI 全绿 | P0 | ⏳ 待 CI |
 
 ---
 
@@ -43,17 +43,28 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 
 ## 验收标准
 
-- [ ] Registry 新模型包含完整 provenance JSON
-- [ ] `MLDB.get_provenance()` / `MLDB.compare_provenance()` 可用
-- [ ] CLI `model provenance <id>` / `model diff <id1> <id2>` 可用
-- [ ] 旧模型返回空 provenance 且原 JSON 字节不变
-- [ ] Fingerprint 对 volatile 字段稳定，对 seed/参数/环境/git 变化敏感
-- [ ] P0 compileall + import smoke 通过
-- [ ] P1 pytest 全绿
-- [ ] P2 benchmark quick 通过
-- [ ] P3 API/health 契约保持通过
+- [x] Registry 新模型包含完整 provenance JSON
+- [x] `MLDB.get_provenance()` / `MLDB.compare_provenance()` 可用
+- [x] CLI `model provenance <id>` / `model diff <id1> <id2>` 可用
+- [x] 旧模型返回空 provenance 且原 JSON 字节不变
+- [x] Fingerprint 对 volatile 字段稳定，对 seed/参数/环境/git 变化敏感
+- [x] P0 compileall + import smoke 通过
+- [x] P1 pytest 全绿
+- [x] P2 benchmark quick 通过（accuracy 0.79 ≥ 0.70）
+- [x] P3 API/health 契约保持通过（`/api/health` 200；`/api/registry` 五种查询契约实测通过）
 
 ---
+
+## 实现要点
+
+- `core/provenance.py`：唯一实现源。`build_provenance()` 组装记录，`compute_fingerprint()` 用 canonical JSON + SHA-256（前 16 hex）计算指纹。
+- 指纹覆盖：seed / dataset / hyperparameters / 环境版本(python, numpy, scikit_learn, joblib) / git commit。
+- 指纹不覆盖：`captured_at`、`git.dirty`、`git.branch`、`environment.platform` — 这些是采集上下文而非复现条件，避免“指纹相同但记录不同”的语义冲突。
+- `provenance_diff()` 返回结构化差异（`field`/`left`/`right`），不把 JSON 当字符串比较。
+- Registry 为事实源：`save_model(provenance=...)`、`get_provenance()`、`compare_provenance()`；旧模型读回空 `{}` 且不重写原 JSON。
+- SDK：`MLDB.get_provenance()` / `MLDB.compare_provenance()`，缺失模型抛 `ModelNotFoundError`。
+- CLI：`python3 main.py model provenance <id>`、`python3 main.py model diff <id1> <id2>`。
+- 附带修复：`tests/test_benchmarks_smoke.py` full-suite 子进程超时 120s → 300s（实测该套件在本机稳定超过 120s，属测试预算问题，非产品缺陷）。
 
 ## 下轮待办
 

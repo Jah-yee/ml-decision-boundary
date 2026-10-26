@@ -6,7 +6,7 @@
 
 ---
 
-## 🟢 v120 早场 状态：**v13 DoD #1 实验 provenance 捕获完成，P0/P1/P2/P3 全绿（449 passed / 0 failed），待推送开 PR**
+## 🟢 v120 早场 状态：**v13 DoD #1 实验 provenance 捕获完成，P0/P1/P2/P3 全绿（449 passed / 0 failed），PR #61 已开 + CI 6/6 SUCCESS**
 
 ### 🆕 本轮交付：Experiment Provenance Capture（v13 DoD #1）
 
@@ -43,6 +43,22 @@
 | **P1** | `pytest -q` | ✅ **449 passed, 5 skipped, 0 FAILED**（330.80s，438 → 449，+11）|
 | **P2** | `python3 -m benchmarks --quick` | ✅ PASSED（circles/SVM, acc 0.7900, thr 0.7000）→ `benchmarks/reports/2026-10-26.md` |
 | **P3** | API 契约 + health | ✅ `curl localhost:5000/api/health` → **HTTP 200**；`/api/registry` 五种查询实测通过 |
+| **CI** | GitHub Actions | ✅ run `40256584515` **6/6 SUCCESS**（benchmark / depth-sweep / hyperparam-sweep / security-audit / quality-checks / quality-gates）|
+
+### 🔗 PR #61
+
+| 项目 | 状态 |
+|------|------|
+| PR #61 | **OPEN · 本轮新开**（待皇上 Merge）|
+| 标题 | `feat(v13): DoD #1 — Experiment Provenance Capture (seed/dataset/env/git + SHA-256 fingerprint + diff)` |
+| Base | `master` (`4082158`) |
+| Head | `feat/v13-provenance-provenance` @ `7e507c0` |
+| 合并态 | `mergeable=MERGEABLE` · `mergeStateStatus=CLEAN` · CI **6/6 SUCCESS** |
+| URL | https://github.com/Jah-yee/ml-decision-boundary/pull/61 |
+
+> **base 选择说明**：初开时 base 选 `feat/v12-sdk-foundation`，但 CI 工作流仅监听 push 到 `master/daily/*/fix/*/feature/*` 或 PR→master → **不触发 CI**。
+> 改 base 为 `master` 后一次触发 CI；v13 分支已完整包含 v12 全部内容（`git merge-base --is-ancestor` 验证通过），同时消除长期分叉。
+> 注：本分支名 `feat/*` 不匹配 push 触发列表，CI 依赖 PR→master 事件。
 
 ### 附带修复
 
@@ -52,7 +68,13 @@
 
 | Commit | 说明 |
 |--------|------|
-| `855f045` | `feat(v13): DoD #1 — experiment provenance capture (registry + SDK + CLI + fingerprint + tests)`（9 files, +530 / -7）|
+| `14ca5b8` | `feat(v13): DoD #1 — experiment provenance capture (registry + SDK + CLI + fingerprint + tests)`（9 files, +530 / -7）|
+| `b4f087b` | `docs(strategy): v120 早场 run log + NEXT_ROUND_THEME 更新` |
+| `7e507c0` | `docs(strategy): 精简 NEXT_ROUND_THEME.md（19.6K→13.2K）+ 归档 v119 晚场回顾与最旧操作记录` |
+
+> **作者邮箱说明**：本轮首次 commit 用 `jydu_seven@outlook.com`，push 被 GitHub 拒绝（GH007 私有邮箱保护）。
+> 按仓库既有 precedent 改为 `166608075+Jah-yee@users.noreply.github.com`（同一 `Jah-yee` 账号）后 push 成功。
+> 如需统一为 outlook 邮箱，需先在 GitHub → Settings → Emails 将其设为公开。
 
 > run log: `strategy/runs/2026-10-26-0156.md`
 
@@ -69,7 +91,7 @@
 | **2026-10-24 22:20** | 🔴 **v118 晚场 #3：结论不变（只点 PR #58），但证据显著升级。🆕 **模拟 squash 合并后的 master 端到端验收通过**：P1 **324 passed / 5 skipped / 0 FAILED**（116.29s）+ pip-audit **No known vulnerabilities found** + pillow 13.0.0 / werkzeug 3.1.9 / Python 3.12 ×7 / UTC 修复全部就位 → **实证 #58 单独合入即修复 master，#59 应 Close**。🔬 **修正上轮时区复现方法**：上轮 `TZ=Etc/GMT+8` 结果依赖墙钟（当前时刻 UTC 与 GMT+8 同日，实测无法复现），本轮改用注入本地时钟偏移的对称实验 → master **2 failed** / #58 分支 **12 passed**，且根因代码级确认（`core/registry.py:115` 用 UTC，master 测试用本地 `date.today()`，GMT+8 下每天 8h 窗口不一致）。✅ CVE **63 条**独立复核确认；✅ #59 **4/4 文件**与 #58 逐字节相同；✅ `git merge-base` 空 → **必须 Squash**。🚨 **修复本地环境损坏**：全局 `pytest_scenario_files` editable 路径 `/tmp/psf-fork` 被删 + 多个包缺 RECORD 导致 pip 无法卸载 → 按 `requirements.lock` 重装后 P1 首次即 324/5/0。P0 ✅ + P1 ✅（324/5/0，72.89s）+ P2 ✅（acc 0.7900）+ pip-audit ✅ 0 vuln。**👑 请皇上只点 PR #58 的 Merge 按钮（务必 Squash and merge）**，合并后 Close PR #59。run log: `strategy/runs/2026-10-24-2207.md` — 第88次提醒 #3 🔴** |
 | **2026-10-24 10:11** | 🔴 **v118 晚场 #2：例行闭环 + PR 合并顺序独立验证。P0 ✅ + P1 ✅（324/5/0，68.86s）+ P2 ✅（acc 0.7900），CI 6/6 SUCCESS（run #40054000623）。🚨 **重大纠偏 #1：上轮「点两个 Merge」是错的** —— 实测 #59 的 4 个文件与 #58 blob SHA **逐字节相同**（requirements.lock / ci.yml / release.yml / test_registry.py 全 IDENTICAL），#58 合并后 master 即含 pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12 + UTC 修复 → **#59 应 Close 而非 Merge**。🚨 **重大纠偏 #2：CVE 实测 63 条**（非上轮「25 个」）—— pillow12.2.0+werkzeug3.1.8 对照审计 63 条 CVE 行，修复后 `No known vulnerabilities found`；master 最后一次 CI 是 **2026-07-04**，从未重跑，绿是假象。🆕 **时区 bug 确定性复现**：上轮「master 2 failed」当前不可复现（本地与 UTC 同日），用 `TZ=Etc/GMT+8` 强制复现 → master **2 failed** / #59 分支同条件 **12 passed**。⚠️ 记录风险：v11 与 master 无共同祖先（`git merge-base` 为空），本地 merge 报 unrelated histories，**建议 Squash and merge**。**👑 请皇上只点 PR #58 的 Merge 按钮**，合并后 Close PR #59。#59 分支独立 worktree P1 ✅（283/1/0，132.61s）+ P2 ✅ + pip-audit ✅ 0 vuln。run log: `strategy/runs/2026-10-24-1011.md` — 第88次提醒 #2 🔴** |
 | **2026-10-25 02:10** | 🎉 **v119 早场 #1：皇上已 Merge！PR #58 merged 2026-10-24T16:27:28Z（`99b8490`）+ PR #59 merged 2026-10-24T16:27:51Z（`4082158`），master CI run #40111672401 **6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0）。v11 收口：ADR-0016 → Accepted，`spec/phases.md` v11 已完成 ✅。🆕 v12 启动并交付 DoD #1 **Python SDK**：`ml_db/` 包（`MLDB` 顶层 API + E2xxx 错误层级）+ `core/train_utils.py` 抽出 `BUILTIN_FACTORIES`/`BUILTIN_MODEL_NAMES` + `tests/test_sdk.py`（21 新测试）+ `examples/06_sdk_usage.py` + README §7。P0 ✅ + P1 ✅（**345 passed / 5 skipped / 0 FAILED，79.13s**）+ P2 ✅（acc 0.7900）+ SDK 走查 ✅。run log: `strategy/runs/2026-10-25-0210.md` — 第89次提醒 #1 ✅（**无需皇上操作**）** |
-| **2026-10-26 09:56** | 🟢 **v120 早场 #1：v13 启动并交付 DoD #1「experiment provenance capture」。** 新增 `core/provenance.py`（canonical JSON + SHA-256 指纹 + 结构化 diff）+ Registry/SDK/CLI 三端接入（`model provenance <id>` / `model diff <id1> <id2>`）+ `tests/test_provenance.py`（11 新测试）+ ADR-0018 + phases/API 文档。指纹覆盖 seed/dataset/hyperparams/环境版本/git commit，排除 `captured_at`/`git.dirty`/`platform` 等易变字段。P0 ✅ + P1 ✅（**449 passed / 5 skipped / 0 FAILED**，330.80s，438 → 449）+ P2 ✅（acc 0.7900）+ P3 ✅（health HTTP 200，`/api/registry` 五种查询实测通过）。⚠️ **本轮事故**：工作树被外部 `git reset --hard` 清空一次（reflog `reset: moving to HEAD`，无对应 commit），已重建全部实现并**立即做保护性提交** `855f045`；新增规则“每个实现单元完成即 commit”。📌 **请皇上决策**：① Merge PR #60（v12）② 接受 ADR-0018（v13 DoD 细化）——两者均不阻塞后续开发。run log: `strategy/runs/2026-10-26-0156.md` — 第90次提醒 #1** |
+| **2026-10-26 09:56** | 🟢 **v120 早场 #1：v13 启动并交付 DoD #1「experiment provenance capture」。** 新增 `core/provenance.py`（canonical JSON + SHA-256 指纹 + 结构化 diff）+ Registry/SDK/CLI 三端接入（`model provenance <id>` / `model diff <id1> <id2>`）+ `tests/test_provenance.py`（11 新测试）+ ADR-0018 + phases/API 文档。指纹覆盖 seed/dataset/hyperparams/环境版本/git commit，排除 `captured_at`/`git.dirty`/`platform` 等易变字段。P0 ✅ + P1 ✅（**449 passed / 5 skipped / 0 FAILED**，330.80s，438 → 449）+ P2 ✅（acc 0.7900）+ P3 ✅（health HTTP 200，`/api/registry` 五种查询实测通过）+ 🆕 **CI 6/6 SUCCESS**（run `40256584515`）。🆕 **新交付 PR #61**（base `master`，OPEN/CLEAN/MERGEABLE）。⚠️ **本轮事故**：工作树被外部 `git reset --hard` 清空一次（reflog `reset: moving to HEAD`，无对应 commit），已重建全部实现并**立即做保护性提交**；新增规则“每个实现单元完成即 commit”。⚠️ 另：初开 PR 的 base 为 `feat/v12-sdk-foundation` 但 CI 工作流不监听 → 改 base 为 `master` 后正常触发（v13 已完整含 v12）。📌 **请皇上决策**：① Merge PR #61（v13 DoD #1）② Merge PR #60（v12 三 DoD）③ 接受 ADR-0018 —— 三者均不阻塞后续开发。run log: `strategy/runs/2026-10-26-0156.md` — 第90次提醒 #1** |
 
 ---
 
@@ -83,8 +105,9 @@
 | **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-10-25**（DoD #1-4 全绿）|
 | **v12 (Python API & SDK Foundation)** | ✅ **完成** — DoD #1 SDK / #2 Async queue / #3 Registry 版本化+标签查询 全绿，ADR-0017 Accepted；PR #60 已交付（OPEN / CLEAN / MERGEABLE，CI 6/6 SUCCESS），待皇上 Merge |
 | **v13 (Experiment Provenance & Reproducibility)** | 🟡 **进行中 — DoD #1 provenance capture 已完成**（`core/provenance.py` + Registry/SDK/CLI 三端 + 11 专项测试，P1 449/0 全绿）；ADR-0018 待 Accepted |
-| **本轮 PR** | 🟢 **PR #60 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v12 三 DoD，待皇上 Merge）|
-| **本轮分支** | `feat/v13-provenance-provenance` @ `855f045`（v13 DoD #1，待推送开 PR）|
+| **本轮 PR** | 🟢 **PR #61 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（run `40256584515`，head `7e507c0`）— v13 DoD #1 provenance capture，待皇上 Merge |
+| **待合 PR #60** | 🟢 **PR #60 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v12 三 DoD，待皇上 Merge）|
+| **本轮分支** | `feat/v13-provenance-provenance` @ `7e507c0`（已推送，base `master`）|
 | **CI 安全审计** | ✅ **master 已脱险**：PR #58/#59 merged 后 master = pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12；**master CI #40111672401 6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0） |
 
 ---
@@ -94,8 +117,8 @@
 - **受益人**: 皇上 / 仓库维护者 / 外部 Python 使用者 / 所有拉取 master 的用户；特别是需要**判定“两次实验是否同条件产生”**的回归分析与实验复现者
 - **价值**: ① **实验可追溯性从“不可判定”到“可机器验证”**：此前 Registry 只存结果/数据集 hash/超参，**无法回答“这两个模型是不是同条件下训出来的”**；本轮引入 seed/环境/git commit/规范化指纹 + 结构化 diff，给出确定答案 ② **fingerprint 让回归检测有了依据**：`sha256:` 指纹一致 = 同条件复现，差异即刻定位到具体字段（实测 `hyperparameters: {'C': 1.0} → {'C': 10.0}`）③ **三端一致**：Registry/SDK/CLI/HTTP 共用 `core/provenance.py`，结果零漂移；SDK 用户可直接在脚本/notebook 中调用 ④ **零迁移不破坏存量**：旧模型读回 `{}` 且原 JSON 字节不变，无任何迁移风险
 - **验证**: P0 ✅ compileall 0 + `import main/ml_db/core.provenance` OK；P1 ✅ **449 passed / 5 skipped / 0 FAILED（330.80s，438 → 449）**；P2 ✅ `benchmarks --quick` PASSED（acc 0.7900）→ `benchmarks/reports/2026-10-26.md`；P3 ✅ health HTTP 200 + `/api/registry` 五种查询实测通过；端到端 ✅ 两次训练 → provenance 差异精确到 `hyperparameters`
-- **当前状态**: 🟢 **无外部阻塞** — v13 DoD #1 已交付；待皇上 Merge PR #60 + 接受 ADR-0018
+- **当前状态**: 🟢 **无外部阻塞** — v13 DoD #1 已交付且 CI 6/6 SUCCESS；待皇上 Merge PR #61 + PR #60 + 接受 ADR-0018
 - **最近一次验证**: 2026-10-26 09:56 CST（v120 早场 #1）
 - **master HEAD**: `4082158`（PR #59 squash），master CI 6/6 SUCCESS
-- **本地分支**: `feat/v13-provenance-provenance` @ `855f045`（基于 `6bf7b75`）
+- **本地分支**: `feat/v13-provenance-provenance` @ `7e507c0`（base `master`，已推送）
 - **阻塞**: 无（PR #60 待 Merge，不阻塞下一轮开发）

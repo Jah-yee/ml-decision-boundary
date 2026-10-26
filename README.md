@@ -130,6 +130,117 @@ python server.py
 open web/index.html
 ```
 
+### 7. Python SDK (v12)
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+
+# Train + register in one call
+result = db.train(model="SVM", dataset="circles", n_samples=500, tags=["demo"])
+print(result.model_id, result.accuracy)
+
+# Predict with a registered model
+preds = db.predict(result.model_id, X=[[0.0, 0.0], [1.0, 1.0]])
+
+# Registry passthrough
+db.list_models()
+db.list_models_by_tag("demo")
+db.compare(result.model_id, other_id)
+```
+
+### 7b. Async Training (v12 DoD #2)
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+
+# Start a background training job — returns immediately
+task = db.train_async(model="RF", dataset="moons", n_samples=2000)
+print(task["id"], task["status"])  # e.g. "2026-10-25_abc123" "pending"
+
+# Poll the task state
+print(db.get_task(task["id"])["status"])
+
+# Or block until it finishes
+final = db.wait_for_task(task["id"], timeout=120)
+print(final["status"], final["result"]["accuracy"])
+
+# List all tasks, optionally filtered by state
+db.list_tasks(status="succeeded")
+
+# Cancel a still-running task
+db.cancel_task(task["id"])
+```
+
+> The SDK is a thin wrapper over `core/` — CLI, HTTP API and SDK share the exact
+> same training and registry logic, so results never drift between surfaces.
+> Async tasks are persisted to `~/.ml-decision-boundary/registry/tasks/` and
+> survive process restarts (interrupted tasks are marked `failed` on recovery).
+
+---
+
+### 7c. Model Versioning & Batch Tag Query (v12 DoD #3)
+
+Models that share the same **family** (identical `model_type` + dataset +
+hyperparameters) are versioned `v1 → v2 → v3 ...`. Retraining the same setup
+never overwrites the previous run — it becomes the next version.
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+
+# Train the same config twice → two versions of one family
+db.train(model="SVM", dataset="circles", C=1.0, kernel="rbf")
+db.train(model="SVM", dataset="circles", C=1.0, kernel="rbf")
+
+# All versions of a model
+for m in db.get_model_versions(db.list_models()[0]["id"]):
+    print(f"v{m['version']}  {m['id']}  acc={m['accuracy']}")
+
+# The newest version of that family
+db.get_latest_version(model_id)["version"]
+
+# Group every model by family
+db.list_model_families()
+
+# Batch tag query — "any" = union, "all" = intersection
+db.list_models_by_tags(["prod", "best"], mode="any")   # has prod OR best
+db.list_models_by_tags(["prod", "best"], mode="all")   # has prod AND best
+
+# Reverse tag index, newest first within each tag
+db.tag_index()
+```
+
+Same operations from the CLI:
+
+```bash
+python main.py model list --tags prod best --match any   # batch tag query
+python main.py model list --tags prod best --match all
+python main.py model versions 2026-10-25_abc123          # all versions of a family
+python main.py model families                            # group by family
+python main.py model list                                 # includes a VER column
+```
+
+And over HTTP (`GET /api/registry`) — see [`spec/API.md`](spec/API.md):
+
+```bash
+curl "localhost:5000/api/registry?tags=prod,best&match=all"
+curl "localhost:5000/api/registry?id=2026-10-25_abc123&versions=1"
+curl "localhost:5000/api/registry?families=1"
+```
+
+> **Backward compatible**: registries created before v12 keep working untouched.
+> Legacy metadata files are never rewritten — missing `version` defaults to `1`
+> and missing `family` is derived on read. Model ID format is unchanged.
+> Tagging a legacy model writes only the `tags` field, so its file keeps its shape.
+>
+> Set `MLDB_REGISTRY_BASE=/path/to/registry` to point the CLI, the SDK and the
+> local Flask server at one registry root (handy for local verification).
+
 ---
 
 ## 🏗️ Architecture
@@ -215,8 +326,14 @@ ml-decision-boundary/
 ├── requirements.lock      # Locked versions for production
 ├── run.sh                 # One-liner: bash run.sh
 ├── vercel.json            # Vercel deployment config
+├── ml_db/                 # v12 DoD #1-#2 — Python SDK
+│   ├── __init__.py        # `from ml_db import MLDB`
+│   ├── client.py          # MLDB client (train / predict / async / registry)
+│   └── errors.py          # MLDBError hierarchy (E2xxx codes)
 ├── api/
 │   ├── train.py           # Vercel serverless: POST /api/train
+│   ├── train_async.py     # v12 DoD #2: POST /api/train_async (202 + task_id)
+│   ├── tasks.py           # v12 DoD #2: GET /api/tasks (poll / list)
 │   └── health.py          # Vercel serverless: GET /api/health
 ├── core/                  # Core ML logic
 │   ├── __init__.py
@@ -224,6 +341,7 @@ ml-decision-boundary/
 │   ├── datasets.py        # Synthetic data generation (circles/moons/blobs/xor)
 │   ├── visualizer.py      # matplotlib decision boundary rendering
 │   ├── registry.py        # v8 Model Registry (JSON persistence)
+│   ├── task_queue.py      # v12 DoD #2: persistent async task queue
 │   ├── interfaces.py      # Plugin contract (ModelBuilder ABC)
 │   ├── validation.py       # Error validation + user-facing errors
 │   ├── error_messages.py  # Error message definitions

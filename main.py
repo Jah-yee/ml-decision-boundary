@@ -15,6 +15,7 @@ from core.datasets import (
     make_s_curve,
     DATASET_GENERATORS,
 )
+from core.provenance import build_provenance
 from core.train_utils import (
     build_model,
     slider_to_params,
@@ -121,12 +122,17 @@ Examples:
 
     # ml-db model list
     list_parser = subparsers.add_parser("model", help="Model registry management")
-    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags"],
-                              help="Action: list, inspect, delete, compare, tag, untag, tags")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff"],
+                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff")
     list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete/compare/tag/untag)")
     list_parser.add_argument("model_id2", nargs="?", help="Second model ID (for compare)")
     list_parser.add_argument("--tag", dest="tag_name", help="Tag name (for tag/untag/list --tag)")
     list_parser.add_argument("--remove-tag", dest="remove_tag", help="Remove tag name (for untag)")
+    # v12 DoD #3: batch tag query + version listing
+    list_parser.add_argument("--tags", dest="tag_names", nargs="+", default=None,
+                              help="Batch tag query: list models matching these tags (e.g. --tags a b c)")
+    list_parser.add_argument("--match", dest="match_mode", choices=["any", "all"], default="any",
+                              help="Batch tag match mode: 'any' (default) or 'all'")
 
     # v8 DoD #4: benchmark subcommand group
     bench_parser = subparsers.add_parser("benchmark", help="Benchmark registry management")
@@ -176,12 +182,12 @@ def cmd_model_list(rm):
         print("📭 No models registered yet. Run an experiment to register your first model.")
         return
     # Print table header
-    print(f"\n{'ID':<22} {'TYPE':<8} {'ACCURACY':<10} {'CREATED':<25}")
-    print("-" * 70)
+    print(f"\n{'ID':<22} {'TYPE':<8} {'ACCURACY':<10} {'VER':<5} {'CREATED':<25}")
+    print("-" * 78)
     for m in models:
         created = m.get("created_at", "unknown")[:25]
         acc = m.get("accuracy", m.get("metrics", {}).get("test_accuracy", 0.0))
-        print(f"{m['id']:<22} {m['model_type']:<8} {acc:<10.4f} {created}")
+        print(f"{m['id']:<22} {m['model_type']:<8} {acc:<10.4f} v{m.get('version', 1):<4} {created}")
     print(f"\n✅ {len(models)} model(s) registered")
 
 
@@ -197,6 +203,10 @@ def cmd_model_inspect(rm, model_id):
     print(f"   Plugin:       {meta.get('plugin_origin', False)}")
     print(f"   Accuracy:     {meta.get('accuracy', 'N/A')}")
     print(f"   Created:      {meta.get('created_at', 'unknown')}")
+    # v12 DoD #3: version + family
+    print(f"   Version:      v{meta.get('version', 1)}")
+    print(f"   Family:       {meta.get('family', 'unknown')}")
+    print(f"   Tags:         {meta.get('tags', [])}")
     print(f"   Hyperparameters: {meta.get('hyperparameters', {})}")
     print(f"   Dataset:      {meta.get('dataset', {})}")
     print(f"   Metrics:      {meta.get('metrics', {})}")
@@ -296,6 +306,90 @@ def cmd_model_tags(rm):
                 print(f"     {mid:<22} {mtype:<8} acc={acc}")
             except Exception:
                 print(f"     {mid}")
+        print()
+
+
+def cmd_model_versions(rm, model_id: str):
+    """Show every version of the family a model belongs to.  v12 DoD #3."""
+    try:
+        versions = rm.get_model_versions(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    if not versions:
+        print(f"❌ No versions found for model '{model_id}'.")
+        raise SystemExit(1)
+    meta = versions[0]
+    family = meta.get("family", "unknown")
+    print(f"\n🧬 Model family: {family}")
+    print(f"   ({len(versions)} version(s), v1 first)\n")
+    print(f"{'VER':<6} {'ID':<22} {'TYPE':<8} {'ACCURACY':<10} {'CREATED':<25}")
+    print("-" * 78)
+    for m in versions:
+        created = m.get("created_at", "unknown")[:25]
+        acc = m.get("accuracy", m.get("metrics", {}).get("test_accuracy", 0.0))
+        print(f"v{m.get('version', 1):<5} {m['id']:<22} {m['model_type']:<8} {acc:<10.4f} {created}")
+
+
+def cmd_model_provenance(rm, model_id):
+    """Show the provenance record of a model."""
+    try:
+        prov = rm.get_provenance(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    print(f"\n🧾 Provenance: {model_id}")
+    if not prov:
+        print("   No provenance recorded — this model was registered before v13.")
+        return
+    dataset = prov.get("dataset", {})
+    env = prov.get("environment", {})
+    git = prov.get("git", {})
+    print(f"   Fingerprint:  {prov.get('fingerprint', 'N/A')}")
+    print(f"   Seed:         {prov.get('seed', 'N/A')}")
+    print(f"   Model type:   {prov.get('model_type', 'N/A')}")
+    print(f"   Dataset:      {dataset.get('name', 'N/A')} (n={dataset.get('n_samples', 'N/A')}, noise={dataset.get('noise', 'N/A')}, test_size={dataset.get('test_size', 'N/A')})")
+    print(f"   Hyperparams:  {prov.get('hyperparameters', {})}")
+    print(f"   Environment:  {env}")
+    print(f"   Git:          {git}")
+    print(f"   Captured at:  {prov.get('captured_at', 'N/A')}")
+
+
+def cmd_model_diff(rm, model_id1, model_id2):
+    """Compare the provenance of two models."""
+    try:
+        diff = rm.compare_provenance(model_id1, model_id2)
+    except FileNotFoundError:
+        print("❌ One of the models was not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    print(f"\n🧾 Provenance diff: {model_id1} ↔ {model_id2}")
+    print(f"   Left fingerprint:  {diff.get('left_fingerprint') or 'N/A'}")
+    print(f"   Right fingerprint: {diff.get('right_fingerprint') or 'N/A'}")
+    print(f"   Identical:         {diff.get('identical')}")
+    print(f"   Fingerprint match: {diff.get('fingerprint_match')}")
+    differences = diff.get("differences") or []
+    if differences:
+        print(f"\n   Differences ({len(differences)}):")
+        for item in differences:
+            print(f"      - {item['field']}: {item['left']} → {item['right']}")
+    else:
+        print("\n   ✅ No differences.")
+
+
+def cmd_model_families(rm):
+    """List model families with their versions.  v12 DoD #3."""
+    families = rm.list_model_families()
+    if not families:
+        print("📭 No models registered yet. Run an experiment to register your first model.")
+        return
+    total_versions = sum(len(v) for v in families.values())
+    print(f"\n🧬 Model Families ({len(families)} families, {total_versions} version(s)):")
+    print()
+    for family, members in families.items():
+        print(f"  【{family}】 — {len(members)} version(s)")
+        for m in members:
+            acc = m.get("accuracy", m.get("metrics", {}).get("test_accuracy", 0.0))
+            print(f"     v{m.get('version', 1):<3} {m['id']:<22} {m['model_type']:<8} acc={acc}")
         print()
 
 
@@ -575,6 +669,15 @@ def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42, 
                 train_accuracy=train_accuracy,
                 test_accuracy=test_accuracy,
                 plugin_origin=False,
+                provenance=build_provenance(
+                    seed=seed,
+                    dataset_name=dataset,
+                    n_samples=500,
+                    noise=0.3,
+                    test_size=0.2,
+                    hyperparameters=params,
+                    model_type=model_type,
+                ),
             )
             if verbose:
                 print(f"  📦 Registered model: {model_id}")
@@ -906,6 +1009,23 @@ if __name__ == "__main__":
                             created = m.get("created_at", "unknown")[:25]
                             acc = m.get("accuracy", 0.0)
                             print(f"   {m['id']:<22} {m['model_type']:<8} acc={acc:.4f}  {created}")
+                # v12 DoD #3: batch tag query (--tags a b c [--match any|all])
+                elif getattr(args, "tag_names", None):
+                    try:
+                        models = rm.list_models_by_tags(args.tag_names, mode=args.match_mode)
+                    except ValueError as e:
+                        print(f"❌ {e}")
+                        raise SystemExit(1)
+                    label = " AND ".join(args.tag_names) if args.match_mode == "all" else " OR ".join(args.tag_names)
+                    if not models:
+                        print(f"📭 No models found with tags ({label}).")
+                    else:
+                        print(f"\n🏷️  Models matching tags [{label}] ({len(models)}):")
+                        for m in models:
+                            created = m.get("created_at", "unknown")[:25]
+                            acc = m.get("accuracy", 0.0)
+                            ver = m.get("version", 1)
+                            print(f"   {m['id']:<22} {m['model_type']:<8} acc={acc:.4f}  v{ver}  {created}")
                 else:
                     cmd_model_list(rm)
             elif action == "inspect":
@@ -939,6 +1059,25 @@ if __name__ == "__main__":
                 cmd_model_untag(rm, args.model_id, tag_name)
             elif action == "tags":
                 cmd_model_tags(rm)
+            elif action == "versions":
+                # v12 DoD #3: list every version of a model's family
+                if not args.model_id:
+                    print("❌ versions requires a model_id: python main.py model versions <id>")
+                    raise SystemExit(1)
+                cmd_model_versions(rm, args.model_id)
+            elif action == "families":
+                # v12 DoD #3: list all model families
+                cmd_model_families(rm)
+            elif action == "provenance":
+                if not args.model_id:
+                    print("❌ provenance requires a model_id: python main.py model provenance <id>")
+                    raise SystemExit(1)
+                cmd_model_provenance(rm, args.model_id)
+            elif action == "diff":
+                if not args.model_id or not args.model_id2:
+                    print("❌ diff requires two model IDs: python main.py model diff <id1> <id2>")
+                    raise SystemExit(1)
+                cmd_model_diff(rm, args.model_id, args.model_id2)
         elif cmd == "benchmark":
             if action == "list":
                 cmd_benchmark_list(rm)

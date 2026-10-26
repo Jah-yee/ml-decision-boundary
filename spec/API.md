@@ -1,7 +1,7 @@
 # API Contract — ml-decision-boundary
 
 **Status**: Active (v13 in progress)
-**Last updated**: 2026-10-26 (v13 DoD #1 provenance)
+**Last updated**: 2026-10-26 (v13 DoD #2 provenance replay)
 
 本文件记录 HTTP API 的行为契约。P3 验收要求「API/Web 行为在 spec 中记录」。
 
@@ -34,6 +34,7 @@
 | POST | `/api/train_async` | 异步训练，返回 202 + `task_id` | v12 DoD #2 |
 | GET | `/api/tasks` | 任务状态查询 / 列表 | v12 DoD #2 |
 | GET | `/api/registry` | Registry 查询（版本 / 家族 / 批量标签） | **v12 DoD #3** |
+| GET | `/api/provenance` | 实验来源查询 / diff / 重放方案 | **v13 DoD #1/#2** |
 
 ---
 
@@ -171,6 +172,90 @@ Registry 查询端点。覆盖三类查询：单模型元数据、模型版本/�
 Fingerprint 使用 canonical JSON + SHA-256，覆盖 seed、dataset、hyperparameters、环境版本与 git commit；不覆盖 `captured_at` 与 `git.dirty`。v13 前的旧模型读取时返回空 `{}`，原 JSON 文件不重写。
 
 本轮先通过 Registry / SDK / CLI 暴露 provenance；HTTP 端点列入下一轮，避免扩张已冻结的 API 契约。
+
+---
+
+## `GET /api/provenance`（v13 DoD #1 / DoD #2）
+
+实验来源查询与可复现重放方案。Flask（`web/server.py`）与 Vercel serverless（`api/provenance.py`）行为一致。
+
+### 查询参数
+
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `id` | string | — | **必填**。模型 ID。缺失返回 400 |
+| `compare` | string | — | 第二个模型 ID。存在时返回 `{left, right, diff}` |
+| `replay` | `1`/`true`/`yes` | — | 存在时返回 `{provenance, replay}` |
+
+### 响应
+
+**`?id=<model_id>`** — provenance 记录（200）：
+
+```json
+{
+  "seed": 42,
+  "dataset": {"name": "circles", "n_samples": 500, "noise": 0.3, "test_size": 0.2},
+  "hyperparameters": {"C": 1.0},
+  "model_type": "SVM",
+  "environment": {"python": "3.12.3", "...": "..."},
+  "git": {"commit": "...", "branch": "...", "dirty": false},
+  "captured_at": "2026-10-26T01:30:00+00:00",
+  "fingerprint": "sha256:0123456789abcdef",
+  "replay": { "...": "见下方重放方案" }
+}
+```
+
+> DoD #2 起，新注册模型的 provenance 内嵌 `replay` 重放方案快照。
+> v13 DoD #1 期间注册的模型无 `replay` 字段——仍可正常返回，只是没有内嵌方案。
+
+**`?id=<a>&compare=<b>`** — 来源差异（200）：
+
+```json
+{ "left": { "...": "provenance" }, "right": { "...": "provenance" },
+  "diff": { "identical": false, "fingerprint_match": false,
+            "differences": [{"field": "hyperparameters", "left": {}, "right": {}}] } }
+```
+
+**`?id=<a>&replay=1`** — provenance + 重放方案（200）：
+
+```json
+{
+  "provenance": { "...": "同上" },
+  "replay": {
+    "model_id": "2026-10-26_abc123",
+    "available": true,
+    "sdk": "from ml_db import MLDB\n...",
+    "cli": {
+      "command": "python main.py --model SVM --dataset circles --n-samples 500 --noise 0.3 --seed 42 --params C=1.0",
+      "exact": true,
+      "warnings": [],
+      "params": ["C=1.0"],
+      "tokens": ["python", "main.py", "..."]
+    },
+    "dependencies": {"digest": "sha256:...", "source": "requirements.lock", "package_count": 26, "available": true},
+    "expected": {"fingerprint": "sha256:...", "seed": 42, "model_type": "SVM",
+                 "dataset": {"...": "..."}, "hyperparameters": {"C": 1.0}, "git_commit": "..."}
+  }
+}
+```
+
+### 错误
+
+| 状态码 | 场景 | 响应体 |
+|--------|------|--------|
+| 400 | 缺少 `id` | `{"error": "Query parameter 'id' is required."}` |
+| 404 | 模型 ID 不存在 | `{"error": "...", "code": "E2003_MODEL_NOT_FOUND"}` |
+| 500 | 其它异常 | `{"error": "..."}` |
+
+### 重放方案的诚实性契约
+
+`cli.exact` **只在**以下条件全部满足时才为 `true`：
+
+1. 所有超参能无损往返 `main.py --params`（tuple / list / dict / `None` **不能**——CLI 会把它们变成字符串，从而训练出不同的模型）；
+2. `model_type` 属于 CLI 词表（`SVM/LR/Tree/RF/KNN/MLP/NB/GB/ET/AB`）；
+3. `test_size` 为默认值 `0.2`（CLI 无此参数）。
+
+任一不满足时 `cli.exact = false` 且 `cli.warnings` 给出原因；此时应使用 `replay.sdk`（始终精确）。
 
 ---
 

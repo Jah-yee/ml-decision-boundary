@@ -202,9 +202,12 @@
 
 **本阶段 DoD**（ADR-0018 — 🟡 Proposed）：
 - [ ] ADR-0018: v13 DoD 细化 ✅ (2026-10-26，Proposed)
-- [ ] Provenance capture — seed / dataset / hyperparameters / environment / git commit / fingerprint ✅ (实现中)
-- [ ] Provenance compare — SDK + CLI 查看与比较来源差异 ✅ (实现中)
-- [ ] 旧模型零迁移兼容 ✅ (实现中)
+- [x] Provenance capture — seed / dataset / hyperparameters / environment / git commit / fingerprint ✅ (2026-10-26)
+- [x] Provenance compare — SDK + CLI 查看与比较来源差异 ✅ (2026-10-26)
+- [x] 旧模型零迁移兼容 ✅ (2026-10-26)
+- [x] Replay recipe — 可执行重放方案（SDK 精确片段 + CLI 命令 + 依赖锁定摘要）✅ (2026-10-26)
+- [x] HTTP provenance API — `GET /api/provenance`（id / compare / replay）✅ (2026-10-26)
+- [x] Honest replay — CLI 命令仅在可精确复现时标记 exact，否则警告并引导 SDK ✅ (2026-10-26)
 - [ ] 回归验证与 CI 全绿 ⏳ (待验收)
 
 **v0-v12 已完成 ✅ | v13 进行中 🟡**

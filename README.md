@@ -243,6 +243,86 @@ curl "localhost:5000/api/registry?families=1"
 
 ---
 
+### 7d. Experiment Provenance & Reproducible Replay (v13)
+
+Every model registered from v13 onward records **how it was produced**:
+random seed, full dataset parameters, resolved hyperparameters, Python /
+numpy / scikit-learn versions and the Git commit. A canonical SHA-256
+**fingerprint** summarizes those fields so two models can be compared
+mechanically.
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+result = db.train(model="SVM", dataset="circles", params={"C": 1.0})
+
+# Where did this model come from?
+prov = db.get_provenance(result.model_id)
+prov["fingerprint"]     # 'sha256:f38a8840c8af2b99'
+prov["seed"], prov["git"]["commit"]
+
+# Compare the provenance of two models
+db.compare_provenance(id_a, id_b)
+```
+
+#### Reproducible replay
+
+`MLDB.replay_plan()` returns an **executable recipe** for reproducing a
+recorded run — an exact Python snippet, a convenience CLI command, and the
+digest of the pinned dependencies.
+
+```python
+plan = db.replay_plan(result.model_id)
+plan["sdk"]                 # exact Python snippet — always safe to run
+plan["cli"]["command"]      # convenience CLI command
+plan["cli"]["exact"]        # True only if the CLI reproduces the run faithfully
+plan["cli"]["warnings"]     # why it is not exact (empty when exact)
+plan["dependencies"]        # {'digest': 'sha256:...', 'package_count': 26, ...}
+```
+
+> **Honest by design**: `main.py --params` parses values into
+> `int`/`float`/`bool` and keeps everything else as a **string**. A
+> hyperparameter such as `hidden_layer_sizes=(50,)` would therefore reach
+> scikit-learn as the string `"(50,)"` and silently train a *different*
+> model. When that happens the CLI command is flagged `exact: false` with a
+> warning, and the exact `sdk` snippet is the canonical replay path.
+
+#### Re-running and checking
+
+```python
+report = db.replay(result.model_id)
+report["reproduced"]          # run-equivalent: same seed/dataset/params
+report["fingerprint_match"]   # full fingerprint (also covers env + git)
+report["run_differences"]     # structured diff of the run-relevant fields
+report["accuracy_delta"]      # |replayed - original| accuracy
+```
+
+`replay()` uses the **recorded** seed (not the client's current one) and
+does not write to the registry unless you pass `register=True`.
+
+Same from the CLI:
+
+```bash
+python main.py model provenance 2026-10-25_abc123     # show the record
+python main.py model diff 2026-10-25_abc123 2026-10-25_def456
+python main.py model replay 2026-10-25_abc123         # show the recipe
+```
+
+And over HTTP (`GET /api/provenance`) — see [`spec/API.md`](spec/API.md):
+
+```bash
+curl "localhost:5000/api/provenance?id=2026-10-25_abc123"
+curl "localhost:5000/api/provenance?id=2026-10-25_abc123&replay=1"
+curl "localhost:5000/api/provenance?id=2026-10-25_abc123&compare=2026-10-25_def456"
+```
+
+> **Backward compatible**: models registered before v13 return an empty
+> provenance and are never rewritten. `replay_plan()` degrades gracefully
+> instead of raising.
+
+---
+
 ## 🏗️ Architecture
 
 ```

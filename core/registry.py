@@ -27,7 +27,11 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Sequence
 from dataclasses import dataclass, asdict, field
 
-from core.provenance import build_provenance, provenance_diff
+from core.provenance import (
+    build_provenance,
+    build_replay_plan,
+    provenance_diff,
+)
 
 
 REGISTRY_BASE = Path.home() / ".ml-decision-boundary" / "registry"
@@ -318,6 +322,19 @@ class RegistryManager:
         joblib.dump(model, joblib_path)
 
         # Build metadata
+        provenance_record = provenance or build_provenance(
+            seed=None,
+            dataset_name=dataset_name,
+            n_samples=n_samples,
+            hyperparameters=hyperparameters,
+            model_type=model_type,
+        )
+        # v13 DoD #2: freeze the replay recipe at registration time so the
+        # exact recipe that reproduces *this* run is preserved alongside it.
+        if isinstance(provenance_record, dict) and not provenance_record.get("replay"):
+            provenance_record = dict(provenance_record)
+            provenance_record["replay"] = build_replay_plan(provenance_record)
+
         metadata = ModelMetadata(
             id=model_id,
             model_type=model_type,
@@ -339,13 +356,7 @@ class RegistryManager:
             tags=[],  # v9 DoD #3: initialized empty
             version=version,       # v12 DoD #3
             family=family,         # v12 DoD #3
-            provenance=provenance or build_provenance(
-                seed=None,
-                dataset_name=dataset_name,
-                n_samples=n_samples,
-                hyperparameters=hyperparameters,
-                model_type=model_type,
-            ),
+            provenance=provenance_record,
         )
 
         # Write metadata JSON
@@ -441,6 +452,40 @@ class RegistryManager:
         result["left_model_id"] = model_id_a
         result["right_model_id"] = model_id_b
         return result
+
+    # ── v13 DoD #2: reproducibility replay ────────────────────────────────────
+
+    def get_replay_plan(self, model_id: str) -> Dict[str, Any]:
+        """Return the replay recipe for a registered model.
+
+        The stored provenance already carries the replay snapshot captured
+        at registration time (DoD #2).  When it is absent — legacy models
+        and models registered before DoD #2 — the plan is derived on the
+        fly from the stored provenance, so the endpoint degrades gracefully
+        instead of failing.
+
+        Raises:
+            FileNotFoundError: if `model_id` is not registered.
+        """
+        metadata = self.get_metadata(model_id)
+        provenance = dict(metadata.get("provenance") or {})
+        if not provenance:
+            return {
+                "model_id": model_id,
+                "available": False,
+                "reason": "model has no provenance record (registered before v13)",
+                "sdk": None,
+                "cli": None,
+                "dependencies": None,
+                "expected": None,
+            }
+
+        plan = dict(provenance.get("replay") or {})
+        if not plan.get("sdk"):
+            plan = build_replay_plan(provenance)
+        plan["model_id"] = model_id
+        plan["available"] = True
+        return plan
 
     def _write_metadata(self, model_id: str, metadata: Dict[str, Any]) -> None:
         """Write metadata dict back to the JSON file. Internal use only."""

@@ -189,6 +189,60 @@ def api_registry():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/provenance', methods=['GET'])
+def api_provenance():
+    """Query experiment provenance and replay recipes (v13 DoD #1/#2).
+
+    Mirrors the Vercel serverless contract in api/provenance.py so the same
+    URL behaves identically locally and in production.
+
+    Query params:
+      id      -> model id whose provenance should be returned (required)
+      compare -> second model id; returns a provenance diff
+      replay  -> "1"/"true"/"yes" to include the reproducibility replay plan
+    """
+    from ml_db.client import MLDB
+    from ml_db.errors import ModelNotFoundError
+
+    model_id = request.args.get('id')
+    compare_id = request.args.get('compare')
+    want_replay = str(request.args.get('replay', '')).lower() in ('1', 'true', 'yes')
+
+    if not model_id:
+        return jsonify({'error': "Query parameter 'id' is required."}), 400
+
+    try:
+        db = MLDB(registry_base=os.environ.get('MLDB_REGISTRY_BASE') or None)
+
+        try:
+            provenance = db.get_provenance(model_id)
+        except ModelNotFoundError as e:
+            return jsonify({'error': str(e), 'code': getattr(e, 'code', 'MODEL_NOT_FOUND')}), 404
+
+        payload = dict(provenance or {})
+
+        if compare_id:
+            try:
+                other = db.get_provenance(compare_id)
+            except ModelNotFoundError as e:
+                return jsonify({'error': str(e), 'code': getattr(e, 'code', 'MODEL_NOT_FOUND')}), 404
+            payload = {
+                'left': provenance,
+                'right': other,
+                'diff': db.compare_provenance(model_id, compare_id),
+            }
+
+        if want_replay:
+            payload = {
+                'provenance': payload,
+                'replay': db.replay_plan(model_id),
+            }
+
+        return jsonify(payload)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/predict/batch', methods=['POST'])
 def api_predict_batch():
     """Batch prediction: POST /api/predict/batch with JSON body."""

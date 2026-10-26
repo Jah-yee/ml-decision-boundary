@@ -122,8 +122,8 @@ Examples:
 
     # ml-db model list
     list_parser = subparsers.add_parser("model", help="Model registry management")
-    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff"],
-                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay"],
+                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay")
     list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete/compare/tag/untag)")
     list_parser.add_argument("model_id2", nargs="?", help="Second model ID (for compare)")
     list_parser.add_argument("--tag", dest="tag_name", help="Tag name (for tag/untag/list --tag)")
@@ -353,6 +353,42 @@ def cmd_model_provenance(rm, model_id):
     print(f"   Environment:  {env}")
     print(f"   Git:          {git}")
     print(f"   Captured at:  {prov.get('captured_at', 'N/A')}")
+
+
+def cmd_model_replay(rm, model_id):
+    """Show the reproducibility replay recipe for a model.  v13 DoD #2."""
+    try:
+        plan = rm.get_replay_plan(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+
+    print(f"\n♻️  Replay plan: {model_id}")
+    if not plan.get("available"):
+        print(f"   {plan.get('reason', 'No replay plan available for this model.')}")
+        return
+
+    cli = plan.get("cli") or {}
+    sdk = plan.get("sdk") or ""
+    deps = plan.get("dependencies") or {}
+    expected = plan.get("expected") or {}
+
+    print(f"   Expected fingerprint: {expected.get('fingerprint', 'N/A')}")
+    print(f"   Git commit:           {expected.get('git_commit', 'N/A')}")
+    print(f"   Dependencies:         {deps.get('digest', 'unknown')} ({deps.get('package_count', 0)} pinned packages)")
+
+    print("\n   📋 CLI command:")
+    print(f"      {cli.get('command', 'N/A')}")
+    if cli.get("exact"):
+        print("      ✅ This command reproduces the run exactly.")
+    else:
+        print("      ⚠️  This command is APPROXIMATE — use the SDK recipe for an exact replay.")
+        for warning in cli.get("warnings") or []:
+            print(f"         • {warning}")
+
+    print("\n   🐍 Exact SDK recipe:")
+    for line in sdk.splitlines():
+        print(f"      {line}")
 
 
 def cmd_model_diff(rm, model_id1, model_id2):
@@ -1078,6 +1114,11 @@ if __name__ == "__main__":
                     print("❌ diff requires two model IDs: python main.py model diff <id1> <id2>")
                     raise SystemExit(1)
                 cmd_model_diff(rm, args.model_id, args.model_id2)
+            elif action == "replay":
+                if not args.model_id:
+                    print("❌ replay requires a model_id: python main.py model replay <id>")
+                    raise SystemExit(1)
+                cmd_model_replay(rm, args.model_id)
         elif cmd == "benchmark":
             if action == "list":
                 cmd_benchmark_list(rm)

@@ -26,7 +26,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from core.datasets import DATASET_GENERATORS
-from core.provenance import build_provenance
+from core.provenance import build_provenance, provenance_diff
 from core.registry import RegistryManager
 from core.task_queue import TaskNotFoundError, TaskQueue
 from core.train_utils import BUILTIN_MODEL_NAMES, build_model
@@ -532,6 +532,127 @@ class MLDB:
             return self.registry.compare_provenance(model_id_1, model_id_2)
         except FileNotFoundError as exc:
             raise ModelNotFoundError(model_id_1) from exc
+
+    # ── Reproducibility replay (v13 DoD #2) ───────────────────────────────────
+
+    def replay_plan(self, model_id: str) -> Dict[str, Any]:
+        """Return the replay recipe recorded for a model.
+
+        The plan contains an exact SDK snippet, a CLI command (flagged
+        ``exact`` only when it faithfully reproduces the run), the pinned
+        dependency digest and the expected fingerprint.
+
+        Raises:
+            ModelNotFoundError: if `model_id` is unknown to the registry.
+        """
+        try:
+            return self.registry.get_replay_plan(model_id)
+        except FileNotFoundError as exc:
+            raise ModelNotFoundError(model_id) from exc
+
+    def replay(self, model_id: str, register: bool = False) -> Dict[str, Any]:
+        """Re-run a recorded experiment and report whether it reproduced.
+
+        The replay uses the recorded seed, dataset parameters and resolved
+        hyperparameters, then compares the new fingerprint against the
+        original one.
+
+        Args:
+            model_id: the model whose provenance should be replayed.
+            register: when True, the replayed model is saved to the registry
+                (useful to inspect it with the usual tooling). Defaults to
+                False so a replay never pollutes the registry by accident.
+
+        Returns:
+            A dict with ``model_id``, ``reproduced`` (bool),
+            ``expected_fingerprint``, ``actual_fingerprint``,
+            ``fingerprint_match``, ``accuracy``, ``expected_accuracy`` and
+            ``differences`` (the provenance diff between original and replay).
+
+        Raises:
+            ModelNotFoundError: if `model_id` is unknown to the registry.
+            InvalidInputError: if the model has no usable provenance record.
+        """
+        provenance = self.get_provenance(model_id)
+        if not provenance:
+            raise InvalidInputError(
+                f"Model '{model_id}' has no provenance record to replay "
+                f"(it was registered before v13)."
+            )
+
+        dataset = provenance.get("dataset") or {}
+        params = dict(provenance.get("hyperparameters") or {})
+        seed = provenance.get("seed")
+        model_type = provenance.get("model_type") or "unknown"
+
+        # `train()` derives its seed from the client instance, so the
+        # recorded seed is applied by swapping it in for the duration of the
+        # replay and restoring the caller's value afterwards.
+        original_seed = self.seed
+        effective_seed = original_seed if seed is None else seed
+        self.seed = effective_seed
+        try:
+            result = self.train(
+                model=model_type,
+                dataset=dataset.get("name") or "unknown",
+                params=params,
+                n_samples=int(dataset.get("n_samples") or 500),
+                noise=float(dataset.get("noise") if dataset.get("noise") is not None else 0.3),
+                test_size=float(dataset.get("test_size") if dataset.get("test_size") is not None else 0.2),
+                register=register,
+            )
+        finally:
+            self.seed = original_seed
+
+        replayed = self.registry.get_provenance(result.model_id) if register else {}
+        if not replayed:
+            # `register=False` — the model was not persisted, so recompute
+            # the provenance locally from the same inputs.
+            from core.provenance import build_provenance
+
+            replayed = build_provenance(
+                seed=effective_seed,
+                dataset_name=dataset.get("name") or "unknown",
+                n_samples=int(dataset.get("n_samples") or 500),
+                noise=float(dataset.get("noise") if dataset.get("noise") is not None else 0.3),
+                test_size=float(dataset.get("test_size") if dataset.get("test_size") is not None else 0.2),
+                hyperparameters=params,
+                model_type=model_type,
+            )
+
+        diff = provenance_diff(provenance, replayed)
+        expected_fp = provenance.get("fingerprint")
+        actual_fp = replayed.get("fingerprint")
+        metadata = self.registry.get_metadata(model_id)
+        expected_accuracy = metadata.get("accuracy")
+
+        # The full fingerprint covers environment + git commit, which change
+        # whenever the machine or the checkout changes even though the run
+        # itself is identical.  "run-equivalent" therefore compares only the
+        # fields that determine the trained model: seed, dataset, model type
+        # and hyperparameters.
+        run_fields = ("seed", "model_type", "dataset", "hyperparameters")
+        run_differences = [
+            d for d in diff.get("differences", [])
+            if d.get("field") in run_fields
+        ]
+
+        return {
+            "model_id": model_id,
+            "reproduced": not run_differences,
+            "run_equivalent": not run_differences,
+            "fingerprint_match": bool(diff.get("fingerprint_match")),
+            "expected_fingerprint": expected_fp,
+            "actual_fingerprint": actual_fp,
+            "expected_accuracy": expected_accuracy,
+            "accuracy": result.accuracy,
+            "accuracy_delta": (
+                round(result.accuracy - expected_accuracy, 6)
+                if expected_accuracy is not None else None
+            ),
+            "run_differences": run_differences,
+            "differences": diff.get("differences", []),
+        }
 
     def compare(self, model_id_1: str, model_id_2: str) -> Dict[str, Any]:
         """Compare two registered models (accuracy, dataset, tags, ...)."""

@@ -34,6 +34,11 @@ from typing import Any, Optional
 
 import joblib
 
+# Importing core.compat installs the legacy-name aliases that let artifacts
+# pickled by older scikit-learn releases be deserialized today.
+# See core/compat.py for the rationale and the measured impact.
+from core import compat as _compat  # noqa: F401  (imported for side effect)
+
 
 BLOB_DIRNAME = "blobs"
 

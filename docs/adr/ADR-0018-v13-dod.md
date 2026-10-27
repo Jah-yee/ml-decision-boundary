@@ -1,7 +1,7 @@
 # ADR-0018 — v13 DoD 细化：Experiment Provenance & Reproducibility
 
-**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9）
-**状态**: 🟡 Proposed（DoD #1–#3 + #5–#9 实现完成，待 Accepted）
+**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11）
+**状态**: 🟡 Proposed（DoD #1–#3 + #5–#9 + #11 实现完成，待 Accepted）
 **维护人**: 太子
 
 ---
@@ -33,6 +33,8 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 7 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
 | 8 | Coverage dashboard | 覆盖率看板：哪些模型缺 provenance、哪些不可重放、阻塞原因分组 | P1 | ✅ 完成 (29089b1) |
 | 9 | Replay execution | CLI `model replay --run <id>` 实际重跑并输出复现报告（run-equivalent 判定） | P1 | ✅ 完成 (29089b1) |
+| 10 | Content-addressed storage | registry 产物去重（SHA-256 寻址 blob store）+ 迁移工具 | P1 | ✅ 完成 (462b7ce) |
+| 11 | Artifact compatibility | 跨 scikit-learn 版本的产物向后兼容层 + registry 健康审计 | P1 | ✅ 完成 (v122 晚场) |
 
 ---
 
@@ -129,3 +131,92 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 1. PR #60 / #61 合并后以 master 为 v13 基线，避免长期分叉。
 2. 将重放方案导出为独立文档（如 `docs/REPRODUCE.md`），便于离线审计。
 3. Registry 体积治理（当前 4.0G / 20713 模型），避免磁盘占用无上限增长。
+
+## DoD #11 实现要点（产物向后兼容层）
+
+### 问题
+
+v13 DoD #4 的内容寻址存储迁移把 registry 从 4.0G 压到 180M，但迁移后逐个加载产物时暴露出一笔历史债务：**700 个模型无法加载**。
+
+上一轮已证明这与迁移无关（直接 `joblib.load(blob)` 同样失败；复制回旧版 per-model 布局用旧代码路径加载，报同样的错）。本轮把根因定位到了**字节级**：
+
+```
+AttributeError: Can't get attribute '__pyx_unpickle_CyHalfBinomialLoss'
+on <module 'sklearn._loss._loss' ...>
+```
+
+这些产物由 sklearn **1.4.1** 序列化，当时 `sklearn._loss._loss` 把损失函数暴露为一个 Cython 内部名 `__pyx_unpickle_CyHalfBinomialLoss`。pickle 的 `STACK_GLOBAL` 操作码把这个名字连同模块路径一起写进了字节流。到 **1.7.2**，同一个类被改名为公开的 `CyHalfBinomialLoss`，旧名消失 —— 于是 pickle 指向了一个不存在的属性，**反序列化直接失败**。
+
+**产物字节本身没有任何问题，坏掉的只是"名字"。**
+
+### 解法
+
+`core/compat.py`（新，唯一实现源）：一张"旧名 → 新名"别名表，在**反序列化时**把旧名挂回模块上。
+
+```python
+_ALIASES = (
+    ("sklearn._loss._loss", "__pyx_unpickle_CyHalfBinomialLoss", "CyHalfBinomialLoss"),
+)
+```
+
+`apply_shims()` 在导入时自动执行（`core.registry` 与 `core.blob_store` 都 import 它），幂等、不会重复安装、模块缺失时静默跳过而不抛错。
+
+### 设计约束
+
+- **不改写任何产物字节**：registry 必须如实记录"当时训练出了什么"。shim 只作用于 unpickle 时刻。
+- **不改写元数据 JSON**：与 v13 DoD #3 的只读保证一致。
+- **不吞掉 `InconsistentVersionWarning`**：该警告是有信息量的 —— 产物是用另一个库版本拟合的，其数值行为不保证一致。**能加载 ≠ 能信任**。需要确定性时应从记录的 provenance 重新训练。
+- **只处理 scikit-learn 确实改名过的内部**：不 monkey-patch estimator 行为，不改模型属性。
+- 旧名若在当前 sklearn 中本来就能解析（即正在跑产出该产物的版本），shim 自动是 no-op。
+
+### 实测（真实 registry）
+
+| 指标 | 修复前 | 修复后 |
+|------|--------|--------|
+| 可加载 | 14059 | **14759** |
+| 不可加载 | **700** | **0** |
+| 元数据记录（从未存过产物） | 6501 | 6501 |
+| 总记录数 | 21260 | 21260 |
+| 可加载率 | 66.1% | **69.4%** |
+
+**700/700 全部恢复**（`GB` 类型，全部 `GradientBoostingClassifier`）。
+
+因果对照（同一份产物，同一进程）：
+
+```
+A. 未 import core.compat -> has legacy: False
+   BASELINE FAIL: AttributeError Can't get attribute '__pyx_unpickle_CyHalfBinomialLoss'
+B. 已 import core.compat -> has legacy: True
+   WITH SHIM: loaded OK -> GradientBoostingClassifier
+```
+
+### 附带交付：registry 健康审计
+
+既然"产物能不能读"是一个此前无法回答的问题，就把它变成可查询的：
+
+- `RegistryManager.health_check(sample=None)` — 逐个解析并反序列化，输出三态分类：
+  - `loadable` — 反序列化成功；
+  - `no_artifact` — 只有元数据、从未存过产物（**不是损坏**，实测 6501 条）；
+  - `unloadable` — 产物存在但读不出来（附失败原因分组）。
+- `MLDB.health(sample=None)` / `MLDB.compat_shims()` — SDK 端。
+- CLI `python3 main.py model health [--sample N]` — 看板输出。
+- `core.compat.check_artifact(path)` — 单文件探针，诊断用途，从不抛错、从不改文件。
+
+实测输出：
+
+```
+🩺 Registry health — 21260 registered model(s)
+============================================================
+   ✅ Loadable:      14759  (69.4%)
+   📄 Metadata only:  6501  (no artifact was ever stored)
+   ❌ Unloadable:     0
+
+   Active compatibility shims:
+      sklearn._loss._loss.__pyx_unpickle_CyHalfBinomialLoss  ->  CyHalfBinomialLoss
+```
+
+### 遗留（明确不做）
+
+- 6501 条"元数据记录"没有产物。这不是 bug —— 这些记录注册时就没保存模型对象。**无法追补**，除非重新训练。
+- `InconsistentVersionWarning` 仍然存在（13981 个产物带此警告）。这是**诚实提示**：产物是用 1.4.1 拟合的，用 1.7.2 加载，数值不保证逐位一致。本层只保证"能读"，不承诺"读出来一定一样"。
+

@@ -364,6 +364,48 @@ curl "localhost:5000/api/provenance?coverage=1"   # same data over HTTP
 
 ---
 
+## 🩺 Registry Health (v13 DoD #5)
+
+A registry outlives the library versions that filled it.  Models
+serialized by scikit-learn 1.4.x may not unpickle under 1.7.x if a
+renamed internal breaks the pickle's name resolution.  `health()` answers
+"how many of my stored models are actually loadable right now?"
+
+```python
+report = db.health()
+# {'loadable': 14759, 'no_artifact': 6501, 'unloadable': 0, ...}
+```
+
+Three outcomes, because they mean very different things:
+
+| Outcome | Meaning |
+|---------|--------|
+| `loadable` | The artifact deserialized successfully. |
+| `no_artifact` | The record was registered without persisting its model object. **Not corruption** — the metadata describes a training run whose model was never kept. |
+| `unloadable` | An artifact exists but cannot be deserialized. Usually a library rename; the `core.compat` shim handles the known ones. |
+
+CLI:
+
+```bash
+python main.py model health            # audit every model
+python main.py model health --sample 100  # spot-check the first 100
+```
+
+SDK:
+
+```python
+db.health()            # the full audit
+db.compat_shims()      # what aliases are currently active
+```
+
+> **`core.compat` does not rewrite artifacts.**  It installs legacy-name
+> aliases at unpickle time so old pickles resolve.  Stored bytes stay
+> byte-identical.  The `InconsistentVersionWarning` is still emitted —
+> it is informative: the estimator was fitted under a different library
+> version and its numerical behaviour is not guaranteed to match.
+
+---
+
 ## 🏗️ Architecture
 
 ```

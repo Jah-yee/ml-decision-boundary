@@ -565,6 +565,29 @@ class MLDB:
         """
         return self.registry.storage_stats()
 
+    # ── Artifact health (v13 DoD #5) ─────────────────────────────────────────
+
+    def health(self, sample: Optional[int] = None) -> Dict[str, Any]:
+        """Audit how many stored artifacts are loadable under this runtime.
+
+        Returns a dict with ``loadable`` / ``no_artifact`` / ``unloadable``
+        counts, a ``reasons`` breakdown and the active compatibility shims.
+
+        A registry outlives the library versions that filled it, so this
+        is the check to run when a stored model suddenly fails to load.
+        """
+        return self.registry.health_check(sample=sample)
+
+    def compat_shims(self) -> Dict[str, str]:
+        """Return the active legacy-name compatibility aliases.
+
+        Each entry maps a legacy dotted path (as written into old pickles)
+        to the name the installed scikit-learn exposes today.
+        """
+        from core import compat
+
+        return compat.installed_aliases()
+
     # ── Reproducibility replay (v13 DoD #2) ───────────────────────────────────
 
     def replay_plan(self, model_id: str) -> Dict[str, Any]:

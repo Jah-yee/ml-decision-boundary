@@ -210,6 +210,8 @@
 - [x] Honest replay — CLI 命令仅在可精确复现时标记 exact，否则警告并引导 SDK ✅ (2026-10-26)
 - [x] Coverage dashboard — 覆盖率看板（4 类状态 + 阻塞原因分组，Registry/SDK/CLI/HTTP 四端）✅ (2026-10-27)
 - [x] Replay execution — CLI `model replay --run <id>` 实际重跑并输出复现报告 ✅ (2026-10-27)
+- [x] Content-addressed storage — registry 产物 SHA-256 去重 + 迁移工具 ✅ (2026-10-27)
+- [x] Artifact compatibility — 跨 sklearn 版本产物向后兼容层 + registry 健康审计（700 个不可加载产物全部恢复）✅ (2026-10-27)
 - [ ] 回归验证与 CI 全绿 ⏳ (待验收)
 
 **v0-v12 已完成 ✅ | v13 进行中 🟡**

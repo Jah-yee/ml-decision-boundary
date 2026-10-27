@@ -122,13 +122,16 @@ Examples:
 
     # ml-db model list
     list_parser = subparsers.add_parser("model", help="Model registry management")
-    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay", "coverage", "storage"],
-                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay, coverage, storage")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay", "coverage", "storage", "health"],
+                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay, coverage, storage, health")
     list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete/compare/tag/untag)")
     list_parser.add_argument("model_id2", nargs="?", help="Second model ID (for compare)")
     # v13 DoD #3: actually re-run a recorded experiment and report the outcome
     list_parser.add_argument("--run", dest="run_replay", action="store_true",
                               help="Execute the replay for 'replay' and report whether it reproduced")
+    # v13 DoD #5: limit the artifact health audit to the first N models
+    list_parser.add_argument("--sample", type=int, default=None,
+                              help="For 'health': only audit the first N models (default: all)")
     list_parser.add_argument("--tag", dest="tag_name", help="Tag name (for tag/untag/list --tag)")
     list_parser.add_argument("--remove-tag", dest="remove_tag", help="Remove tag name (for untag)")
     # v12 DoD #3: batch tag query + version listing
@@ -498,6 +501,28 @@ def cmd_model_storage(rm):
         print(f"   Saved by dedup:       {_mb(stats['dedup_saved_bytes'])}  ({stats['dedup_ratio']:.1f}×)")
     if stats.get("legacy_per_model_bytes"):
         print(f"   Legacy per-model files: {_mb(stats['legacy_per_model_bytes'])}")
+
+
+def cmd_model_health(rm, sample=None):
+    """Audit how many stored artifacts are actually loadable.  v13 DoD #5."""
+    report = rm.health_check(sample=sample)
+
+    print(f"\n🩺 Registry health — {report['total']} registered model(s)")
+    print("=" * 60)
+    print(f"   ✅ Loadable:      {report['loadable']}  ({report['loadable_pct']:.1f}%)")
+    print(f"   📄 Metadata only:  {report['no_artifact']}  (no artifact was ever stored)")
+    print(f"   ❌ Unloadable:     {report['unloadable']}")
+    if report.get("reasons"):
+        print("\n   Failure reasons:")
+        for reason, count in report["reasons"].items():
+            print(f"      {count:6d}  {reason}")
+    if report.get("compat_shims"):
+        print("\n   Active compatibility shims:")
+        for legacy, current in report["compat_shims"].items():
+            print(f"      {legacy}  ->  {current}")
+    if report.get("unloadable"):
+        print("\n   ⚠️  Unloadable artifacts cannot be restored by renaming;")
+        print("       re-train them from their recorded provenance instead.")
 
 
 def cmd_model_diff(rm, model_id1, model_id2):
@@ -1234,6 +1259,9 @@ if __name__ == "__main__":
             elif action == "storage":
                 # v13 DoD #4: registry disk usage / dedup gain
                 cmd_model_storage(rm)
+            elif action == "health":
+                # v13 DoD #5: artifact loadability audit
+                cmd_model_health(rm, sample=args.sample)
         elif cmd == "benchmark":
             if action == "list":
                 cmd_benchmark_list(rm)

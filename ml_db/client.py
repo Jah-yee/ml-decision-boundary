@@ -556,6 +556,15 @@ class MLDB:
         """
         return self.coverage().get("summary", {})
 
+    def storage_stats(self) -> Dict[str, Any]:
+        """Report registry disk usage and the deduplication gain.
+
+        ``stored_bytes`` is what is on disk; ``logical_bytes`` is what the
+        registry would occupy if every model kept a private copy of its
+        artifact.  The ratio between them is the deduplication gain.
+        """
+        return self.registry.storage_stats()
+
     # ── Reproducibility replay (v13 DoD #2) ───────────────────────────────────
 
     def replay_plan(self, model_id: str) -> Dict[str, Any]:

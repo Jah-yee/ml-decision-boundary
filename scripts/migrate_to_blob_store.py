@@ -12,8 +12,13 @@ then removes the now-redundant per-model file.  The metadata JSON files are
 preserved byte-for-byte apart from the two fields that must change
 (``joblib_path`` and ``blob_digest``).
 
-**Safety.** This is a *destructive* operation, so it is deliberately
-conservative:
+**Known pre-existing issue.** Some older artifacts cannot be unpickled by
+the current scikit-learn (e.g. ``Can't get attribute
+'__pyx_unpickle_CyHalfBinomialLoss'`` — pickled with sklearn 1.4.1, run
+under 1.7.2).  This is a property of the *artifact bytes*, not of where the
+file lives: the same failure occurs when the blob is copied back to the
+old per-model layout and loaded from there.  The migration neither causes
+nor fixes it.
 
 * ``--dry-run`` (the default) reports exactly what would happen and
   changes nothing;

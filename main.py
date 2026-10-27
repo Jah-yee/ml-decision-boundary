@@ -122,8 +122,8 @@ Examples:
 
     # ml-db model list
     list_parser = subparsers.add_parser("model", help="Model registry management")
-    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay", "coverage"],
-                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay, coverage")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay", "coverage", "storage"],
+                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay, coverage, storage")
     list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete/compare/tag/untag)")
     list_parser.add_argument("model_id2", nargs="?", help="Second model ID (for compare)")
     # v13 DoD #3: actually re-run a recorded experiment and report the outcome
@@ -480,6 +480,24 @@ def cmd_model_coverage(rm):
                 print(f"              e.g. {sample}" + (f" (+{extra} more)" if extra > 0 else ""))
         if len(reasons) > 10:
             print(f"      … and {len(reasons) - 10} more cause(s)")
+
+
+def cmd_model_storage(rm):
+    """Report registry disk usage and the deduplication gain.  v13 DoD #4."""
+    stats = rm.storage_stats()
+
+    def _mb(value):
+        return f"{value / 1048576:.1f} MB"
+
+    print(f"\n💾 Registry storage — {stats['models']} registered model(s)")
+    print("=" * 60)
+    print(f"   Unique blobs stored:  {stats['unique_blobs']}")
+    print(f"   On disk:              {_mb(stats['stored_bytes'])}")
+    print(f"   Without deduplication: {_mb(stats['logical_bytes'])}")
+    if stats.get("dedup_saved_bytes"):
+        print(f"   Saved by dedup:       {_mb(stats['dedup_saved_bytes'])}  ({stats['dedup_ratio']:.1f}×)")
+    if stats.get("legacy_per_model_bytes"):
+        print(f"   Legacy per-model files: {_mb(stats['legacy_per_model_bytes'])}")
 
 
 def cmd_model_diff(rm, model_id1, model_id2):
@@ -1213,6 +1231,9 @@ if __name__ == "__main__":
             elif action == "coverage":
                 # v13 DoD #3: provenance coverage dashboard
                 cmd_model_coverage(rm)
+            elif action == "storage":
+                # v13 DoD #4: registry disk usage / dedup gain
+                cmd_model_storage(rm)
         elif cmd == "benchmark":
             if action == "list":
                 cmd_benchmark_list(rm)

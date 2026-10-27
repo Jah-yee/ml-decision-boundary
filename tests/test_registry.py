@@ -13,6 +13,7 @@ import pytest
 import tempfile
 import shutil
 import json
+import numpy as np
 from pathlib import Path
 from datetime import date, datetime, timezone
 
@@ -65,7 +66,9 @@ class TestRegistrySaveLoad:
         assert len(model_id.split("_")) == 2
         assert len(model_id.split("_")[1]) == 6
 
-    def test_save_model_creates_json_and_joblib(self, temp_registry, trained_svm):
+    def test_save_model_creates_json_and_blob(self, temp_registry, trained_svm):
+        """save_model persists a JSON metadata record and a content-addressed
+        blob (v13 DoD #4)."""
         model, X, y = trained_svm
         model_id = temp_registry.save_model(
             model=model,
@@ -79,9 +82,13 @@ class TestRegistrySaveLoad:
             test_accuracy=0.90,
         )
         json_path = temp_registry.models_dir / f"{model_id}.json"
-        joblib_path = temp_registry.models_dir / f"{model_id}.joblib"
         assert json_path.exists()
-        assert joblib_path.exists()
+        metadata = json.loads(json_path.read_text(encoding="utf-8"))
+        blob_path = temp_registry.registry_base / metadata["joblib_path"]
+        assert blob_path.exists()
+        assert metadata.get("blob_digest")
+        loaded = temp_registry.load_model(model_id)
+        assert np.array_equal(loaded.predict(X), model.predict(X))
 
     def test_save_model_metadata_schema(self, temp_registry, trained_svm):
         model, X, y = trained_svm

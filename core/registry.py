@@ -37,6 +37,7 @@ from core.coverage import (
     provenance_coverage,
     replayability_report,
 )
+from core.blob_store import BlobStore
 
 
 REGISTRY_BASE = Path.home() / ".ml-decision-boundary" / "registry"
@@ -62,6 +63,7 @@ class ModelMetadata:
     version: int = 1                             # v12 DoD #3: version within the model family
     family: str = ""                             # v12 DoD #3: family key (type+dataset+params)
     provenance: Dict[str, Any] = field(default_factory=dict)  # v13 DoD #1
+    blob_digest: str = ""                        # v13 DoD #4: SHA-256 of the stored artifact
 
 
 @dataclass
@@ -100,6 +102,9 @@ class RegistryManager:
         self.registry_base = Path(registry_base)
         self.models_dir = self.registry_base / "models"
         self.benchmarks_dir = self.registry_base / "benchmarks"
+        # v13 DoD #4: content-addressed store for serialized models, so
+        # re-running an identical experiment does not store a second copy.
+        self.blobs = BlobStore(self.registry_base)
         self._ensure_dirs()
 
     def _ensure_dirs(self):
@@ -321,10 +326,13 @@ class RegistryManager:
 
         # Paths
         json_path = self.models_dir / f"{model_id}.json"
-        joblib_path = self.models_dir / f"{model_id}.joblib"
 
-        # Serialize model
-        joblib.dump(model, joblib_path)
+        # v13 DoD #4: store the serialized model content-addressed.  Two
+        # runs with the same seed and hyperparameters produce byte-identical
+        # artifacts, so the second one reuses the first one's blob instead
+        # of writing a duplicate copy to disk.
+        blob_digest = self.blobs.store_model(model)
+        joblib_path = self.blobs.blob_path(blob_digest)
 
         # Build metadata
         provenance_record = provenance or build_provenance(
@@ -356,6 +364,7 @@ class RegistryManager:
             created_at=datetime.now(timezone.utc).isoformat(),
             plugin_origin=plugin_origin,
             joblib_path=str(joblib_path.relative_to(self.registry_base)),
+            blob_digest=blob_digest,
             accuracy=round(test_accuracy, 4),
             plugin_state=plugin_state,
             tags=[],  # v9 DoD #3: initialized empty
@@ -571,10 +580,96 @@ class RegistryManager:
             metadata = json.load(f)
 
         joblib_path = self.registry_base / metadata["joblib_path"]
-        if joblib_path.exists():
+        blob_digest = metadata.get("blob_digest") or ""
+
+        # v13 DoD #4: a blob may be shared by several models, so it is only
+        # removed when the last model referencing it goes away.  Legacy
+        # per-model files (no blob_digest) are removed as before.
+        removed = False
+        if blob_digest:
+            if self._blob_reference_count(blob_digest) <= 1:
+                removed = self.blobs.delete(blob_digest)
+        elif joblib_path.exists():
             joblib_path.unlink()
+            removed = True
 
         json_path.unlink()
+
+    def _blob_reference_count(self, blob_digest: str) -> int:
+        """Count how many registered models point at ``blob_digest``."""
+        if not blob_digest:
+            return 0
+        count = 0
+        for json_file in self.models_dir.glob("*.json"):
+            try:
+                with open(json_file, encoding="utf-8") as f:
+                    metadata = json.load(f)
+            except (OSError, ValueError):
+                continue
+            if metadata.get("blob_digest") == blob_digest:
+                count += 1
+        return count
+
+    def storage_stats(self) -> Dict[str, Any]:
+        """Report how much disk the registry occupies and how much is shared.
+
+        ``logical_bytes`` is the size every model *would* occupy with its
+        own private copy; ``stored_bytes`` is what is actually on disk.
+        The ratio between them is the deduplication gain.
+        """
+        blob_stats = self.blobs.stats()
+        shared = 0
+        per_model = 0
+        referenced: Dict[str, int] = {}
+        model_count = 0
+
+        for json_file in self.models_dir.glob("*.json"):
+            try:
+                with open(json_file, encoding="utf-8") as f:
+                    metadata = json.load(f)
+            except (OSError, ValueError):
+                continue
+            model_count += 1
+            digest = metadata.get("blob_digest")
+            if digest:
+                referenced[digest] = referenced.get(digest, 0) + 1
+            else:
+                path = self.registry_base / metadata.get("joblib_path", "")
+                try:
+                    per_model += path.stat().st_size
+                except OSError:
+                    pass
+
+        # Shared blobs are counted once on disk but may be referenced N times.
+        # Each reference would have cost a full private copy, so the logical
+        # size is the sum over references, not over unique blobs.
+        logical = 0
+        for digest, count in referenced.items():
+            path = self.blobs.blob_path(digest)
+            try:
+                logical += path.stat().st_size * count
+            except OSError:
+                pass
+        logical += per_model
+
+        stored = shared + per_model
+        for digest in referenced:
+            path = self.blobs.blob_path(digest)
+            try:
+                stored += path.stat().st_size
+            except OSError:
+                pass
+
+        return {
+            "models": model_count,
+            "unique_blobs": len(referenced),
+            "blob_files_on_disk": blob_stats["blob_count"],
+            "stored_bytes": stored,
+            "logical_bytes": logical,
+            "dedup_saved_bytes": max(logical - stored, 0),
+            "dedup_ratio": (logical / stored) if stored else 1.0,
+            "legacy_per_model_bytes": per_model,
+        }
 
     # ── CLI helpers ────────────────────────────────────────────────────────────
 

@@ -711,3 +711,37 @@ v12 DoD #1-#4 全部完成，**ADR-0017 已 Accepted** → 可以开始 v13 主�
 ### 皇上操作记录（已归档条目）
 
 | **2026-10-23 22:12** | 🚨 **v118 早场 #1：cron 触发例行检查，P0 ✅（compileall + import OK, py3.12.3）+ P1 ✅（324/5/0，76.68s）+ P2 ✅（benchmark quick PASSED, acc 0.7900），PR #57 仍 CLOSED（mergedAt: null，closedAt=`2026-10-19T19:47:29Z`，mergeStateStatus CLEAN，mergeable MERGEABLE）🚨，皇上仍未决策 A/B/C（已 ~92h+）。CI **连续 3 轮 SUCCESS**（run #39889110714，HEAD `9d43beb`）✅，工作树 clean ✅，本地 HEAD `9d43beb` = 远端 head ✅，run log: `strategy/runs/2026-10-23-2212.md` — 第87次提醒 #1 🚨（持续等决策）** |
+
+---
+
+# v121 早场（2026-10-27 10:11 CST）— 已归档
+
+## 🔗 PR #62
+
+| 项目 | 状态 |
+|------|------|
+| PR #62 | **OPEN · 本轮新开**（待皇上 Merge）|
+| 标题 | `feat(v13): DoD #2-#4 — provenance replay + coverage dashboard + content-addressed storage` |
+| Base | `master` (`4082158`) |
+| Head | `feat/v13-replay-provenance` @ `301461d` |
+| 合并态 | `mergeable=MERGEABLE` · `mergeStateStatus=CLEAN` |
+| URL | https://github.com/Jah-yee/ml-decision-boundary/pull/62 |
+
+---
+
+## 🔖 Commit 记录（v121 早场）
+
+| Commit | 说明 |
+|--------|------|
+| `29089b1` | `feat(v13): DoD #3 — provenance coverage dashboard + replay execution`（9 files, +530 / -7）|
+| `e539049` | `docs(v13): DoD #3 — coverage dashboard contract + ADR-0018 DoD #8/#9` |
+| `de2c413` | `feat(v13): DoD #4 — content-addressed model storage (registry dedup)`（4 files, +727 / -4）|
+| `76339bf` | `feat(v13): DoD #4 — storage stats + CLI/SDK surface + migration run notes` |
+| `301461d` | `fix(v13): DoD #4 — update test_save_model_creates_json_and_joblib for blob store layout` + run log |
+
+
+---
+
+# v120 早场（2026-10-26 09:56 CST）— 已归档
+
+| **2026-10-26 09:56** | 🟢 **v120 早场 #1：v13 启动并交付 DoD #1「experiment provenance capture」。** 新增 `core/provenance.py`（canonical JSON + SHA-256 指纹 + 结构化 diff）+ Registry/SDK/CLI 三端接入（`model provenance <id>` / `model diff <id1> <id2>`）+ `tests/test_provenance.py`（11 新测试）+ ADR-0018 + phases/API 文档。指纹覆盖 seed/dataset/hyperparams/环境版本/git commit，排除 `captured_at`/`git.dirty`/`platform` 等易变字段。P0 ✅ + P1 ✅（**449 passed / 5 skipped / 0 FAILED**，330.80s，438 → 449）+ P2 ✅（acc 0.7900）+ P3 ✅（health HTTP 200，`/api/registry` 五种查询实测通过）+ 🆕 **CI 6/6 SUCCESS**（run `40256584515`）。🆕 **新交付 PR #61**（base `master`，OPEN/CLEAN/MERGEABLE）。⚠️ **本轮事故**：工作树被外部 `git reset --hard` 清空一次（reflog `reset: moving to HEAD`，无对应 commit），已重建全部实现并**立即做保护性提交**；新增规则"每个实现单元完成即 commit"。⚠️ 另：初开 PR 的 base 为 `feat/v12-sdk-foundation` 但 CI 工作流不监听 → 改 base 为 `master` 后正常触发（v13 已完整含 v12）。📌 **请皇上决策**：① Merge PR #61（v13 DoD #1）② Merge PR #60（v12 三 DoD）③ 接受 ADR-0018 —— 三者均不阻塞后续开发。run log: `strategy/runs/2026-10-26-0156.md` — 第90次提醒 #1** |

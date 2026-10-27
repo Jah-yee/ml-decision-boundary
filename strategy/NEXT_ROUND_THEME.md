@@ -186,38 +186,12 @@ loaded OK: 13668  failed: 700  skipped(no artifact): 6501  elapsed 61.1s
 
 ---
 
-## 🔗 PR #62
-
-| 项目 | 状态 |
-|------|------|
-| PR #62 | **OPEN · 本轮新开**（待皇上 Merge）|
-| 标题 | `feat(v13): DoD #2-#4 — provenance replay + coverage dashboard + content-addressed storage` |
-| Base | `master` (`4082158`) |
-| Head | `feat/v13-replay-provenance` @ `301461d` |
-| 合并态 | `mergeable=MERGEABLE` · `mergeStateStatus=CLEAN` |
-| URL | https://github.com/Jah-yee/ml-decision-boundary/pull/62 |
-
----
-
-## 🔖 Commit 记录（本轮）
-
-| Commit | 说明 |
-|--------|------|
-| `29089b1` | `feat(v13): DoD #3 — provenance coverage dashboard + replay execution`（9 files, +530 / -7）|
-| `e539049` | `docs(v13): DoD #3 — coverage dashboard contract + ADR-0018 DoD #8/#9` |
-| `de2c413` | `feat(v13): DoD #4 — content-addressed model storage (registry dedup)`（4 files, +727 / -4）|
-| `76339bf` | `feat(v13): DoD #4 — storage stats + CLI/SDK surface + migration run notes` |
-| `301461d` | `fix(v13): DoD #4 — update test_save_model_creates_json_and_joblib for blob store layout` + run log |
-
----
-
 ## 皇上操作记录
 
 > ℹ️ 历史轮次正文已归档至 `strategy/archive/NEXT_ROUND_THEME_ARCHIVE.md`（本文件保持精简，防止 cron 上下文溢出）
 
 | 日期 | 操作 |
 |------|------|
-| **2026-10-26 09:56** | 🟢 **v120 早场 #1：v13 启动并交付 DoD #1「experiment provenance capture」。** 新增 `core/provenance.py`（canonical JSON + SHA-256 指纹 + 结构化 diff）+ Registry/SDK/CLI 三端接入（`model provenance <id>` / `model diff <id1> <id2>`）+ `tests/test_provenance.py`（11 新测试）+ ADR-0018 + phases/API 文档。指纹覆盖 seed/dataset/hyperparams/环境版本/git commit，排除 `captured_at`/`git.dirty`/`platform` 等易变字段。P0 ✅ + P1 ✅（**449 passed / 5 skipped / 0 FAILED**，330.80s，438 → 449）+ P2 ✅（acc 0.7900）+ P3 ✅（health HTTP 200，`/api/registry` 五种查询实测通过）+ 🆕 **CI 6/6 SUCCESS**（run `40256584515`）。🆕 **新交付 PR #61**（base `master`，OPEN/CLEAN/MERGEABLE）。⚠️ **本轮事故**：工作树被外部 `git reset --hard` 清空一次（reflog `reset: moving to HEAD`，无对应 commit），已重建全部实现并**立即做保护性提交**；新增规则"每个实现单元完成即 commit"。⚠️ 另：初开 PR 的 base 为 `feat/v12-sdk-foundation` 但 CI 工作流不监听 → 改 base 为 `master` 后正常触发（v13 已完整含 v12）。📌 **请皇上决策**：① Merge PR #61（v13 DoD #1）② Merge PR #60（v12 三 DoD）③ 接受 ADR-0018 —— 三者均不阻塞后续开发。run log: `strategy/runs/2026-10-26-0156.md` — 第90次提醒 #1** |
 | **2026-10-27 09:30** | 🟢 **v121 早场 #1：v13 DoD #2-#4 全部交付。** 🆕 **DoD #2 replay**：`core/coverage.py` 的 `cli_replay_check()` + `MLDB.replay()` / `replay_execute()` + CLI `model replay <id> --run`（run-equivalent 与 fingerprint 分开展示）。🆕 **DoD #3 coverage dashboard**：`core/coverage.py` 四种状态 + `provenance_coverage()` / `coverage_summary()` / `replayability_report()` + `GET /api/provenance?coverage=1` + CLI `model coverage`。🆕 **DoD #4 content-addressed storage**：`core/blob_store.py` + registry 集成（引用计数 delete + `storage_stats()`）+ `scripts/migrate_to_blob_store.py`（默认 dry-run，幂等）。🔧 **开工前修复 5 项**：① `feat/v13-replay-provenance` 未推送远端、未开 PR → 本轮推送 + 开 PR #62 ② `strategy/runs/2026-10-26-2138.md` 未跟踪 → 纳入 commit ③ `pytest_scenario_files` 损坏 editable 安装 → 卸载 ④ registry 4.0G / 磁盘 88% → 迁移后 180M / 82% ⑤ 后 4 个 commit 邮箱被 GH007 拒 → `git filter-branch` 改写。📦 **迁移实测**：14368 模型记录迁移，250 唯一 blob，**3.9GB 回收**（registry 4.0G→180M，根分区 88%→82%，去重比 42.2×）。✅ **迁移后验证**：13668 个产物逐个加载成功；700 个失败经双重证明为既有 sklearn 1.4.1→1.7.2 版本不兼容（直接 load blob 同样失败；复制回旧布局同样失败）。P0 ✅ + P1 ✅（**538 passed / 5 skipped / 0 FAILED**，203.03s，493 → 538）+ P2 ✅（acc 0.7900）+ P3 ✅（health 200 / provenance 400 / provenance 404 E2003 / coverage 200）。📌 **请皇上决策**：① Merge PR #62（v13 DoD #2-#4）② Merge PR #61（v13 DoD #1）③ Merge PR #60（v12 三 DoD）④ 接受 ADR-0018 —— 四者均不阻塞后续开发。run log: `strategy/runs/2026-10-27-0930.md` — 第91次提醒 #1 🟢** |
 | **2026-10-27 21:41** | 🟢 **v122 晚场 #1：v13 DoD #5「Artifact Compatibility Layer」全部交付。** 🆕 **问题定位**：v121 早场迁移后验证报告的 700 个不可加载模型，根因在**字节级**——pickle 的 `STACK_GLOBAL` 操作码把 `sklearn._loss._loss.__pyx_unpickle_CyHalfBinomialLoss`（Cython 内部名）写进了字节流；sklearn 1.7.2 改名为公开的 `CyHalfBinomialLoss`，旧名消失 → 反序列化直接失败。**产物字节本身没有任何问题，坏掉的只是"名字"。** 🆕 **解法**：`core/compat.py`（新，唯一实现源）在**反序列化时**把旧名挂回模块上——一张别名表，不改写任何产物字节，不改写元数据 JSON，不吞掉 `InconsistentVersionWarning`。🆕 **附带交付 registry 健康审计**：`RegistryManager.health_check()` 三态分类（`loadable` / `no_artifact` / `unloadable`）+ CLI `model health [--sample N]` + SDK `MLDB.health()` / `MLDB.compat_shims()`。🔧 **P3 事故**：端口 5000 被占用导致 `/api/provenance?coverage=1` 误判 404（`/api/health` 200 但 Flask 报 `Address already in use`）；`fuser -k 5000/tcp` 清端口后重新验证通过。✅ **实测**：700/700 全部恢复（`GB` 类型，全部 `GradientBoostingClassifier`）；可加载 14059 → **14759**，不可加载 **700 → 0**，可加载率 66.1% → **69.4%**。P0 ✅ + P1 ✅（**561 passed / 5 skipped / 0 FAILED**，397.50s，538 → 561）+ P2 ✅（acc 0.7900）+ P3 ✅（health 200 / coverage 200）。📌 **请皇上决策**：① Merge PR #63（v13 DoD #5）② Merge PR #62（v13 DoD #2-#4）③ Merge PR #61（v13 DoD #1）④ Merge PR #60（v12 三 DoD）⑤ 接受 ADR-0018 —— 五者均不阻塞后续开发。run log: `strategy/runs/2026-10-27-2141.md` — 第92次提醒 #1 🟢** |
 

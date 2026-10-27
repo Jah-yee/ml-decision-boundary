@@ -15,6 +15,7 @@ from core.datasets import (
     make_s_curve,
     DATASET_GENERATORS,
 )
+from core.provenance import build_provenance
 from core.train_utils import (
     build_model,
     slider_to_params,
@@ -121,12 +122,23 @@ Examples:
 
     # ml-db model list
     list_parser = subparsers.add_parser("model", help="Model registry management")
-    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags"],
-                              help="Action: list, inspect, delete, compare, tag, untag, tags")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay", "coverage", "storage", "health"],
+                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay, coverage, storage, health")
     list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete/compare/tag/untag)")
     list_parser.add_argument("model_id2", nargs="?", help="Second model ID (for compare)")
+    # v13 DoD #3: actually re-run a recorded experiment and report the outcome
+    list_parser.add_argument("--run", dest="run_replay", action="store_true",
+                              help="Execute the replay for 'replay' and report whether it reproduced")
+    # v13 DoD #5: limit the artifact health audit to the first N models
+    list_parser.add_argument("--sample", type=int, default=None,
+                              help="For 'health': only audit the first N models (default: all)")
     list_parser.add_argument("--tag", dest="tag_name", help="Tag name (for tag/untag/list --tag)")
     list_parser.add_argument("--remove-tag", dest="remove_tag", help="Remove tag name (for untag)")
+    # v12 DoD #3: batch tag query + version listing
+    list_parser.add_argument("--tags", dest="tag_names", nargs="+", default=None,
+                              help="Batch tag query: list models matching these tags (e.g. --tags a b c)")
+    list_parser.add_argument("--match", dest="match_mode", choices=["any", "all"], default="any",
+                              help="Batch tag match mode: 'any' (default) or 'all'")
 
     # v8 DoD #4: benchmark subcommand group
     bench_parser = subparsers.add_parser("benchmark", help="Benchmark registry management")
@@ -176,12 +188,12 @@ def cmd_model_list(rm):
         print("📭 No models registered yet. Run an experiment to register your first model.")
         return
     # Print table header
-    print(f"\n{'ID':<22} {'TYPE':<8} {'ACCURACY':<10} {'CREATED':<25}")
-    print("-" * 70)
+    print(f"\n{'ID':<22} {'TYPE':<8} {'ACCURACY':<10} {'VER':<5} {'CREATED':<25}")
+    print("-" * 78)
     for m in models:
         created = m.get("created_at", "unknown")[:25]
         acc = m.get("accuracy", m.get("metrics", {}).get("test_accuracy", 0.0))
-        print(f"{m['id']:<22} {m['model_type']:<8} {acc:<10.4f} {created}")
+        print(f"{m['id']:<22} {m['model_type']:<8} {acc:<10.4f} v{m.get('version', 1):<4} {created}")
     print(f"\n✅ {len(models)} model(s) registered")
 
 
@@ -197,6 +209,10 @@ def cmd_model_inspect(rm, model_id):
     print(f"   Plugin:       {meta.get('plugin_origin', False)}")
     print(f"   Accuracy:     {meta.get('accuracy', 'N/A')}")
     print(f"   Created:      {meta.get('created_at', 'unknown')}")
+    # v12 DoD #3: version + family
+    print(f"   Version:      v{meta.get('version', 1)}")
+    print(f"   Family:       {meta.get('family', 'unknown')}")
+    print(f"   Tags:         {meta.get('tags', [])}")
     print(f"   Hyperparameters: {meta.get('hyperparameters', {})}")
     print(f"   Dataset:      {meta.get('dataset', {})}")
     print(f"   Metrics:      {meta.get('metrics', {})}")
@@ -296,6 +312,254 @@ def cmd_model_tags(rm):
                 print(f"     {mid:<22} {mtype:<8} acc={acc}")
             except Exception:
                 print(f"     {mid}")
+        print()
+
+
+def cmd_model_versions(rm, model_id: str):
+    """Show every version of the family a model belongs to.  v12 DoD #3."""
+    try:
+        versions = rm.get_model_versions(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    if not versions:
+        print(f"❌ No versions found for model '{model_id}'.")
+        raise SystemExit(1)
+    meta = versions[0]
+    family = meta.get("family", "unknown")
+    print(f"\n🧬 Model family: {family}")
+    print(f"   ({len(versions)} version(s), v1 first)\n")
+    print(f"{'VER':<6} {'ID':<22} {'TYPE':<8} {'ACCURACY':<10} {'CREATED':<25}")
+    print("-" * 78)
+    for m in versions:
+        created = m.get("created_at", "unknown")[:25]
+        acc = m.get("accuracy", m.get("metrics", {}).get("test_accuracy", 0.0))
+        print(f"v{m.get('version', 1):<5} {m['id']:<22} {m['model_type']:<8} {acc:<10.4f} {created}")
+
+
+def cmd_model_provenance(rm, model_id):
+    """Show the provenance record of a model."""
+    try:
+        prov = rm.get_provenance(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    print(f"\n🧾 Provenance: {model_id}")
+    if not prov:
+        print("   No provenance recorded — this model was registered before v13.")
+        return
+    dataset = prov.get("dataset", {})
+    env = prov.get("environment", {})
+    git = prov.get("git", {})
+    print(f"   Fingerprint:  {prov.get('fingerprint', 'N/A')}")
+    print(f"   Seed:         {prov.get('seed', 'N/A')}")
+    print(f"   Model type:   {prov.get('model_type', 'N/A')}")
+    print(f"   Dataset:      {dataset.get('name', 'N/A')} (n={dataset.get('n_samples', 'N/A')}, noise={dataset.get('noise', 'N/A')}, test_size={dataset.get('test_size', 'N/A')})")
+    print(f"   Hyperparams:  {prov.get('hyperparameters', {})}")
+    print(f"   Environment:  {env}")
+    print(f"   Git:          {git}")
+    print(f"   Captured at:  {prov.get('captured_at', 'N/A')}")
+
+
+def cmd_model_replay(rm, model_id, run=False):
+    """Show the reproducibility replay recipe for a model.  v13 DoD #2."""
+    try:
+        plan = rm.get_replay_plan(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+
+    print(f"\n♻️  Replay plan: {model_id}")
+    if not plan.get("available"):
+        print(f"   {plan.get('reason', 'No replay plan available for this model.')}")
+        return
+
+    cli = plan.get("cli") or {}
+    sdk = plan.get("sdk") or ""
+    deps = plan.get("dependencies") or {}
+    expected = plan.get("expected") or {}
+
+    print(f"   Expected fingerprint: {expected.get('fingerprint', 'N/A')}")
+    print(f"   Git commit:           {expected.get('git_commit', 'N/A')}")
+    print(f"   Dependencies:         {deps.get('digest', 'unknown')} ({deps.get('package_count', 0)} pinned packages)")
+
+    print("\n   📋 CLI command:")
+    print(f"      {cli.get('command', 'N/A')}")
+    if cli.get("exact"):
+        print("      ✅ This command reproduces the run exactly.")
+    else:
+        print("      ⚠️  This command is APPROXIMATE — use the SDK recipe for an exact replay.")
+        for warning in cli.get("warnings") or []:
+            print(f"         • {warning}")
+
+    print("\n   🐍 Exact SDK recipe:")
+    for line in sdk.splitlines():
+        print(f"      {line}")
+
+    if not run:
+        return
+
+    # v13 DoD #3: actually execute the replay and report the outcome.
+    _run_model_replay(rm, model_id, plan)
+
+
+def _run_model_replay(rm, model_id, plan):
+    """Execute the recorded experiment and report whether it reproduced."""
+    from ml_db.client import MLDB
+    from ml_db.errors import ModelNotFoundError, InvalidInputError
+
+    print("\n▶️  Running replay…")
+    db = MLDB()
+    try:
+        result = db.replay(model_id, register=False)
+    except ModelNotFoundError:
+        print(f"❌ Model '{model_id}' not found.")
+        raise SystemExit(1)
+    except InvalidInputError as exc:
+        print(f"❌ {exc}")
+        raise SystemExit(1)
+
+    reproduced = result.get("reproduced")
+    print(f"   Reproduced (run-equivalent): {reproduced}")
+    print(f"   Fingerprint match (full):     {result.get('fingerprint_match')}")
+    print(f"   Expected fingerprint: {result.get('expected_fingerprint')}")
+    print(f"   Actual fingerprint:   {result.get('actual_fingerprint')}")
+
+    expected_acc = result.get("expected_accuracy")
+    actual_acc = result.get("accuracy")
+    if expected_acc is not None and actual_acc is not None:
+        delta = result.get("accuracy_delta")
+        print(f"   Expected accuracy: {expected_acc}")
+        print(f"   Actual accuracy:   {actual_acc} (Δ {delta})")
+
+    run_differences = result.get("run_differences") or []
+    if run_differences:
+        print(f"\n   ⚠️  Run-level differences ({len(run_differences)}):")
+        for item in run_differences:
+            print(f"      - {item['field']}: {item['left']} → {item['right']}")
+    else:
+        print("\n   ✅ The replay is run-equivalent to the original run.")
+
+    if not reproduced:
+        raise SystemExit(2)
+
+
+def cmd_model_coverage(rm):
+    """Report provenance coverage across the registry.  v13 DoD #3."""
+    audit = rm.provenance_coverage()
+    summary = audit.get("summary") or {}
+    report = audit.get("report") or {}
+
+    total = summary.get("total", 0)
+    if not total:
+        print("📭 No models registered yet.")
+        return
+
+    print(f"\n📊 Provenance coverage — {total} registered model(s)")
+    print("=" * 60)
+    print(f"   With provenance:  {summary.get('with_provenance', 0):>6}  ({summary.get('coverage_pct', 0)}%)")
+    print(f"   With replay plan: {summary.get('with_replay', 0):>6}  ({summary.get('replayable_pct', 0)}%)")
+    print(f"   CLI-exact replay: {summary.get('cli_exact', 0):>6}  ({summary.get('cli_exact_pct', 0)}%)")
+
+    print("\n   Breakdown:")
+    labels = {
+        "replayable_exact": "✅ replayable (CLI command exact)",
+        "replayable_sdk": "🟡 replayable (SDK recipe only — CLI lossy)",
+        "provenance_only": "🟠 provenance recorded, no replay plan",
+        "no_provenance": "🔴 no provenance (registered before v13)",
+    }
+    by_status = summary.get("by_status") or {}
+    for status, count in by_status.items():
+        print(f"      {labels.get(status, status):<48} {count:>6}")
+
+    reasons = report.get("reasons") or []
+    if reasons:
+        print(f"\n   🚧 Why {report.get('blocked', 0)} model(s) are not replayable:")
+        for item in reasons[:10]:
+            print(f"      • {item['count']:>6}×  {item['reason']}")
+            if item.get("models"):
+                sample = ", ".join(item["models"][:3])
+                extra = len(item["models"]) - 3
+                print(f"              e.g. {sample}" + (f" (+{extra} more)" if extra > 0 else ""))
+        if len(reasons) > 10:
+            print(f"      … and {len(reasons) - 10} more cause(s)")
+
+
+def cmd_model_storage(rm):
+    """Report registry disk usage and the deduplication gain.  v13 DoD #4."""
+    stats = rm.storage_stats()
+
+    def _mb(value):
+        return f"{value / 1048576:.1f} MB"
+
+    print(f"\n💾 Registry storage — {stats['models']} registered model(s)")
+    print("=" * 60)
+    print(f"   Unique blobs stored:  {stats['unique_blobs']}")
+    print(f"   On disk:              {_mb(stats['stored_bytes'])}")
+    print(f"   Without deduplication: {_mb(stats['logical_bytes'])}")
+    if stats.get("dedup_saved_bytes"):
+        print(f"   Saved by dedup:       {_mb(stats['dedup_saved_bytes'])}  ({stats['dedup_ratio']:.1f}×)")
+    if stats.get("legacy_per_model_bytes"):
+        print(f"   Legacy per-model files: {_mb(stats['legacy_per_model_bytes'])}")
+
+
+def cmd_model_health(rm, sample=None):
+    """Audit how many stored artifacts are actually loadable.  v13 DoD #5."""
+    report = rm.health_check(sample=sample)
+
+    print(f"\n🩺 Registry health — {report['total']} registered model(s)")
+    print("=" * 60)
+    print(f"   ✅ Loadable:      {report['loadable']}  ({report['loadable_pct']:.1f}%)")
+    print(f"   📄 Metadata only:  {report['no_artifact']}  (no artifact was ever stored)")
+    print(f"   ❌ Unloadable:     {report['unloadable']}")
+    if report.get("reasons"):
+        print("\n   Failure reasons:")
+        for reason, count in report["reasons"].items():
+            print(f"      {count:6d}  {reason}")
+    if report.get("compat_shims"):
+        print("\n   Active compatibility shims:")
+        for legacy, current in report["compat_shims"].items():
+            print(f"      {legacy}  ->  {current}")
+    if report.get("unloadable"):
+        print("\n   ⚠️  Unloadable artifacts cannot be restored by renaming;")
+        print("       re-train them from their recorded provenance instead.")
+
+
+def cmd_model_diff(rm, model_id1, model_id2):
+    """Compare the provenance of two models."""
+    try:
+        diff = rm.compare_provenance(model_id1, model_id2)
+    except FileNotFoundError:
+        print("❌ One of the models was not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+    print(f"\n🧾 Provenance diff: {model_id1} ↔ {model_id2}")
+    print(f"   Left fingerprint:  {diff.get('left_fingerprint') or 'N/A'}")
+    print(f"   Right fingerprint: {diff.get('right_fingerprint') or 'N/A'}")
+    print(f"   Identical:         {diff.get('identical')}")
+    print(f"   Fingerprint match: {diff.get('fingerprint_match')}")
+    differences = diff.get("differences") or []
+    if differences:
+        print(f"\n   Differences ({len(differences)}):")
+        for item in differences:
+            print(f"      - {item['field']}: {item['left']} → {item['right']}")
+    else:
+        print("\n   ✅ No differences.")
+
+
+def cmd_model_families(rm):
+    """List model families with their versions.  v12 DoD #3."""
+    families = rm.list_model_families()
+    if not families:
+        print("📭 No models registered yet. Run an experiment to register your first model.")
+        return
+    total_versions = sum(len(v) for v in families.values())
+    print(f"\n🧬 Model Families ({len(families)} families, {total_versions} version(s)):")
+    print()
+    for family, members in families.items():
+        print(f"  【{family}】 — {len(members)} version(s)")
+        for m in members:
+            acc = m.get("accuracy", m.get("metrics", {}).get("test_accuracy", 0.0))
+            print(f"     v{m.get('version', 1):<3} {m['id']:<22} {m['model_type']:<8} acc={acc}")
         print()
 
 
@@ -575,6 +839,15 @@ def run_experiment(dataset: str, model_type: str, params: dict, seed: int = 42, 
                 train_accuracy=train_accuracy,
                 test_accuracy=test_accuracy,
                 plugin_origin=False,
+                provenance=build_provenance(
+                    seed=seed,
+                    dataset_name=dataset,
+                    n_samples=500,
+                    noise=0.3,
+                    test_size=0.2,
+                    hyperparameters=params,
+                    model_type=model_type,
+                ),
             )
             if verbose:
                 print(f"  📦 Registered model: {model_id}")
@@ -906,6 +1179,23 @@ if __name__ == "__main__":
                             created = m.get("created_at", "unknown")[:25]
                             acc = m.get("accuracy", 0.0)
                             print(f"   {m['id']:<22} {m['model_type']:<8} acc={acc:.4f}  {created}")
+                # v12 DoD #3: batch tag query (--tags a b c [--match any|all])
+                elif getattr(args, "tag_names", None):
+                    try:
+                        models = rm.list_models_by_tags(args.tag_names, mode=args.match_mode)
+                    except ValueError as e:
+                        print(f"❌ {e}")
+                        raise SystemExit(1)
+                    label = " AND ".join(args.tag_names) if args.match_mode == "all" else " OR ".join(args.tag_names)
+                    if not models:
+                        print(f"📭 No models found with tags ({label}).")
+                    else:
+                        print(f"\n🏷️  Models matching tags [{label}] ({len(models)}):")
+                        for m in models:
+                            created = m.get("created_at", "unknown")[:25]
+                            acc = m.get("accuracy", 0.0)
+                            ver = m.get("version", 1)
+                            print(f"   {m['id']:<22} {m['model_type']:<8} acc={acc:.4f}  v{ver}  {created}")
                 else:
                     cmd_model_list(rm)
             elif action == "inspect":
@@ -939,6 +1229,39 @@ if __name__ == "__main__":
                 cmd_model_untag(rm, args.model_id, tag_name)
             elif action == "tags":
                 cmd_model_tags(rm)
+            elif action == "versions":
+                # v12 DoD #3: list every version of a model's family
+                if not args.model_id:
+                    print("❌ versions requires a model_id: python main.py model versions <id>")
+                    raise SystemExit(1)
+                cmd_model_versions(rm, args.model_id)
+            elif action == "families":
+                # v12 DoD #3: list all model families
+                cmd_model_families(rm)
+            elif action == "provenance":
+                if not args.model_id:
+                    print("❌ provenance requires a model_id: python main.py model provenance <id>")
+                    raise SystemExit(1)
+                cmd_model_provenance(rm, args.model_id)
+            elif action == "diff":
+                if not args.model_id or not args.model_id2:
+                    print("❌ diff requires two model IDs: python main.py model diff <id1> <id2>")
+                    raise SystemExit(1)
+                cmd_model_diff(rm, args.model_id, args.model_id2)
+            elif action == "replay":
+                if not args.model_id:
+                    print("❌ replay requires a model_id: python main.py model replay <id>")
+                    raise SystemExit(1)
+                cmd_model_replay(rm, args.model_id, run=args.run_replay)
+            elif action == "coverage":
+                # v13 DoD #3: provenance coverage dashboard
+                cmd_model_coverage(rm)
+            elif action == "storage":
+                # v13 DoD #4: registry disk usage / dedup gain
+                cmd_model_storage(rm)
+            elif action == "health":
+                # v13 DoD #5: artifact loadability audit
+                cmd_model_health(rm, sample=args.sample)
         elif cmd == "benchmark":
             if action == "list":
                 cmd_benchmark_list(rm)

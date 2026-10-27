@@ -130,6 +130,280 @@ python server.py
 open web/index.html
 ```
 
+### 7. Python SDK (v12)
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+
+# Train + register in one call
+result = db.train(model="SVM", dataset="circles", n_samples=500, tags=["demo"])
+print(result.model_id, result.accuracy)
+
+# Predict with a registered model
+preds = db.predict(result.model_id, X=[[0.0, 0.0], [1.0, 1.0]])
+
+# Registry passthrough
+db.list_models()
+db.list_models_by_tag("demo")
+db.compare(result.model_id, other_id)
+```
+
+### 7b. Async Training (v12 DoD #2)
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+
+# Start a background training job — returns immediately
+task = db.train_async(model="RF", dataset="moons", n_samples=2000)
+print(task["id"], task["status"])  # e.g. "2026-10-25_abc123" "pending"
+
+# Poll the task state
+print(db.get_task(task["id"])["status"])
+
+# Or block until it finishes
+final = db.wait_for_task(task["id"], timeout=120)
+print(final["status"], final["result"]["accuracy"])
+
+# List all tasks, optionally filtered by state
+db.list_tasks(status="succeeded")
+
+# Cancel a still-running task
+db.cancel_task(task["id"])
+```
+
+> The SDK is a thin wrapper over `core/` — CLI, HTTP API and SDK share the exact
+> same training and registry logic, so results never drift between surfaces.
+> Async tasks are persisted to `~/.ml-decision-boundary/registry/tasks/` and
+> survive process restarts (interrupted tasks are marked `failed` on recovery).
+
+---
+
+### 7c. Model Versioning & Batch Tag Query (v12 DoD #3)
+
+Models that share the same **family** (identical `model_type` + dataset +
+hyperparameters) are versioned `v1 → v2 → v3 ...`. Retraining the same setup
+never overwrites the previous run — it becomes the next version.
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+
+# Train the same config twice → two versions of one family
+db.train(model="SVM", dataset="circles", C=1.0, kernel="rbf")
+db.train(model="SVM", dataset="circles", C=1.0, kernel="rbf")
+
+# All versions of a model
+for m in db.get_model_versions(db.list_models()[0]["id"]):
+    print(f"v{m['version']}  {m['id']}  acc={m['accuracy']}")
+
+# The newest version of that family
+db.get_latest_version(model_id)["version"]
+
+# Group every model by family
+db.list_model_families()
+
+# Batch tag query — "any" = union, "all" = intersection
+db.list_models_by_tags(["prod", "best"], mode="any")   # has prod OR best
+db.list_models_by_tags(["prod", "best"], mode="all")   # has prod AND best
+
+# Reverse tag index, newest first within each tag
+db.tag_index()
+```
+
+Same operations from the CLI:
+
+```bash
+python main.py model list --tags prod best --match any   # batch tag query
+python main.py model list --tags prod best --match all
+python main.py model versions 2026-10-25_abc123          # all versions of a family
+python main.py model families                            # group by family
+python main.py model list                                 # includes a VER column
+```
+
+And over HTTP (`GET /api/registry`) — see [`spec/API.md`](spec/API.md):
+
+```bash
+curl "localhost:5000/api/registry?tags=prod,best&match=all"
+curl "localhost:5000/api/registry?id=2026-10-25_abc123&versions=1"
+curl "localhost:5000/api/registry?families=1"
+```
+
+> **Backward compatible**: registries created before v12 keep working untouched.
+> Legacy metadata files are never rewritten — missing `version` defaults to `1`
+> and missing `family` is derived on read. Model ID format is unchanged.
+> Tagging a legacy model writes only the `tags` field, so its file keeps its shape.
+>
+> Set `MLDB_REGISTRY_BASE=/path/to/registry` to point the CLI, the SDK and the
+> local Flask server at one registry root (handy for local verification).
+
+---
+
+### 7d. Experiment Provenance & Reproducible Replay (v13)
+
+Every model registered from v13 onward records **how it was produced**:
+random seed, full dataset parameters, resolved hyperparameters, Python /
+numpy / scikit-learn versions and the Git commit. A canonical SHA-256
+**fingerprint** summarizes those fields so two models can be compared
+mechanically.
+
+```python
+from ml_db import MLDB
+
+db = MLDB()
+result = db.train(model="SVM", dataset="circles", params={"C": 1.0})
+
+# Where did this model come from?
+prov = db.get_provenance(result.model_id)
+prov["fingerprint"]     # 'sha256:f38a8840c8af2b99'
+prov["seed"], prov["git"]["commit"]
+
+# Compare the provenance of two models
+db.compare_provenance(id_a, id_b)
+```
+
+#### Reproducible replay
+
+`MLDB.replay_plan()` returns an **executable recipe** for reproducing a
+recorded run — an exact Python snippet, a convenience CLI command, and the
+digest of the pinned dependencies.
+
+```python
+plan = db.replay_plan(result.model_id)
+plan["sdk"]                 # exact Python snippet — always safe to run
+plan["cli"]["command"]      # convenience CLI command
+plan["cli"]["exact"]        # True only if the CLI reproduces the run faithfully
+plan["cli"]["warnings"]     # why it is not exact (empty when exact)
+plan["dependencies"]        # {'digest': 'sha256:...', 'package_count': 26, ...}
+```
+
+> **Honest by design**: `main.py --params` parses values into
+> `int`/`float`/`bool` and keeps everything else as a **string**. A
+> hyperparameter such as `hidden_layer_sizes=(50,)` would therefore reach
+> scikit-learn as the string `"(50,)"` and silently train a *different*
+> model. When that happens the CLI command is flagged `exact: false` with a
+> warning, and the exact `sdk` snippet is the canonical replay path.
+
+#### Re-running and checking
+
+```python
+report = db.replay(result.model_id)
+report["reproduced"]          # run-equivalent: same seed/dataset/params
+report["fingerprint_match"]   # full fingerprint (also covers env + git)
+report["run_differences"]     # structured diff of the run-relevant fields
+report["accuracy_delta"]      # |replayed - original| accuracy
+```
+
+`replay()` uses the **recorded** seed (not the client's current one) and
+does not write to the registry unless you pass `register=True`.
+
+Same from the CLI:
+
+```bash
+python main.py model provenance 2026-10-25_abc123     # show the record
+python main.py model diff 2026-10-25_abc123 2026-10-25_def456
+python main.py model replay 2026-10-25_abc123         # show the recipe
+python main.py model replay 2026-10-25_abc123 --run   # actually re-run it
+```
+
+And over HTTP (`GET /api/provenance`) — see [`spec/API.md`](spec/API.md):
+
+```bash
+curl "localhost:5000/api/provenance?id=2026-10-25_abc123"
+curl "localhost:5000/api/provenance?id=2026-10-25_abc123&replay=1"
+curl "localhost:5000/api/provenance?id=2026-10-25_abc123&compare=2026-10-25_def456"
+```
+
+> **Backward compatible**: models registered before v13 return an empty
+> provenance and are never rewritten. `replay_plan()` degrades gracefully
+> instead of raising.
+
+#### Provenance coverage dashboard
+
+Not every registered model carries provenance — the ones saved before v13
+never will. `coverage()` answers "how much of this registry can actually
+be reproduced, and why not?".
+
+```python
+audit = db.coverage()
+audit["summary"]["total"]            # 20713
+audit["summary"]["coverage_pct"]      # 5.35
+audit["summary"]["cli_exact_pct"]     # 4.98
+audit["summary"]["by_status"]
+# {'replayable_exact': 1032, 'replayable_sdk': 77,
+#  'provenance_only': 0, 'no_provenance': 19604}
+
+audit["report"]["reasons"]           # blocked models grouped by cause
+# [{'reason': 'registered before v13 — no provenance record',
+#   'count': 19604, 'models': [...]}]
+```
+
+Four states, in descending order of usefulness:
+
+| State | Meaning |
+|-------|---------|
+| `replayable_exact` | provenance present, CLI command reproduces faithfully |
+| `replayable_sdk` | provenance present, CLI is lossy — use the SDK snippet |
+| `provenance_only` | provenance present, no replay plan derivable |
+| `no_provenance` | registered before v13 — nothing to replay |
+
+The audit is **read-only**: running it never rewrites a legacy model file.
+
+```bash
+python main.py model coverage        # the dashboard
+curl "localhost:5000/api/provenance?coverage=1"   # same data over HTTP
+```
+
+> `reproducible` counts both `replayable_exact` and `replayable_sdk` — a
+> lossy CLI command still means the experiment *can* be reproduced, just
+> not by pasting that command.
+
+---
+
+## 🩺 Registry Health (v13 DoD #5)
+
+A registry outlives the library versions that filled it.  Models
+serialized by scikit-learn 1.4.x may not unpickle under 1.7.x if a
+renamed internal breaks the pickle's name resolution.  `health()` answers
+"how many of my stored models are actually loadable right now?"
+
+```python
+report = db.health()
+# {'loadable': 14759, 'no_artifact': 6501, 'unloadable': 0, ...}
+```
+
+Three outcomes, because they mean very different things:
+
+| Outcome | Meaning |
+|---------|--------|
+| `loadable` | The artifact deserialized successfully. |
+| `no_artifact` | The record was registered without persisting its model object. **Not corruption** — the metadata describes a training run whose model was never kept. |
+| `unloadable` | An artifact exists but cannot be deserialized. Usually a library rename; the `core.compat` shim handles the known ones. |
+
+CLI:
+
+```bash
+python main.py model health            # audit every model
+python main.py model health --sample 100  # spot-check the first 100
+```
+
+SDK:
+
+```python
+db.health()            # the full audit
+db.compat_shims()      # what aliases are currently active
+```
+
+> **`core.compat` does not rewrite artifacts.**  It installs legacy-name
+> aliases at unpickle time so old pickles resolve.  Stored bytes stay
+> byte-identical.  The `InconsistentVersionWarning` is still emitted —
+> it is informative: the estimator was fitted under a different library
+> version and its numerical behaviour is not guaranteed to match.
+
 ---
 
 ## 🏗️ Architecture
@@ -146,6 +420,8 @@ open web/index.html
         │  datasets.py        │  ← synthetic data generation
         │  visualizer.py      │  ← matplotlib decision boundary
         │  registry.py        │  ← v8 model registry (JSON)
+│  provenance.py      │  ← v13 experiment provenance (seed/env/git/fingerprint)
+│  coverage.py        │  ← v13 provenance coverage audit (read-only)
         │  interfaces.py      │  ← plugin contracts
         │  validation.py      │  ← error handling
         │  error_messages.py  │  ← user-facing errors
@@ -215,8 +491,14 @@ ml-decision-boundary/
 ├── requirements.lock      # Locked versions for production
 ├── run.sh                 # One-liner: bash run.sh
 ├── vercel.json            # Vercel deployment config
+├── ml_db/                 # v12 DoD #1-#2 — Python SDK
+│   ├── __init__.py        # `from ml_db import MLDB`
+│   ├── client.py          # MLDB client (train / predict / async / registry)
+│   └── errors.py          # MLDBError hierarchy (E2xxx codes)
 ├── api/
 │   ├── train.py           # Vercel serverless: POST /api/train
+│   ├── train_async.py     # v12 DoD #2: POST /api/train_async (202 + task_id)
+│   ├── tasks.py           # v12 DoD #2: GET /api/tasks (poll / list)
 │   └── health.py          # Vercel serverless: GET /api/health
 ├── core/                  # Core ML logic
 │   ├── __init__.py
@@ -224,6 +506,7 @@ ml-decision-boundary/
 │   ├── datasets.py        # Synthetic data generation (circles/moons/blobs/xor)
 │   ├── visualizer.py      # matplotlib decision boundary rendering
 │   ├── registry.py        # v8 Model Registry (JSON persistence)
+│   ├── task_queue.py      # v12 DoD #2: persistent async task queue
 │   ├── interfaces.py      # Plugin contract (ModelBuilder ABC)
 │   ├── validation.py       # Error validation + user-facing errors
 │   ├── error_messages.py  # Error message definitions

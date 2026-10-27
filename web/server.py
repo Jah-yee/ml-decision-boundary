@@ -9,6 +9,7 @@ matplotlib.use('Agg')  # headless backend for server environments
 import matplotlib.pyplot as plt
 
 import json
+import os
 import uuid
 import datetime
 import time
@@ -118,6 +119,138 @@ def api_datasets():
     })
 
 
+@app.route('/api/registry', methods=['GET'])
+def api_registry():
+    """Query the model registry (v12 DoD #3).
+
+    Mirrors the Vercel serverless contract in api/registry.py so the same
+    URL behaves identically locally and in production.
+
+    Query params:
+      id       -> single model metadata
+      tags     -> comma-separated tag names to match
+      match    -> "any" (default) or "all"
+      versions -> "1"/"true" -> all versions of the requested model
+      families -> "1"/"true" -> model-family grouping
+    """
+    from ml_db.client import MLDB
+
+    model_id = request.args.get('id')
+    tags_arg = request.args.get('tags')
+    match = request.args.get('match') or 'any'
+    want_families = request.args.get('families', '').lower() in ('1', 'true', 'yes')
+    want_versions = request.args.get('versions', '').lower() in ('1', 'true', 'yes')
+
+    try:
+        # MLDB_REGISTRY_BASE lets local runs (and tests) point at a different
+        # registry root without touching the user's real registry.
+        db = MLDB(registry_base=os.environ.get('MLDB_REGISTRY_BASE') or None)
+
+        if model_id:
+            try:
+                if want_versions:
+                    versions = db.get_model_versions(model_id)
+                    return jsonify({
+                        'id': model_id,
+                        'family': versions[0].get('family') if versions else '',
+                        'count': len(versions),
+                        'versions': versions,
+                    })
+                return jsonify(db.get_model(model_id))
+            except Exception as e:
+                return jsonify({'error': str(e)}), 404
+
+        if want_families:
+            families = db.list_model_families()
+            return jsonify({
+                'families': families,
+                'count': len(families),
+                'version_total': sum(len(v) for v in families.values()),
+            })
+
+        if tags_arg is not None:
+            tags = [t.strip() for t in tags_arg.split(',') if t.strip()]
+            if not tags:
+                return jsonify({'error': "Query parameter 'tags' must not be empty."}), 400
+            try:
+                models = db.list_models_by_tags(tags, mode=match)
+            except ValueError as e:
+                return jsonify({'error': str(e)}), 400
+            return jsonify({
+                'models': models,
+                'count': len(models),
+                'tags': tags,
+                'match': match,
+            })
+
+        models = db.list_models()
+        return jsonify({'models': models, 'count': len(models)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/provenance', methods=['GET'])
+def api_provenance():
+    """Query experiment provenance and replay recipes (v13 DoD #1/#2).
+
+    Mirrors the Vercel serverless contract in api/provenance.py so the same
+    URL behaves identically locally and in production.
+
+    Query params:
+      id      -> model id whose provenance should be returned (required
+                 unless 'coverage' is requested)
+      compare -> second model id; returns a provenance diff
+      replay  -> "1"/"true"/"yes" to include the reproducibility replay plan
+      coverage-> "1"/"true"/"yes" (without 'id') to return the registry-wide
+                 provenance coverage audit (v13 DoD #3)
+    """
+    from ml_db.client import MLDB
+    from ml_db.errors import ModelNotFoundError
+
+    model_id = request.args.get('id')
+    compare_id = request.args.get('compare')
+    want_replay = str(request.args.get('replay', '')).lower() in ('1', 'true', 'yes')
+    want_coverage = str(request.args.get('coverage', '')).lower() in ('1', 'true', 'yes')
+
+    try:
+        db = MLDB(registry_base=os.environ.get('MLDB_REGISTRY_BASE') or None)
+
+        # v13 DoD #3: registry-wide coverage audit — no model id required.
+        if want_coverage and not model_id:
+            return jsonify(db.coverage())
+
+        if not model_id:
+            return jsonify({'error': "Query parameter 'id' is required."}), 400
+
+        try:
+            provenance = db.get_provenance(model_id)
+        except ModelNotFoundError as e:
+            return jsonify({'error': str(e), 'code': getattr(e, 'code', 'MODEL_NOT_FOUND')}), 404
+
+        payload = dict(provenance or {})
+
+        if compare_id:
+            try:
+                other = db.get_provenance(compare_id)
+            except ModelNotFoundError as e:
+                return jsonify({'error': str(e), 'code': getattr(e, 'code', 'MODEL_NOT_FOUND')}), 404
+            payload = {
+                'left': provenance,
+                'right': other,
+                'diff': db.compare_provenance(model_id, compare_id),
+            }
+
+        if want_replay:
+            payload = {
+                'provenance': payload,
+                'replay': db.replay_plan(model_id),
+            }
+
+        return jsonify(payload)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/predict/batch', methods=['POST'])
 def api_predict_batch():
     """Batch prediction: POST /api/predict/batch with JSON body."""
@@ -182,7 +315,11 @@ def api_predict_batch():
 
 
 @app.route('/health', methods=['GET'])
+@app.route('/api/health', methods=['GET'])
 def health():
+    """Health check. `/api/health` mirrors the Vercel serverless route
+    (spec/CHARTER.md P3) so the same URL works locally and in production.
+    """
     return jsonify({'status': 'ok'})
 
 

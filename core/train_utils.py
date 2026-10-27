@@ -22,6 +22,25 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import GaussianNB
 
 
+# Builtin sklearn factories (module-level so the SDK can enumerate them).
+# Each entry takes the resolved hyperparameter dict as its only argument.
+BUILTIN_FACTORIES = {
+    'SVM':  lambda p: SVC(**p, random_state=42),
+    'LR':   lambda p: LogisticRegression(**p, random_state=42, max_iter=1000),
+    'Tree': lambda p: DecisionTreeClassifier(**p, random_state=42),
+    'RF':   lambda p: RandomForestClassifier(**p, random_state=42),
+    'KNN':  lambda p: KNeighborsClassifier(**p),
+    'MLP':  lambda p: MLPClassifier(**p, random_state=42, max_iter=500),
+    'NB':   lambda p: GaussianNB(**p),
+    'GB':   lambda p: GradientBoostingClassifier(**p, random_state=42),
+    'ET':   lambda p: ExtraTreesClassifier(**p, random_state=42),
+    'AB':   lambda p: AdaBoostClassifier(**p, random_state=42, algorithm='SAMME'),
+}
+
+#: Names of the builtin model types exposed by the CLI / API / SDK.
+BUILTIN_MODEL_NAMES = tuple(BUILTIN_FACTORIES.keys())
+
+
 def build_model(model_name, params):
     """Factory: build an sklearn estimator from name + keyword params.
 
@@ -38,19 +57,7 @@ def build_model(model_name, params):
     except Exception:
         pass  # Fall through to builtins
 
-    # Builtin sklearn factories
-    factories = {
-        'SVM':  lambda: SVC(**params, random_state=42),
-        'LR':   lambda: LogisticRegression(**params, random_state=42, max_iter=1000),
-        'Tree': lambda: DecisionTreeClassifier(**params, random_state=42),
-        'RF':   lambda: RandomForestClassifier(**params, random_state=42),
-        'KNN':  lambda: KNeighborsClassifier(**params),
-        'MLP':  lambda: MLPClassifier(**params, random_state=42, max_iter=500),
-        'NB':   lambda: GaussianNB(**params),
-        'GB':   lambda: GradientBoostingClassifier(**params, random_state=42),
-        'ET':   lambda: ExtraTreesClassifier(**params, random_state=42),
-        'AB':   lambda: AdaBoostClassifier(**params, random_state=42, algorithm='SAMME'),
-    }
+    factories = BUILTIN_FACTORIES
     if model_name not in factories:
         # Provide helpful error with available options
         try:
@@ -66,7 +73,7 @@ def build_model(model_name, params):
             f"Available models: {', '.join(all_options)}. "
             f"Run with --list-models to see all."
         )
-    return factories[model_name]()
+    return factories[model_name](params)
 
 
 def slider_to_params(model_name, p1, p2):

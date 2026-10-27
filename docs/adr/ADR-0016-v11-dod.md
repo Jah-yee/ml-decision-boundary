@@ -1,7 +1,7 @@
 # ADR-0016 — v11 DoD 细化：Multi-Dataset Expansion & Experiment History
 
 **日期**: 2026-07-10
-**状态**: 🟡 Draft（PR #57 OPEN, MERGEABLE, CLEAN — 待皇上 Merge 后 Accepted）
+**状态**: ✅ Accepted（2026-10-25 — PR #58 merged 2026-10-24T16:27:28Z）
 **维护人**: 太子
 
 ---
@@ -27,7 +27,7 @@ v11 主题定位为 **Multi-Dataset Expansion & Experiment History**，扩展数
 | 1 | **Multi-Dataset Support** | 新增 swiss_roll 数据集 + make_classification 变体（2-blobs, concentric），并在 API/Web UI 可选 | P1 | ✅ |
 | 2 | **Batch Prediction API** | `POST /api/predict/batch` 端点，支持批量推理请求（JSON array in, JSON array out） | P1 | ✅ |
 | 3 | **Experiment History UI** | 在 Web UI 新增历史实验面板，展示历史训练记录（模型、数据集、准确率、时间戳） | P1 | ✅ |
-| 4 | **ADR-0016 Accepted** | DoD #1-3 全部完成后，将 ADR-0016 状态更新为 Accepted | P0 | 🟡 PR #57 OPEN, MERGEABLE, CLEAN — 待皇上 Merge |
+| 4 | **ADR-0016 Accepted** | DoD #1-3 全部完成后，将 ADR-0016 状态更新为 Accepted | P0 | ✅ Accepted 2026-10-25（PR #58 merged 2026-10-24T16:27:28Z）|
 
 ---
 
@@ -42,7 +42,7 @@ v11 主题定位为 **Multi-Dataset Expansion & Experiment History**，扩展数
 
 ## 验收标准（DoD #4 完成后勾选）
 
-- [ ] ADR-0016 状态: Accepted 🟡 (PR #57 OPEN, MERGEABLE, CLEAN — 待皇上 Merge)
+- [x] ADR-0016 状态: Accepted ✅ (2026-10-25，PR #58 merged 2026-10-24T16:27:28Z)
 - [x] P0: compileall + import smoke 通过 ✅ (v113 早场)
 - [x] P1: pytest -q 通过 ✅ 324 passed, 5 skipped (v113 早场)
 - [x] Dataset: swiss_roll 可加载 ✅ (v56 早场)
@@ -61,7 +61,7 @@ v11 主题定位为 **Multi-Dataset Expansion & Experiment History**，扩展数
 
 ---
 
-## 下一步（v12 方向，待 ADR-0016 Accepted 后规划）
+## 下一步（v12 方向 — 已于 2026-10-25 启动）
 
 - Deployment & Hosting（Vercel 部署配置更新）
 - Multi-user / session management

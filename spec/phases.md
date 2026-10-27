@@ -166,33 +166,55 @@
 
 ---
 
-## v11 — Multi-Dataset Expansion & Experiment History (进行中 🟡)
+## v11 — Multi-Dataset Expansion & Experiment History (已完成 ✅)
 
 **入口条件**: v10 DoD 全部完成 ✅ + ADR-0015 Accepted (2026-07-10) + ADR-0016 Draft (2026-07-10)
 
-**本阶段 DoD**（ADR-0016 — 🟡 Draft，待 PR #57 Merge 后 Accepted）：
+**本阶段 DoD**（ADR-0016 — ✅ Accepted 2026-10-25）：
 - [x] ADR-0016: v11 DoD 细化 ✅ (v55 晚场 Draft)
 - [x] Multi-Dataset Support — 新增 swiss_roll + make_classification 变体 ✅ (v56 早场)
 - [x] Batch Prediction API — `POST /api/predict/batch` ✅ (v56 晚场)
 - [x] Experiment History UI — Web UI 历史实验面板 + output/experiments.jsonl ✅ (v57 早场)
-- [ ] ADR-0016 Accepted 🟡 (PR #57 OPEN, MERGEABLE, CLEAN — 等待皇上 Merge)
+- [x] ADR-0016 Accepted ✅ (2026-10-25，PR #58 merged 2026-10-24T16:27:28Z)
 
-**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 进行中 🟡**
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 已完成 ✅ 🎉**
 
 ---
 
-## v12 — Python API & SDK Foundation (规划中 🟡)
+## v12 — Python API & SDK Foundation (进行中 🟡)
 
-**入口条件**: v11 DoD 全部完成 ✅ + ADR-0016 Accepted 🟡 (待 PR #57 Merge) + ADR-0017 Draft (2026-10-07)
+**入口条件**: v11 DoD 全部完成 ✅ + ADR-0016 Accepted ✅ (2026-10-25) + ADR-0017 Accepted ✅ (2026-10-25)
 
-**本阶段 DoD**（ADR-0017 — 🟡 Draft）：
-- [ ] ADR-0017: v12 DoD 细化 🟡 (v111 早场 Draft)
-- [ ] Python SDK 接口 — `from ml_db import MLDB` 顶层 API 🟡
-- [ ] 异步训练任务 — 后台训练 + 轮询状态 🟡
-- [ ] Registry 改进 — 模型版本化 + 标签查询 🟡
-- [ ] ADR-0017 Accepted 🟡
+**本阶段 DoD**（ADR-0017 — ✅ Accepted，DoD #1-#4 已实现）：
+- [x] ADR-0017: v12 DoD 细化 ✅ (v111 早场 Draft)
+- [x] Python SDK 接口 — `from ml_db import MLDB` 顶层 API ✅ (v119 早场，`ml_db/` 包 + 21 个测试)
+- [x] 异步训练任务 — `core/task_queue.py` + `train_async()` / `get_task()` / `list_tasks()` / `wait_for_task()` + `/api/train_async` + `/api/tasks` HTTP 端点 ✅ (v119 早场 #2)
+- [x] Registry 改进 — 模型版本化（v1/v2）+ 标签批量查询 ✅ (v119 晚场，family key + `_normalize()` 向后兼容 + `/api/registry` 端点 + 58 个测试)
+- [x] ADR-0017 Accepted ✅ (v119 晚场，DoD #1-#4 全部完成)
 
-**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 进行中 🟡 | v12 规划中 🟡**
+**v0 已完成 ✅ | v1 已完成 ✅ | v2 已完成 ✅ | v3 已完成 ✅ | v4 已完成 ✅ | v5 已完成 ✅ | v6 已完成 ✅ | v7 已完成 ✅ | v8 已完成 ✅ | v9 已完成 ✅ | v10 已完成 ✅ | v11 已完成 ✅ 🎉 | v12 已完成 ✅**
+
+---
+
+## v13 — Experiment Provenance & Reproducibility (进行中 🟡)
+
+**入口条件**: v12 DoD 全部完成 ✅ + ADR-0017 Accepted ✅ (2026-10-25) + PR #60 已交付（待 Merge）
+
+**本阶段 DoD**（ADR-0018 — 🟡 Proposed）：
+- [ ] ADR-0018: v13 DoD 细化 ✅ (2026-10-26，Proposed；2026-10-27 追加 DoD #8/#9)
+- [x] Provenance capture — seed / dataset / hyperparameters / environment / git commit / fingerprint ✅ (2026-10-26)
+- [x] Provenance compare — SDK + CLI 查看与比较来源差异 ✅ (2026-10-26)
+- [x] 旧模型零迁移兼容 ✅ (2026-10-26)
+- [x] Replay recipe — 可执行重放方案（SDK 精确片段 + CLI 命令 + 依赖锁定摘要）✅ (2026-10-26)
+- [x] HTTP provenance API — `GET /api/provenance`（id / compare / replay）✅ (2026-10-26)
+- [x] Honest replay — CLI 命令仅在可精确复现时标记 exact，否则警告并引导 SDK ✅ (2026-10-26)
+- [x] Coverage dashboard — 覆盖率看板（4 类状态 + 阻塞原因分组，Registry/SDK/CLI/HTTP 四端）✅ (2026-10-27)
+- [x] Replay execution — CLI `model replay --run <id>` 实际重跑并输出复现报告 ✅ (2026-10-27)
+- [x] Content-addressed storage — registry 产物 SHA-256 去重 + 迁移工具 ✅ (2026-10-27)
+- [x] Artifact compatibility — 跨 sklearn 版本产物向后兼容层 + registry 健康审计（700 个不可加载产物全部恢复）✅ (2026-10-27)
+- [ ] 回归验证与 CI 全绿 ⏳ (待验收)
+
+**v0-v12 已完成 ✅ | v13 进行中 🟡**
 
 ---
 

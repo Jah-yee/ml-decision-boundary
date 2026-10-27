@@ -201,13 +201,15 @@
 **入口条件**: v12 DoD 全部完成 ✅ + ADR-0017 Accepted ✅ (2026-10-25) + PR #60 已交付（待 Merge）
 
 **本阶段 DoD**（ADR-0018 — 🟡 Proposed）：
-- [ ] ADR-0018: v13 DoD 细化 ✅ (2026-10-26，Proposed)
+- [ ] ADR-0018: v13 DoD 细化 ✅ (2026-10-26，Proposed；2026-10-27 追加 DoD #8/#9)
 - [x] Provenance capture — seed / dataset / hyperparameters / environment / git commit / fingerprint ✅ (2026-10-26)
 - [x] Provenance compare — SDK + CLI 查看与比较来源差异 ✅ (2026-10-26)
 - [x] 旧模型零迁移兼容 ✅ (2026-10-26)
 - [x] Replay recipe — 可执行重放方案（SDK 精确片段 + CLI 命令 + 依赖锁定摘要）✅ (2026-10-26)
 - [x] HTTP provenance API — `GET /api/provenance`（id / compare / replay）✅ (2026-10-26)
 - [x] Honest replay — CLI 命令仅在可精确复现时标记 exact，否则警告并引导 SDK ✅ (2026-10-26)
+- [x] Coverage dashboard — 覆盖率看板（4 类状态 + 阻塞原因分组，Registry/SDK/CLI/HTTP 四端）✅ (2026-10-27)
+- [x] Replay execution — CLI `model replay --run <id>` 实际重跑并输出复现报告 ✅ (2026-10-27)
 - [ ] 回归验证与 CI 全绿 ⏳ (待验收)
 
 **v0-v12 已完成 ✅ | v13 进行中 🟡**

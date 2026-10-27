@@ -307,6 +307,7 @@ Same from the CLI:
 python main.py model provenance 2026-10-25_abc123     # show the record
 python main.py model diff 2026-10-25_abc123 2026-10-25_def456
 python main.py model replay 2026-10-25_abc123         # show the recipe
+python main.py model replay 2026-10-25_abc123 --run   # actually re-run it
 ```
 
 And over HTTP (`GET /api/provenance`) — see [`spec/API.md`](spec/API.md):
@@ -320,6 +321,46 @@ curl "localhost:5000/api/provenance?id=2026-10-25_abc123&compare=2026-10-25_def4
 > **Backward compatible**: models registered before v13 return an empty
 > provenance and are never rewritten. `replay_plan()` degrades gracefully
 > instead of raising.
+
+#### Provenance coverage dashboard
+
+Not every registered model carries provenance — the ones saved before v13
+never will. `coverage()` answers "how much of this registry can actually
+be reproduced, and why not?".
+
+```python
+audit = db.coverage()
+audit["summary"]["total"]            # 20713
+audit["summary"]["coverage_pct"]      # 5.35
+audit["summary"]["cli_exact_pct"]     # 4.98
+audit["summary"]["by_status"]
+# {'replayable_exact': 1032, 'replayable_sdk': 77,
+#  'provenance_only': 0, 'no_provenance': 19604}
+
+audit["report"]["reasons"]           # blocked models grouped by cause
+# [{'reason': 'registered before v13 — no provenance record',
+#   'count': 19604, 'models': [...]}]
+```
+
+Four states, in descending order of usefulness:
+
+| State | Meaning |
+|-------|---------|
+| `replayable_exact` | provenance present, CLI command reproduces faithfully |
+| `replayable_sdk` | provenance present, CLI is lossy — use the SDK snippet |
+| `provenance_only` | provenance present, no replay plan derivable |
+| `no_provenance` | registered before v13 — nothing to replay |
+
+The audit is **read-only**: running it never rewrites a legacy model file.
+
+```bash
+python main.py model coverage        # the dashboard
+curl "localhost:5000/api/provenance?coverage=1"   # same data over HTTP
+```
+
+> `reproducible` counts both `replayable_exact` and `replayable_sdk` — a
+> lossy CLI command still means the experiment *can* be reproduced, just
+> not by pasting that command.
 
 ---
 
@@ -337,6 +378,8 @@ curl "localhost:5000/api/provenance?id=2026-10-25_abc123&compare=2026-10-25_def4
         │  datasets.py        │  ← synthetic data generation
         │  visualizer.py      │  ← matplotlib decision boundary
         │  registry.py        │  ← v8 model registry (JSON)
+│  provenance.py      │  ← v13 experiment provenance (seed/env/git/fingerprint)
+│  coverage.py        │  ← v13 provenance coverage audit (read-only)
         │  interfaces.py      │  ← plugin contracts
         │  validation.py      │  ← error handling
         │  error_messages.py  │  ← user-facing errors

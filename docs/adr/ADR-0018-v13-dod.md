@@ -1,7 +1,7 @@
 # ADR-0018 — v13 DoD 细化：Experiment Provenance & Reproducibility
 
-**日期**: 2026-10-26
-**状态**: 🟡 Proposed（DoD #1 + DoD #2 实现完成，待 Accepted）
+**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9）
+**状态**: 🟡 Proposed（DoD #1–#3 + #5–#9 实现完成，待 Accepted）
 **维护人**: 太子
 
 ---
@@ -31,6 +31,8 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 5 | Replay recipe | provenance 附带可执行重放方案（SDK 精确片段 + CLI 命令 + 依赖锁定摘要） | P1 | ✅ 完成 (5e7f843) |
 | 6 | HTTP provenance API | `GET /api/provenance` 暴露 provenance / diff / replay | P1 | ✅ 完成 (5e7f843) |
 | 7 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
+| 8 | Coverage dashboard | 覆盖率看板：哪些模型缺 provenance、哪些不可重放、阻塞原因分组 | P1 | ✅ 完成 (29089b1) |
+| 9 | Replay execution | CLI `model replay --run <id>` 实际重跑并输出复现报告（run-equivalent 判定） | P1 | ✅ 完成 (29089b1) |
 
 ---
 
@@ -91,9 +93,39 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 - `main.py`：`python3 main.py model replay <id>` 打印 CLI 命令（带 exact 标注与警告）+ 精确 SDK 片段。
 - `tests/test_replay.py`：31 个新测试，含对真实 `main.parse_params` 行为的回归锁定（防止未来修改 CLI 解析器后“重放诚实性”静默失效）。
 
+## DoD #3 实现要点（覆盖率看板 + 重放执行）
+
+- `core/coverage.py`（新建，唯一实现源，只读）：
+  - `classify_model(model, replay_plan=None)` — 将单个注册模型归类为 4 种状态之一：
+    `replayable_exact` / `replayable_sdk` / `provenance_only` / `no_provenance`。
+  - `provenance_coverage(models, replay_plans=None)` — 逐模型分类。
+  - `coverage_summary(models, replay_plans=None)` — 聚合计数与百分比（`coverage_pct` / `replayable_pct` / `cli_exact_pct`）。
+  - `replayability_report(models, replay_plans=None)` — 按“阻塞原因”分组，输出 `{reason, count, models}`，最常见原因在前。
+  - `cli_replay_check(model)` — 比对冻结的 replay 快照与当前推导结果，检测快照漂移。
+- **分类正确性的关键点**：DoD #1 时期注册的模型有 provenance 但没有冻结的 replay 快照，其方案可**按需推导**。若仅看快照，这些模型会被误判为 `provenance_only`。因此 `RegistryManager.provenance_coverage()` 先为所有带 provenance 的模型解析一次 `get_replay_plan()`（结果缓存于内存，不写回磁盘），使覆盖率与 registry 自身的判定一致。
+- **只读保证**：审计全程不重写任何旧 JSON。`tests/test_coverage.py` 以字节比对锁定这一点。
+- `core/registry.py`：`RegistryManager.provenance_coverage()` 返回 `{summary, report, models}`。
+- `ml_db/client.py`：`MLDB.coverage()` / `MLDB.coverage_summary()`。
+- `main.py`：
+  - `python3 main.py model coverage` — 覆盖率看板（总数、覆盖率、精确率、状态分布、阻塞原因 Top-N）。
+  - `python3 main.py model replay <id> --run` — **实际重跑**该实验，输出 `reproduced` / `fingerprint_match` / accuracy 差异 / run-level 差异；未复现时以退出码 2 结束。
+- `api/provenance.py` + `web/server.py`：`GET /api/provenance?coverage=1`（无需 `id`）返回全量审计结果；两套实现镜像同一契约。
+- `tests/test_coverage.py`：28 个新测试，覆盖 4 类状态分类、汇总百分比、阻塞原因分组、快照漂移检测、只读保证、CLI/HTTP 契约。
+
+### 实测结果（真实 registry，20713 个模型）
+
+| 指标 | 数值 |
+|------|------|
+| 模型总数 | 20713 |
+| 带 provenance | 1109（5.35%） |
+| 可重放 | 1109（5.35%，其中 1032 CLI 精确、77 需走 SDK） |
+| 无 provenance（v13 前注册） | 19604 |
+| 审计耗时 | ≈1.1s |
+
+> 结论：v13 前注册的 19604 个模型永远不可重放（历史事实，不可追补）；覆盖率提升的唯一路径是**新注册模型默认携带 provenance**（已由 `save_model` 默认行为保证）。
+
 ## 下轮待办
 
 1. PR #60 / #61 合并后以 master 为 v13 基线，避免长期分叉。
-2. 重放方案的“执行”入口：CLI `model replay --run <id>` 实际重跑并输出复现报告（当前仅 SDK `MLDB.replay()` 提供）。
-3. 将重放方案导出为独立文档（如 `docs/REPRODUCE.md`），便于离线审计。
-4. v13 DoD #3：provenance 覆盖率看板——哪些模型缺 provenance、哪些 fingerprint 不可重放。
+2. 将重放方案导出为独立文档（如 `docs/REPRODUCE.md`），便于离线审计。
+3. Registry 体积治理（当前 4.0G / 20713 模型），避免磁盘占用无上限增长。

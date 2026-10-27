@@ -1,7 +1,7 @@
 # API Contract — ml-decision-boundary
 
 **Status**: Active (v13 in progress)
-**Last updated**: 2026-10-26 (v13 DoD #2 provenance replay)
+**Last updated**: 2026-10-27 (v13 DoD #3 provenance coverage dashboard + replay execution)
 
 本文件记录 HTTP API 的行为契约。P3 验收要求「API/Web 行为在 spec 中记录」。
 
@@ -34,7 +34,7 @@
 | POST | `/api/train_async` | 异步训练，返回 202 + `task_id` | v12 DoD #2 |
 | GET | `/api/tasks` | 任务状态查询 / 列表 | v12 DoD #2 |
 | GET | `/api/registry` | Registry 查询（版本 / 家族 / 批量标签） | **v12 DoD #3** |
-| GET | `/api/provenance` | 实验来源查询 / diff / 重放方案 | **v13 DoD #1/#2** |
+| GET | `/api/provenance` | 实验来源查询 / diff / 重放方案 / 覆盖率审计 | **v13 DoD #1/#2/#3** |
 
 ---
 
@@ -183,9 +183,10 @@ Fingerprint 使用 canonical JSON + SHA-256，覆盖 seed、dataset、hyperparam
 
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
-| `id` | string | — | **必填**。模型 ID。缺失返回 400 |
+| `id` | string | — | **必填**（除非请求 `coverage`）。模型 ID。缺失返回 400 |
 | `compare` | string | — | 第二个模型 ID。存在时返回 `{left, right, diff}` |
 | `replay` | `1`/`true`/`yes` | — | 存在时返回 `{provenance, replay}` |
+| `coverage` | `1`/`true`/`yes` | — | **v13 DoD #3**。不传 `id` 时返回全量覆盖率审计（200） |
 
 ### 响应
 
@@ -256,6 +257,65 @@ Fingerprint 使用 canonical JSON + SHA-256，覆盖 seed、dataset、hyperparam
 3. `test_size` 为默认值 `0.2`（CLI 无此参数）。
 
 任一不满足时 `cli.exact = false` 且 `cli.warnings` 给出原因；此时应使用 `replay.sdk`（始终精确）。
+
+---
+
+## `GET /api/provenance?coverage=1`（v13 DoD #3）
+
+Registry 全量 **provenance 覆盖率审计**。只读：不重写任何旧模型 JSON。
+
+**响应（200）**：
+
+```json
+{
+  "summary": {
+    "total": 20713,
+    "with_provenance": 1109,
+    "with_replay": 1109,
+    "cli_exact": 1032,
+    "reproducible": 1109,
+    "coverage_pct": 5.35,
+    "replayable_pct": 5.35,
+    "cli_exact_pct": 4.98,
+    "by_status": {
+      "replayable_exact": 1032,
+      "replayable_sdk": 77,
+      "provenance_only": 0,
+      "no_provenance": 19604
+    }
+  },
+  "report": {
+    "total": 20713,
+    "reproducible": 1109,
+    "blocked": 19604,
+    "reasons": [
+      {"reason": "registered before v13 — no provenance record",
+       "count": 19604, "models": ["2026-09-18_004531", "..."]}
+    ]
+  },
+  "models": [
+    {"model_id": "2026-10-26_abc123", "status": "replayable_exact",
+     "provenance": true, "replay": true, "cli_exact": true,
+     "fingerprint": "sha256:0123456789abcdef", "reason": ""}
+  ]
+}
+```
+
+### 四种覆盖状态
+
+| 状态 | 含义 | 可重放？ |
+|------|------|----------|
+| `replayable_exact` | 有 provenance，且 CLI 命令可无损复现 | ✅ CLI 即可 |
+| `replayable_sdk` | 有 provenance，CLI 命令有损，需用 SDK 片段 | ✅ 走 SDK |
+| `provenance_only` | 有 provenance，但无法推导重放方案 | ❌ |
+| `no_provenance` | v13 前注册，无 provenance 记录 | ❌ |
+
+### 说明
+
+- `reproducible` 统计的是**可复现**模型（`replayable_exact` + `replayable_sdk`）——CLI 有损但 SDK 精确，仍算可复现。
+- `report.reasons` 按阻塞原因分组并降序排列，直接给出可执行的修复方向。
+- `?coverage=1` 与 `?id=<id>` 互斥：同时传入时以 `id` 为准（模型级查询优先）。
+- 覆盖率为只读派生值，不写回 registry。
 
 ---
 

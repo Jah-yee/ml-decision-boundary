@@ -122,10 +122,13 @@ Examples:
 
     # ml-db model list
     list_parser = subparsers.add_parser("model", help="Model registry management")
-    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay"],
-                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay", "coverage"],
+                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay, coverage")
     list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete/compare/tag/untag)")
     list_parser.add_argument("model_id2", nargs="?", help="Second model ID (for compare)")
+    # v13 DoD #3: actually re-run a recorded experiment and report the outcome
+    list_parser.add_argument("--run", dest="run_replay", action="store_true",
+                              help="Execute the replay for 'replay' and report whether it reproduced")
     list_parser.add_argument("--tag", dest="tag_name", help="Tag name (for tag/untag/list --tag)")
     list_parser.add_argument("--remove-tag", dest="remove_tag", help="Remove tag name (for untag)")
     # v12 DoD #3: batch tag query + version listing
@@ -355,7 +358,7 @@ def cmd_model_provenance(rm, model_id):
     print(f"   Captured at:  {prov.get('captured_at', 'N/A')}")
 
 
-def cmd_model_replay(rm, model_id):
+def cmd_model_replay(rm, model_id, run=False):
     """Show the reproducibility replay recipe for a model.  v13 DoD #2."""
     try:
         plan = rm.get_replay_plan(model_id)
@@ -389,6 +392,94 @@ def cmd_model_replay(rm, model_id):
     print("\n   🐍 Exact SDK recipe:")
     for line in sdk.splitlines():
         print(f"      {line}")
+
+    if not run:
+        return
+
+    # v13 DoD #3: actually execute the replay and report the outcome.
+    _run_model_replay(rm, model_id, plan)
+
+
+def _run_model_replay(rm, model_id, plan):
+    """Execute the recorded experiment and report whether it reproduced."""
+    from ml_db.client import MLDB
+    from ml_db.errors import ModelNotFoundError, InvalidInputError
+
+    print("\n▶️  Running replay…")
+    db = MLDB()
+    try:
+        result = db.replay(model_id, register=False)
+    except ModelNotFoundError:
+        print(f"❌ Model '{model_id}' not found.")
+        raise SystemExit(1)
+    except InvalidInputError as exc:
+        print(f"❌ {exc}")
+        raise SystemExit(1)
+
+    reproduced = result.get("reproduced")
+    print(f"   Reproduced (run-equivalent): {reproduced}")
+    print(f"   Fingerprint match (full):     {result.get('fingerprint_match')}")
+    print(f"   Expected fingerprint: {result.get('expected_fingerprint')}")
+    print(f"   Actual fingerprint:   {result.get('actual_fingerprint')}")
+
+    expected_acc = result.get("expected_accuracy")
+    actual_acc = result.get("accuracy")
+    if expected_acc is not None and actual_acc is not None:
+        delta = result.get("accuracy_delta")
+        print(f"   Expected accuracy: {expected_acc}")
+        print(f"   Actual accuracy:   {actual_acc} (Δ {delta})")
+
+    run_differences = result.get("run_differences") or []
+    if run_differences:
+        print(f"\n   ⚠️  Run-level differences ({len(run_differences)}):")
+        for item in run_differences:
+            print(f"      - {item['field']}: {item['left']} → {item['right']}")
+    else:
+        print("\n   ✅ The replay is run-equivalent to the original run.")
+
+    if not reproduced:
+        raise SystemExit(2)
+
+
+def cmd_model_coverage(rm):
+    """Report provenance coverage across the registry.  v13 DoD #3."""
+    audit = rm.provenance_coverage()
+    summary = audit.get("summary") or {}
+    report = audit.get("report") or {}
+
+    total = summary.get("total", 0)
+    if not total:
+        print("📭 No models registered yet.")
+        return
+
+    print(f"\n📊 Provenance coverage — {total} registered model(s)")
+    print("=" * 60)
+    print(f"   With provenance:  {summary.get('with_provenance', 0):>6}  ({summary.get('coverage_pct', 0)}%)")
+    print(f"   With replay plan: {summary.get('with_replay', 0):>6}  ({summary.get('replayable_pct', 0)}%)")
+    print(f"   CLI-exact replay: {summary.get('cli_exact', 0):>6}  ({summary.get('cli_exact_pct', 0)}%)")
+
+    print("\n   Breakdown:")
+    labels = {
+        "replayable_exact": "✅ replayable (CLI command exact)",
+        "replayable_sdk": "🟡 replayable (SDK recipe only — CLI lossy)",
+        "provenance_only": "🟠 provenance recorded, no replay plan",
+        "no_provenance": "🔴 no provenance (registered before v13)",
+    }
+    by_status = summary.get("by_status") or {}
+    for status, count in by_status.items():
+        print(f"      {labels.get(status, status):<48} {count:>6}")
+
+    reasons = report.get("reasons") or []
+    if reasons:
+        print(f"\n   🚧 Why {report.get('blocked', 0)} model(s) are not replayable:")
+        for item in reasons[:10]:
+            print(f"      • {item['count']:>6}×  {item['reason']}")
+            if item.get("models"):
+                sample = ", ".join(item["models"][:3])
+                extra = len(item["models"]) - 3
+                print(f"              e.g. {sample}" + (f" (+{extra} more)" if extra > 0 else ""))
+        if len(reasons) > 10:
+            print(f"      … and {len(reasons) - 10} more cause(s)")
 
 
 def cmd_model_diff(rm, model_id1, model_id2):
@@ -1118,7 +1209,10 @@ if __name__ == "__main__":
                 if not args.model_id:
                     print("❌ replay requires a model_id: python main.py model replay <id>")
                     raise SystemExit(1)
-                cmd_model_replay(rm, args.model_id)
+                cmd_model_replay(rm, args.model_id, run=args.run_replay)
+            elif action == "coverage":
+                # v13 DoD #3: provenance coverage dashboard
+                cmd_model_coverage(rm)
         elif cmd == "benchmark":
             if action == "list":
                 cmd_benchmark_list(rm)

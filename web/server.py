@@ -197,9 +197,12 @@ def api_provenance():
     URL behaves identically locally and in production.
 
     Query params:
-      id      -> model id whose provenance should be returned (required)
+      id      -> model id whose provenance should be returned (required
+                 unless 'coverage' is requested)
       compare -> second model id; returns a provenance diff
       replay  -> "1"/"true"/"yes" to include the reproducibility replay plan
+      coverage-> "1"/"true"/"yes" (without 'id') to return the registry-wide
+                 provenance coverage audit (v13 DoD #3)
     """
     from ml_db.client import MLDB
     from ml_db.errors import ModelNotFoundError
@@ -207,12 +210,17 @@ def api_provenance():
     model_id = request.args.get('id')
     compare_id = request.args.get('compare')
     want_replay = str(request.args.get('replay', '')).lower() in ('1', 'true', 'yes')
-
-    if not model_id:
-        return jsonify({'error': "Query parameter 'id' is required."}), 400
+    want_coverage = str(request.args.get('coverage', '')).lower() in ('1', 'true', 'yes')
 
     try:
         db = MLDB(registry_base=os.environ.get('MLDB_REGISTRY_BASE') or None)
+
+        # v13 DoD #3: registry-wide coverage audit — no model id required.
+        if want_coverage and not model_id:
+            return jsonify(db.coverage())
+
+        if not model_id:
+            return jsonify({'error': "Query parameter 'id' is required."}), 400
 
         try:
             provenance = db.get_provenance(model_id)

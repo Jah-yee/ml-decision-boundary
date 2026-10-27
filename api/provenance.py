@@ -11,6 +11,8 @@ Query parameters:
             (GET /api/provenance?id=<a>&compare=<b>)
   replay  → when "1"/"true"/"yes", include the replay recipe
             (SDK snippet + CLI command + dependency digest)
+  coverage → when "1"/"true"/"yes" and no 'id' is given, return the
+            registry-wide provenance coverage audit (v13 DoD #3)
 
 Response:
   single model → the provenance record
@@ -38,13 +40,19 @@ def handle(req, res):
         model_id = args.get('id')
         compare_id = args.get('compare')
         want_replay = _is_truthy(args.get('replay'))
+        want_coverage = _is_truthy(args.get('coverage'))
+
+        db = MLDB()
+
+        # v13 DoD #3: registry-wide coverage audit — no model id required.
+        if want_coverage and not model_id:
+            res.json(db.coverage())
+            return
 
         if not model_id:
             res.status = 400
             res.json({'error': "Query parameter 'id' is required."})
             return
-
-        db = MLDB()
 
         try:
             provenance = db.get_provenance(model_id)

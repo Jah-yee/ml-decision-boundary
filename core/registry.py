@@ -32,6 +32,11 @@ from core.provenance import (
     build_replay_plan,
     provenance_diff,
 )
+from core.coverage import (
+    coverage_summary,
+    provenance_coverage,
+    replayability_report,
+)
 
 
 REGISTRY_BASE = Path.home() / ".ml-decision-boundary" / "registry"
@@ -508,6 +513,46 @@ class RegistryManager:
         # Sort by created_at descending (newest first)
         models.sort(key=lambda m: m.get("created_at", ""), reverse=True)
         return models
+
+    # ── v13 DoD #3: provenance coverage ───────────────────────────────────────
+
+    def provenance_coverage(self) -> Dict[str, Any]:
+        """Audit how much of the registry carries usable provenance.
+
+        Read-only: no metadata file is rewritten, so running the audit
+        against a registry full of pre-v13 models is safe.
+
+        Returns:
+            A dict with ``summary`` (aggregated counters and percentages),
+            ``report`` (non-reproducible models grouped by cause) and
+            ``models`` (per-model classification, newest first).
+        """
+        models = self.list_models()
+
+        # Models registered during DoD #1 have a provenance record but no
+        # frozen replay snapshot; their plan is derivable on demand.  The
+        # audit must count them the way ``get_replay_plan()`` would, so the
+        # resolved plans are resolved up-front (and cached) here.
+        replay_plans: Dict[str, Dict[str, Any]] = {}
+        for model in models:
+            provenance = model.get("provenance") or {}
+            if not isinstance(provenance, dict) or not provenance:
+                continue
+            model_id = model.get("id") or model.get("model_id")
+            if not model_id:
+                continue
+            try:
+                plan = self.get_replay_plan(model_id)
+            except Exception:
+                continue
+            if plan.get("available"):
+                replay_plans[model_id] = plan
+
+        return {
+            "summary": coverage_summary(models, replay_plans),
+            "report": replayability_report(models, replay_plans),
+            "models": provenance_coverage(models, replay_plans),
+        }
 
     def delete_model(self, model_id: str) -> None:
         """

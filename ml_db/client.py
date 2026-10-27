@@ -533,6 +533,29 @@ class MLDB:
         except FileNotFoundError as exc:
             raise ModelNotFoundError(model_id_1) from exc
 
+    # ── Provenance coverage (v13 DoD #3) ──────────────────────────────────────
+
+    def coverage(self) -> Dict[str, Any]:
+        """Audit how much of the registry carries usable provenance.
+
+        Read-only — no metadata file is rewritten, so the audit is safe to
+        run against a registry full of pre-v13 records.
+
+        Returns:
+            A dict with ``summary`` (aggregated counters and percentages),
+            ``report`` (non-reproducible models grouped by cause) and
+            ``models`` (per-model classification, newest first).
+        """
+        return self.registry.provenance_coverage()
+
+    def coverage_summary(self) -> Dict[str, Any]:
+        """Return just the aggregated coverage counters.
+
+        A convenience wrapper around :meth:`coverage` for callers that
+        only need the headline numbers.
+        """
+        return self.coverage().get("summary", {})
+
     # ── Reproducibility replay (v13 DoD #2) ───────────────────────────────────
 
     def replay_plan(self, model_id: str) -> Dict[str, Any]:

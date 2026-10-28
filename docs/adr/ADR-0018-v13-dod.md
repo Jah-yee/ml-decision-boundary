@@ -27,7 +27,7 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 1 | Provenance capture | 注册模型时记录 seed / dataset params / resolved hyperparameters / environment / git commit / canonical fingerprint | P1 | ✅ 完成 (855f045) |
 | 2 | Provenance compare | SDK + CLI 支持查看 provenance 与比较两个模型的来源差异 | P1 | ✅ 完成 (855f045) |
 | 3 | Backward compatibility | v13 前模型无需迁移；读取时返回空 provenance，不重写旧 JSON | P1 | ✅ 完成 (855f045) |
-| 4 | Regression verification | 新增专项测试，完整 P0/P1/P2/P3 验收，CI 全绿 | P0 | ⏳ 待 CI |
+| 4 | Regression verification | 新增专项测试，完整 P0/P1/P2/P3 验收，CI 全绿 | P0 | ✅ 完成 (v123 早场) |
 | 5 | Replay recipe | provenance 附带可执行重放方案（SDK 精确片段 + CLI 命令 + 依赖锁定摘要） | P1 | ✅ 完成 (5e7f843) |
 | 6 | HTTP provenance API | `GET /api/provenance` 暴露 provenance / diff / replay | P1 | ✅ 完成 (5e7f843) |
 | 7 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
@@ -35,6 +35,7 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 9 | Replay execution | CLI `model replay --run <id>` 实际重跑并输出复现报告（run-equivalent 判定） | P1 | ✅ 完成 (29089b1) |
 | 10 | Content-addressed storage | registry 产物去重（SHA-256 寻址 blob store）+ 迁移工具 | P1 | ✅ 完成 (462b7ce) |
 | 11 | Artifact compatibility | 跨 scikit-learn 版本的产物向后兼容层 + registry 健康审计 | P1 | ✅ 完成 (v122 晚场) |
+| 12 | Replay integrity guard | 冻结的 replay recipe 漂移分级（none / cosmetic / semantic）+ registry 全量审计 + 实际执行验证 | P1 | ✅ 完成 (v123 早场) |
 
 ---
 
@@ -220,3 +221,84 @@ B. 已 import core.compat -> has legacy: True
 - 6501 条"元数据记录"没有产物。这不是 bug —— 这些记录注册时就没保存模型对象。**无法追补**，除非重新训练。
 - `InconsistentVersionWarning` 仍然存在（13981 个产物带此警告）。这是**诚实提示**：产物是用 1.4.1 拟合的，用 1.7.2 加载，数值不保证逐位一致。本层只保证"能读"，不承诺"读出来一定一样"。
 
+
+---
+
+## DoD #12 — Replay Integrity Guard（v123 早场）
+
+### 问题
+
+DoD #5 把 replay recipe **冻结**进了每个模型的 provenance 记录。冻结只有在"生成 recipe 的代码不会在底下变"的前提下才安全 —— 而它会变。
+
+实测发现：**368 个模型的 stored recipe 与今日代码生成的 recipe 不一致**。看起来像是 368 个模型坏了。
+
+但根因不是模型坏了，而是**拼写变了**：
+
+```
+stored: python main.py --model MLP --dataset circles --seed 42 --params 'hidden_layer_sizes=(50,)'
+fresh : python main.py --model MLP --dataset circles --seed 42 --params 'hidden_layer_sizes=[50]'
+```
+
+历史记录把 tuple 渲染为 Python repr `(50,)`；当前 `build_replay_command()` 渲染为 JSON list `[50]`（因为 provenance 经过了 JSON 序列化，tuple 变成 list）。**两者指同一个超参数、训出同一个模型。**
+
+朴素字符串相等比较**没有能力**区分"拼写变了"和"语义变了"，于是把 368 个完全没坏的模型报成坏了 —— 这会误导运维者去重新训练它们。
+
+同时，`core/coverage.py` 的 `cli_replay_check()` 是个**孤儿函数**：只被 `tests/test_coverage.py` 调用，**没有接入任何 CLI / SDK / API 路径**。也就是说"recipe 还成立吗"这件事，此前**没有任何人问过**。
+
+### 解法
+
+`core/replay_guard.py`（新，唯一实现源）用**三段式分级**取代布尔相等比较：
+
+| 级别 | 含义 | 判据 |
+|------|------|------|
+| `none` | recipe 与今日代码输出一致 | 字符串完全相同 |
+| `cosmetic` | 拼写不同，**指同一次运行** | 超参值语义等价 + run-defining flag 相同 |
+| `semantic` | **会训出不同的模型** | 超参值不同 或 run-defining flag 不同 |
+
+三个判据：
+
+1. **超参值语义归一化** —— `(50,)` 与 `[50]` 归一为同一 tuple；`50` 与 `50.0` 归一为同一数值。序列统一归一为 tuple，不论原写作 tuple 还是 list。
+2. **run-defining flag 与 visual-only flag 分离** —— `--n-samples` / `--noise` **不进入 CLI 训练路径**（`main.run_experiment` 硬编码 `n_samples=500, noise=0.3`，这两个 flag 只喂给绘图），因此二者不同是 cosmetic 而非 semantic。
+3. **`--params` 排除出 flag 比较** —— 它是可重复 flag，值已由超参映射单独比较；纳入 flag 比较会导致"仅因参数顺序不同"而误报。
+
+### 接线
+
+| 层 | 接口 |
+|----|------|
+| Registry | `RegistryManager.replay_integrity()` / `recipe_drift(model_id)` / `verify_replay(model_id)` |
+| SDK | `MLDB.replay_integrity()` / `recipe_drift(model_id)` / `verify_replay(model_id)` |
+| CLI | `python3 main.py model integrity` / `python3 main.py model verify <id>` |
+| HTTP | `GET /api/provenance?integrity=1` / `GET /api/provenance?verify=1&id=<id>` |
+
+`verify_replay()` **实际执行** replay 并给出 verdict —— 漂移审计说"recipe 是否还匹配代码"，只有执行才说"运行是否还复现"。这是 DoD #4 "regression verification" 的另一半。
+
+### 实测（真实 registry）
+
+```
+🧭 Replay integrity — 21339 registered model(s)
+============================================================
+   ✅ Recipe current:     20971
+   🟡 Cosmetic drift:       368  (spelled differently, same run)
+   ❌ Semantic drift:         0  (would reproduce a different model)
+
+   Models with a frozen recipe: 1735 / 21339
+   Stale text:  368  (21.2% of recipes)
+   Broken:      0  (reproducibility actually lost)
+```
+
+**registry 的可复现性承诺目前没有破。** 368 个 stale recipe 全部只是拼写差异，语义未变。
+
+本轮最有价值的产出正是这一点：把一个"看起来 368 个模型坏了"的告警，变成"**0 个模型真的坏了**，368 个只是拼写差异"—— 避免了 368 次无意义重训。
+
+### 分级器的灵敏度（双向验证）
+
+分级器**不是**"一味宽松"。测试同时钉住两个方向：
+
+- **必须报警**（判 `semantic`）：换 dataset / 换 seed / 换 model 类型 / 换超参值 / 加超参 / 删超参 / 序列内容变化（`(50,)` → `(100,)`）—— 7 类全部正确报警；
+- **必须不报警**（判 `cosmetic`）：tuple vs list / `C=1` vs `C=1.0` / `--n-samples`+`--noise` 差异 / `--params` 顺序差异 —— 4 类全部正确放行。
+
+### 设计约束
+
+- 审计**只读**：不重写任何元数据字节，不做隐式迁移。旧 registry 零迁移原则不变。
+- Registry 是事实源；Registry / SDK / CLI / HTTP 四端调用同一份 `core/replay_guard.py`，不复制判定逻辑。
+- 漂移分级只回答"**指同一次运行吗**"，不回答"**训出的模型逐位相同吗**" —— 后者由 `verify_replay()` 实际执行给出。

@@ -709,6 +709,68 @@ class MLDB:
             "differences": diff.get("differences", []),
         }
 
+    # ── Replay integrity (v13 DoD #4) ─────────────────────────────────────────
+
+    def replay_integrity(self) -> Dict[str, Any]:
+        """Audit whether the frozen replay recipes still describe their runs.
+
+        Every model registered after v13 DoD #2 carries a *frozen* replay
+        recipe.  Freezing is only safe if the code that produces recipes
+        does not change underneath it — and it does.  This audit re-derives
+        every recipe from the model's provenance and grades the difference:
+
+        ``none``
+            The recipe is still exactly what today's code would emit.
+        ``cosmetic``
+            The recipe is spelled differently but denotes the same run
+            (for example a list rendered as ``[50]`` instead of ``(50,)``).
+        ``semantic``
+            The recipe would reproduce a *different* model than the one on
+            record.
+
+        Read-only — no metadata file is rewritten.
+
+        Returns:
+            A dict with ``total``, ``with_provenance``, ``by_drift``,
+            ``stale``, ``broken`` and ``models`` (the semantically drifted
+            models, for triage).
+        """
+        return self.registry.replay_integrity()
+
+    def recipe_drift(self, model_id: str) -> Dict[str, Any]:
+        """Grade the replay-recipe drift of a single model.
+
+        Returns a dict with ``drift`` (``"none"`` / ``"cosmetic"`` /
+        ``"semantic"``), ``stored_command``, ``fresh_command``,
+        ``changed_fields`` and ``reproduces_same_model``.
+
+        Raises:
+            ModelNotFoundError: if `model_id` is unknown to the registry.
+        """
+        try:
+            return self.registry.recipe_drift(model_id)
+        except FileNotFoundError as exc:
+            raise ModelNotFoundError(model_id) from exc
+
+    def verify_replay(self, model_id: str) -> Dict[str, Any]:
+        """Execute a model's replay and report whether it still reproduces.
+
+        The replay runs without registering the result, so the registry is
+        not polluted.
+
+        Returns a dict with ``verified``, ``status`` (``"reproduced"`` /
+        ``"drifted"`` / ``"not_verified"`` / ``"no_provenance"``),
+        ``accuracy``, ``expected_accuracy``, ``accuracy_delta`` and
+        ``drift`` (the recipe drift verdict).
+
+        Raises:
+            ModelNotFoundError: if `model_id` is unknown to the registry.
+        """
+        try:
+            return self.registry.verify_replay(model_id)
+        except FileNotFoundError as exc:
+            raise ModelNotFoundError(model_id) from exc
+
     def compare(self, model_id_1: str, model_id_2: str) -> Dict[str, Any]:
         """Compare two registered models (accuracy, dataset, tags, ...)."""
         try:

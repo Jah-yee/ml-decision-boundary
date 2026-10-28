@@ -122,8 +122,8 @@ Examples:
 
     # ml-db model list
     list_parser = subparsers.add_parser("model", help="Model registry management")
-    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay", "coverage", "storage", "health"],
-                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay, coverage, storage, health")
+    list_parser.add_argument("action", choices=["list", "inspect", "delete", "compare", "tag", "untag", "tags", "versions", "families", "provenance", "diff", "replay", "coverage", "storage", "health", "integrity", "verify"],
+                              help="Action: list, inspect, delete, compare, tag, untag, tags, versions, families, provenance, diff, replay, coverage, storage, health, integrity, verify")
     list_parser.add_argument("model_id", nargs="?", help="Model ID (required for inspect/delete/compare/tag/untag)")
     list_parser.add_argument("model_id2", nargs="?", help="Second model ID (for compare)")
     # v13 DoD #3: actually re-run a recorded experiment and report the outcome
@@ -523,6 +523,76 @@ def cmd_model_health(rm, sample=None):
     if report.get("unloadable"):
         print("\n   ⚠️  Unloadable artifacts cannot be restored by renaming;")
         print("       re-train them from their recorded provenance instead.")
+
+
+def cmd_model_integrity(rm):
+    """Audit the frozen replay recipes across the registry.  v13 DoD #4."""
+    report = rm.replay_integrity()
+
+    total = report.get("total", 0)
+    if not total:
+        print("📭 No models registered yet.")
+        return
+
+    by_drift = report.get("by_drift") or {}
+    print(f"\n🧭 Replay integrity — {total} registered model(s)")
+    print("=" * 60)
+    print(f"   ✅ Recipe current:    {by_drift.get('none', 0):>6}")
+    print(f"   🟡 Cosmetic drift:    {by_drift.get('cosmetic', 0):>6}  (spelled differently, same run)")
+    print(f"   ❌ Semantic drift:    {by_drift.get('semantic', 0):>6}  (would reproduce a different model)")
+
+    with_prov = report.get("with_provenance", 0)
+    print(f"\n   Models with a frozen recipe: {with_prov} / {total}")
+    if with_prov:
+        stale_pct = (report.get("stale", 0) / with_prov * 100.0)
+        print(f"   Stale text:  {report.get('stale', 0)}  ({stale_pct:.1f}% of recipes)")
+        print(f"   Broken:      {report.get('broken', 0)}  (reproducibility actually lost)")
+
+    broken = report.get("models") or []
+    if broken:
+        print(f"\n   🚨 {len(broken)} model(s) would NOT reproduce their recorded run:")
+        for item in broken[:10]:
+            print(f"      • {item['model_id']}  [{', '.join(item.get('changed_fields') or [])}]")
+            print(f"        stored: {item['stored_command']}")
+            print(f"        fresh : {item['fresh_command']}")
+        if len(broken) > 10:
+            print(f"      … and {len(broken) - 10} more")
+    elif report.get("stale"):
+        print("\n   ✅ No model would reproduce a different run —")
+        print("      every stale recipe still denotes the run it was frozen from.")
+
+
+def cmd_model_verify(rm, model_id):
+    """Execute a model's replay and report whether it still reproduces.  v13 DoD #4."""
+    try:
+        result = rm.verify_replay(model_id)
+    except FileNotFoundError:
+        print(f"❌ Model '{model_id}' was not found. Run 'python main.py model list' to see available models.")
+        raise SystemExit(1)
+
+    drift = result.get("drift") or {}
+    print(f"\n🧪 Replay verification — {model_id}")
+    print("=" * 60)
+    print(f"   Recipe drift:  {drift.get('drift', 'none')}")
+    if drift.get("reason"):
+        print(f"                  {drift['reason']}")
+    print(f"   Status:         {result.get('status')}")
+
+    accuracy = result.get("accuracy")
+    expected = result.get("expected_accuracy")
+    if accuracy is not None:
+        print(f"   Accuracy:       {accuracy}")
+    if expected is not None:
+        delta = result.get("accuracy_delta")
+        delta_text = f"  (Δ {delta:+.6f})" if delta is not None else ""
+        print(f"   Expected:       {expected}{delta_text}")
+
+    if result.get("status") == "reproduced":
+        print("\n   ✅ The replay still reproduces the recorded run.")
+    elif result.get("status") == "drifted":
+        print("\n   ❌ The replay no longer reproduces the recorded run.")
+    elif result.get("reason"):
+        print(f"\n   ℹ️  {result['reason']}")
 
 
 def cmd_model_diff(rm, model_id1, model_id2):
@@ -1262,6 +1332,14 @@ if __name__ == "__main__":
             elif action == "health":
                 # v13 DoD #5: artifact loadability audit
                 cmd_model_health(rm, sample=args.sample)
+            elif action == "integrity":
+                # v13 DoD #4: replay recipe integrity audit
+                cmd_model_integrity(rm)
+            elif action == "verify":
+                if not args.model_id:
+                    print("❌ verify requires a model_id: python main.py model verify <id>")
+                    raise SystemExit(1)
+                cmd_model_verify(rm, args.model_id)
         elif cmd == "benchmark":
             if action == "list":
                 cmd_benchmark_list(rm)

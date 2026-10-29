@@ -72,6 +72,23 @@ python3 -m pytest -q --tb=short
 
 **当前基线**: 612 passed / 5 skipped / 0 FAILED（v123 早场，362.69s）
 
+### P1' — CI 触发覆盖自检（每次改 workflow 必跑）
+
+CI 的 `pull_request` 触发块**不允许**带 `branches:` 过滤器。
+一旦被收窄，**以 feature 分支为 base 的 stacked PR 会静默地拿到零次 CI**。
+
+```bash
+python3 scripts/ci_trigger_audit.py
+# → ✅ Every pull request base branch is covered by CI.   (exit 0)
+
+python3 scripts/ci_trigger_audit.py --json
+# → {"ok": true, "gaps": [], ...}
+```
+
+该脚本只用标准库（**不依赖 `requirements.lock`**），已在 CI 中作为
+`ci-trigger-audit` job 每次运行 —— 一旦有人写回 `branches: [master]`，构建会自己变红。
+详见 [ADR-0018 DoD #7](adr/ADR-0018-v13-dod.md)。
+
 ### P2 — 基准冒烟
 
 ```bash

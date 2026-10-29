@@ -203,6 +203,11 @@ def api_provenance():
       replay  -> "1"/"true"/"yes" to include the reproducibility replay plan
       coverage-> "1"/"true"/"yes" (without 'id') to return the registry-wide
                  provenance coverage audit (v13 DoD #3)
+      integrity-> "1"/"true"/"yes" to return the replay recipe integrity
+                 audit; without 'id' it is registry-wide, with 'id' it is
+                 that model's drift verdict (v13 DoD #4)
+      verify  -> "1"/"true"/"yes" (with 'id') to execute the replay and
+                 report whether it still reproduces (v13 DoD #4)
     """
     from ml_db.client import MLDB
     from ml_db.errors import ModelNotFoundError
@@ -211,6 +216,8 @@ def api_provenance():
     compare_id = request.args.get('compare')
     want_replay = str(request.args.get('replay', '')).lower() in ('1', 'true', 'yes')
     want_coverage = str(request.args.get('coverage', '')).lower() in ('1', 'true', 'yes')
+    want_integrity = str(request.args.get('integrity', '')).lower() in ('1', 'true', 'yes')
+    want_verify = str(request.args.get('verify', '')).lower() in ('1', 'true', 'yes')
 
     try:
         db = MLDB(registry_base=os.environ.get('MLDB_REGISTRY_BASE') or None)
@@ -219,8 +226,26 @@ def api_provenance():
         if want_coverage and not model_id:
             return jsonify(db.coverage())
 
+        # v13 DoD #4: registry-wide replay integrity audit — no model id required.
+        if want_integrity and not model_id and not want_verify:
+            return jsonify(db.replay_integrity())
+
         if not model_id:
             return jsonify({'error': "Query parameter 'id' is required."}), 400
+
+        # v13 DoD #4: execute the replay and report whether it reproduces.
+        if want_verify:
+            try:
+                return jsonify(db.verify_replay(model_id))
+            except ModelNotFoundError as e:
+                return jsonify({'error': str(e), 'code': getattr(e, 'code', 'MODEL_NOT_FOUND')}), 404
+
+        # v13 DoD #4: per-model recipe drift verdict.
+        if want_integrity:
+            try:
+                return jsonify(db.recipe_drift(model_id))
+            except ModelNotFoundError as e:
+                return jsonify({'error': str(e), 'code': getattr(e, 'code', 'MODEL_NOT_FOUND')}), 404
 
         try:
             provenance = db.get_provenance(model_id)

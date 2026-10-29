@@ -37,6 +37,11 @@ from core.coverage import (
     provenance_coverage,
     replayability_report,
 )
+from core.replay_guard import (
+    classify_recipe_drift,
+    integrity_report,
+    verify_replay,
+)
 from core.blob_store import BlobStore
 # Importing core.compat installs the legacy-name aliases that let artifacts
 # pickled by older scikit-learn releases be deserialized today.
@@ -761,6 +766,74 @@ class RegistryManager:
             "compat_shims": _compat.installed_aliases(),
             "sampled": sample is not None,
         }
+
+    # ── v13 DoD #4: Replay integrity ──────────────────────────────────────────
+
+    def replay_integrity(self) -> Dict[str, Any]:
+        """Audit whether the frozen replay recipes still describe their runs.
+
+        Every model registered after v13 DoD #2 carries a *frozen* replay
+        recipe.  Freezing is only safe if the code that produces recipes
+        does not change underneath it — and it does.  This audit re-derives
+        every recipe from the model's provenance and grades the difference:
+
+        ``none``
+            The recipe is still exactly what today's code would emit.
+        ``cosmetic``
+            The recipe is spelled differently but denotes the same run
+            (for example a list rendered as ``[50]`` instead of ``(50,)``).
+        ``semantic``
+            The recipe would reproduce a *different* model than the one on
+            record.  This is the only grade that means the registry's
+            reproducibility promise has been broken.
+
+        The audit is read-only: no metadata file is rewritten.
+
+        Returns:
+            A dict with ``total``, ``with_provenance``, ``by_drift``,
+            ``stale``, ``broken`` and ``models`` (the semantically drifted
+            models, for triage).
+        """
+        return integrity_report(self.list_models())
+
+    def recipe_drift(self, model_id: str) -> Dict[str, Any]:
+        """Grade the replay-recipe drift of a single model.
+
+        Raises:
+            FileNotFoundError: if `model_id` is not registered.
+        """
+        metadata = self.get_metadata(model_id)
+        return classify_recipe_drift(metadata)
+
+    def verify_replay(self, model_id: str) -> Dict[str, Any]:
+        """Execute a model's replay and report whether it still reproduces.
+
+        This is the "regression verification" half of DoD #4: the drift
+        audit says whether a *recipe* still matches the code, but only
+        executing it says whether the *run* still reproduces.
+
+        The replay is executed without registering the result, so the
+        registry is not polluted.
+
+        Raises:
+            FileNotFoundError: if `model_id` is not registered.
+        """
+        from ml_db.client import MLDB
+
+        metadata = self.get_metadata(model_id)
+        provenance = dict(metadata.get("provenance") or {})
+        expected_accuracy = metadata.get("accuracy")
+
+        # The client is bound to *this* manager's registry root, so the
+        # replay is executed against the same registry the model came from.
+        client = MLDB(registry_base=self.registry_base)
+        trainer = lambda _prov: client.replay(model_id)
+        return verify_replay(
+            model_id,
+            provenance,
+            expected_accuracy=expected_accuracy,
+            trainer=trainer,
+        )
 
     # ── CLI helpers ────────────────────────────────────────────────────────────
 

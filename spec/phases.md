@@ -212,7 +212,8 @@
 - [x] Replay execution — CLI `model replay --run <id>` 实际重跑并输出复现报告 ✅ (2026-10-27)
 - [x] Content-addressed storage — registry 产物 SHA-256 去重 + 迁移工具 ✅ (2026-10-27)
 - [x] Artifact compatibility — 跨 sklearn 版本产物向后兼容层 + registry 健康审计（700 个不可加载产物全部恢复）✅ (2026-10-27)
-- [ ] 回归验证与 CI 全绿 ⏳ (待验收)
+- [x] Replay integrity guard — 冻结 recipe 漂移分级（none/cosmetic/semantic）+ registry 全量审计 + 实际执行验证（Registry/SDK/CLI/HTTP 四端）✅ (2026-10-28)
+- [x] 回归验证与 CI 全绿 ✅ (2026-10-28)
 
 **v0-v12 已完成 ✅ | v13 进行中 🟡**
 

@@ -3,13 +3,46 @@ name: CI
 on:
   push:
     branches: [master, daily/*, fix/*, feature/*]
+  # No 'branches:' filter on purpose.
+  #
+  # A 'branches: [master]' filter means CI runs ONLY for pull requests whose
+  # base is master.  A *stacked* pull request -- one targeting another
+  # feature branch -- then produces ZERO checks: the workflow never starts.
+  # That gap is invisible in the PR list (an empty check list looks similar
+  # to "still running") but it means the code is never verified by CI.
+  #
+  # This repository hit exactly that: PR #63 (base feat/v13-replay-provenance)
+  # accumulated no CI run at all, while PRs #60/#61/#62 (base master) each got
+  # the full 6-job suite.  The invariant "every pull request is verified" is
+  # now enforced by scripts/ci_trigger_audit.py, which runs as the
+  # ci-trigger-audit job below and fails the build if a 'branches:' filter
+  # ever narrows the pull_request trigger again.
   pull_request:
-    branches: [master]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  ci-trigger-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Fails the build if the pull_request trigger is ever narrowed by a
+      # 'branches:' filter again, which would silently leave stacked pull
+      # requests (base = another feature branch) with zero CI checks.
+      - name: Audit CI trigger coverage
+        run: python3 scripts/ci_trigger_audit.py
+
   quality-gates:
     runs-on: ubuntu-latest
     timeout-minutes: 15

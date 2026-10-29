@@ -1,7 +1,7 @@
 # ADR-0018 — v13 DoD 细化：Experiment Provenance & Reproducibility
 
-**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11）
-**状态**: 🟡 Proposed（DoD #1–#3 + #5–#9 + #11 实现完成，待 Accepted）
+**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7）
+**状态**: 🟡 Proposed（DoD #1–#9 + #11–#12 实现完成，DoD #7 本轮交付，待 Accepted）
 **维护人**: 太子
 
 ---
@@ -30,6 +30,7 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 4 | Regression verification | 新增专项测试，完整 P0/P1/P2/P3 验收，CI 全绿 | P0 | ✅ 完成 (v123 早场) |
 | 5 | Replay recipe | provenance 附带可执行重放方案（SDK 精确片段 + CLI 命令 + 依赖锁定摘要） | P1 | ✅ 完成 (5e7f843) |
 | 6 | HTTP provenance API | `GET /api/provenance` 暴露 provenance / diff / replay | P1 | ✅ 完成 (5e7f843) |
+| 7 | CI trigger coverage | CI 触发块保证**所有** base 分支的 PR 都被验证 + 可执行门禁（`scripts/ci_trigger_audit.py` + CI 自举 job） | P0 | ✅ 完成 (v124 早场) |
 | 7 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
 | 8 | Coverage dashboard | 覆盖率看板：哪些模型缺 provenance、哪些不可重放、阻塞原因分组 | P1 | ✅ 完成 (29089b1) |
 | 9 | Replay execution | CLI `model replay --run <id>` 实际重跑并输出复现报告（run-equivalent 判定） | P1 | ✅ 完成 (29089b1) |
@@ -130,8 +131,12 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 ## 下轮待办
 
 1. PR #60 / #61 合并后以 master 为 v13 基线，避免长期分叉。
-2. 将重放方案导出为独立文档（如 `docs/REPRODUCE.md`），便于离线审计。
-3. Registry 体积治理（当前 4.0G / 20713 模型），避免磁盘占用无上限增长。
+2. ~~将重放方案导出为独立文档（如 `docs/REPRODUCE.md`），便于离线审计。~~ ✅ v123 晚场已闭合
+3. ~~Registry 体积治理（当前 4.0G / 20713 模型），避免磁盘占用无上限增长。~~ ✅ v121 早场已闭合（4.0G → 180M / 内容寻址存储）
+4. **合并 stacked PR**：#60 → #61 → #62 → #63 → 本轮 PR，按序合并（GitHub 会自动 rebase 后继 PR）。
+   注意 #63 之前的 PR 从未真正跑过 CI（触发块缺陷，DoD #7 已修），**建议合并前先确认 #63 及本轮 PR 的 CI 状态**。
+5. **CI 触发块修复的历史补救**：修复后 #63 及其之后的 PR 会**首次**真正获得 CI 验证。
+   若合并后发现某个旧 PR 的 CI 暴露了真实问题，需单独跟进。
 
 ## DoD #11 实现要点（产物向后兼容层）
 
@@ -302,3 +307,151 @@ fresh : python main.py --model MLP --dataset circles --seed 42 --params 'hidden_
 - 审计**只读**：不重写任何元数据字节，不做隐式迁移。旧 registry 零迁移原则不变。
 - Registry 是事实源；Registry / SDK / CLI / HTTP 四端调用同一份 `core/replay_guard.py`，不复制判定逻辑。
 - 漂移分级只回答"**指同一次运行吗**"，不回答"**训出的模型逐位相同吗**" —— 后者由 `verify_replay()` 实际执行给出。
+
+---
+
+## DoD #7 — CI 触发覆盖闭合（v124 早场）
+
+### 问题
+
+**"每个 PR 都必须被 CI 验证过"—— 这条不变量其实从来没有被强制过。**
+
+`ci.yml` 的触发块是：
+
+```yaml
+on:
+  push:
+    branches: [master, daily/*, fix/*, feature/*]
+  pull_request:
+    branches: [master]
+```
+
+`pull_request` 上的 `branches: [master]` 过滤器意味着：**只有以 `master` 为 base 的 PR 才会启动 CI**。
+
+而本仓库 v13 采用了 **stacked PR** 结构（一个 PR 的 base 是另一个 feature 分支，而不是 `master`）：
+
+| PR | base | CI 运行？ |
+|----|------|----------|
+| #60 | `master` | ✅ 6/6 SUCCESS |
+| #61 | `master` | ✅ 6/6 SUCCESS |
+| #62 | `master` | ✅ 6/6 SUCCESS |
+| **#63** | **`feat/v13-replay-provenance`** | ❌ **零次 CI 运行** |
+
+实测证据（`gh run list` 全部历史）：
+
+```
+2026-10-27 | pull_request | feat/v13-replay-provenance  | success
+2026-10-26 | pull_request | feat/v13-provenance-provenance | success
+2026-10-25 | pull_request | feat/v12-sdk-foundation     | success
+（feat/v13-replay-integrity-guard —— 无任何记录）
+```
+
+`gh pr checks 63` → `no checks reported on the 'feat/v13-replay-integrity-guard' branch`，
+`gh pr view 63 --json statusCheckRollup` → `[]`。
+
+**后果**：PR #63 携带的 v13 DoD #4（Replay Integrity Guard，51 个新测试）+ DoD #6（`docs/REPRODUCE.md` v1.0，723 行）**从未被 CI 验证过**。
+
+这个缺口之所以特别危险，是因为它**看起来不像故障**：
+
+- 失败的 CI 是**红的** —— 没人会忽略。
+- 还在跑的 CI 是**灰的** —— 有人会等。
+- **零检查**在 PR 页面上只是一片空白 —— 它看起来像"还没开始"，而不是"永远不会开始"。
+
+于是 v123 早场 / 晚场的 run log 里都写着"PR #63 OPEN + CLEAN + MERGEABLE"，
+把 MERGEABLE 当成了"已验证"。**MERGEABLE 说的是能合并，不是已验证。**
+`statusCheckRollup: []` 才是真相，而它一直就在那里，只是没人去问。
+
+> 附带修正：v123 两轮 run log 记为"CI 6/6 SUCCESS"的状态**对 PR #63 不成立**（实际是 0 次运行）。
+> 本轮已把这一事实性错误在 ADR / NEXT_ROUND_THEME / run log 中更正。
+
+### 解法
+
+**1. 触发块：去掉 `pull_request` 上的 `branches:` 过滤器。**
+
+```yaml
+on:
+  push:
+    branches: [master, daily/*, fix/*, feature/*]
+  pull_request:      # ← 不再有 branches 过滤器
+```
+
+无过滤 = 任何 base 分支的 PR 都会启动 CI。`push` 过滤器保持不变（`feat/*` 不在其中），
+所以推 feature 分支**不会**触发重复的 push 构建 —— 只有 PR 事件会跑，一份构建。
+
+**2. 新增 `scripts/ci_trigger_audit.py`：把不变量变成可执行的门禁。**
+
+一个无依赖的小工具，读取 workflow 的 `on:` 触发块，回答 GitHub 会回答的那个问题：
+**"一个 base 为 X 的 PR，会触发 CI 吗？"**
+
+- **零第三方依赖**：PyYAML 在开发容器里有，但**不在 `requirements.lock`**，
+  import 它会直接搞挂 CI。所以这里写了一个只覆盖 Actions 触发块这一种形状的
+  子集解析器（嵌套一级 / flow list `[a, b]` / block list `- a`）。
+  遇到看不懂的形状**抛异常而不是猜** —— 一个静默返回"无过滤器"的解析器会让审计**说谎**。
+- **只读**：审计从不改写 workflow。修不修 workflow 是人的决定，工具的职责是让缺口**可见**且**可测**。
+- **可直接当 CI 门禁用**：`exit 0` = 无缺口，`exit 1` = 有缺口。
+
+**3. CI 里新增 `ci-trigger-audit` job：自举守卫。**
+
+这个 job 自己跑在 CI 里，检查 CI 的触发块有没有被再次收窄。
+一旦有人再写回 `branches: [master]`，**构建会自己失败**。
+
+```yaml
+ci-trigger-audit:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with: { python-version: '3.12' }
+    - name: Audit CI trigger coverage
+      run: python3 scripts/ci_trigger_audit.py
+```
+
+> 注意这个 job **不需要** `pip install -r requirements.lock` —— 审计脚本只用标准库。
+> 这很关键：如果守卫自己依赖 CI 环境里可能出问题的包，它就会和它要守护的东西一起失效。
+
+**4. `tests/test_ci_trigger_audit.py`：19 个测试钉住不变量。**
+
+两类测试：
+
+- **解析器行为**：flow list / block list / 无过滤器 / 注释不被误认成事件 / 行尾注释 / 缺 `on:` 抛异常 / GitHub 通配符语义（`*` 不跨 `/`，`**` 跨 `/`，`?` 单字符）。
+- **仓库自身的不变量**：`ci.yml` 的 `pull_request` 过滤器必须是 `None`（**最重要的一条**）；每个 base 分支都被覆盖；脚本 exit 0。
+
+### 设计约束
+
+- **守卫必须零依赖**：否则守卫会和它守护的东西一起挂掉。
+- **审计只读**：不改 workflow、不改历史、不隐藏缺口。
+- **不过度触发**：去掉 `pull_request` 过滤器**不会**造成 push + PR 双跑，因为 `push` 的过滤器不含 `feat/*`。
+- **不掩盖失败**：审计发现缺口时 `exit 1`，让构建红掉 —— 宁可红，不要静默。
+
+### 修复后的覆盖
+
+```
+🔍 CI trigger coverage audit
+============================================================
+📄 .github/workflows/ci.yml
+   events: push, pull_request
+   pull_request base filter: (no filter — every base branch)
+     ✅ base=master
+     ✅ base=main
+     ✅ base=feat/v12-sdk-foundation
+     ✅ base=feat/v13-provenance-provenance
+     ✅ base=feat/v13-replay-provenance
+     ✅ base=feat/v13-replay-integrity-guard
+
+📄 .github/workflows/release.yml
+   events: push
+   pull_request base filter: n/a — workflow does not run on pull requests
+
+✅ Every pull request base branch is covered by CI.
+```
+
+> `release.yml` 是 tag 驱动的发布工作流，**本来就不该**在 PR 上跑。
+> 审计脚本因此不会把它算成缺口 —— 只有订阅了 `pull_request` 的 workflow 才可能留下缺口。
+
+### 本轮最重要的产出不是"加了 19 个测试"
+
+而是**把一个一直存在、但从未被测量的假设变成了 CI 会主动拦住的门禁**。
+
+在这次修复之前，"CI 覆盖了所有 PR" 是一句**没人验证过的话**。
+它恰好在唯一一次不成立的时候（PR #63），静悄悄地失效了两轮。
+现在它是一条**CI 每次都检查、违反就红**的规则。

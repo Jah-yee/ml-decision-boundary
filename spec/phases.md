@@ -214,6 +214,7 @@
 - [x] Artifact compatibility — 跨 sklearn 版本产物向后兼容层 + registry 健康审计（700 个不可加载产物全部恢复）✅ (2026-10-27)
 - [x] Replay integrity guard — 冻结 recipe 漂移分级（none/cosmetic/semantic）+ registry 全量审计 + 实际执行验证（Registry/SDK/CLI/HTTP 四端）✅ (2026-10-28)
 - [x] 回归验证与 CI 全绿 ✅ (2026-10-28)
+- [x] CI 触发覆盖闭合 — 去掉 `pull_request` 的 `branches: [master]` 过滤器，保证所有 base 分支的 PR 都被验证 + `scripts/ci_trigger_audit.py` 可执行门禁 + CI 自举 job ✅ (2026-10-29)
 
 **v0-v12 已完成 ✅ | v13 进行中 🟡**
 

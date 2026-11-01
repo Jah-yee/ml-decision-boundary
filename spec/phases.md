@@ -215,6 +215,7 @@
 - [x] Replay integrity guard — 冻结 recipe 漂移分级（none/cosmetic/semantic）+ registry 全量审计 + 实际执行验证（Registry/SDK/CLI/HTTP 四端）✅ (2026-10-28)
 - [x] 回归验证与 CI 全绿 ✅ (2026-10-28)
 - [x] CI 触发覆盖闭合 — 去掉 `pull_request` 的 `branches: [master]` 过滤器，保证所有 base 分支的 PR 都被验证 + `scripts/ci_trigger_audit.py` 可执行门禁 + CI 自举 job ✅ (2026-10-29)
+- [x] PR 级 CI 覆盖验证 — 按 **PR head 分支上的** workflow 判定每个 open PR 是否真被 CI 覆盖 + `scripts/pr_coverage_audit.py` 可执行门禁 + CI 自举 job；并回移触发修复使 PR #63 首次获得 CI ✅ (2026-10-29)
 
 **v0-v12 已完成 ✅ | v13 进行中 🟡**
 

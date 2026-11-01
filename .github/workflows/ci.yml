@@ -43,6 +43,44 @@ jobs:
       - name: Audit CI trigger coverage
         run: python3 scripts/ci_trigger_audit.py
 
+  # DoD #8 — the pull-request-level counterpart of the audit above.
+  #
+  # scripts/ci_trigger_audit.py asks "would CI run for a PR with base X?"
+  # about the workflow on *this* branch.  That is not what GitHub decides.
+  # GitHub reads workflow definitions from a pull request's HEAD branch,
+  # so a stacked PR whose head branch still carries an old filtered
+  # workflow stays unverified no matter what this branch looks like.
+  #
+  # PR #63 was exactly that case: it accumulated zero CI runs, and the
+  # fix for it (PR #66) was stacked on top of it, so GitHub never
+  # previewed the fix downwards.
+  #
+  # This job audits every open pull request against the workflow on *its*
+  # head branch and fails the build if any of them would never be
+  # verified.  Like the job above it does NOT install requirements.lock:
+  # a guard must not depend on the environment it guards.
+  pr-coverage-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # Full history so the audit can read each pull request's head
+          # branch, not just the checked-out commit.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Audit pull request CI coverage
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/pr_coverage_audit.py
+
   quality-gates:
     runs-on: ubuntu-latest
     timeout-minutes: 15

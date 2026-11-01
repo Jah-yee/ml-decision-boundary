@@ -1,7 +1,7 @@
 # ADR-0018 — v13 DoD 细化：Experiment Provenance & Reproducibility
 
-**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7）
-**状态**: 🟡 Proposed（DoD #1–#9 + #11–#12 实现完成，DoD #7 本轮交付，待 Accepted）
+**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7 / #13）
+**状态**: 🟡 Proposed（DoD #1–#9 + #11–#13 实现完成，DoD #7 与 #13 本轮交付，待 Accepted）
 **维护人**: 太子
 
 ---
@@ -31,12 +31,13 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 5 | Replay recipe | provenance 附带可执行重放方案（SDK 精确片段 + CLI 命令 + 依赖锁定摘要） | P1 | ✅ 完成 (5e7f843) |
 | 6 | HTTP provenance API | `GET /api/provenance` 暴露 provenance / diff / replay | P1 | ✅ 完成 (5e7f843) |
 | 7 | CI trigger coverage | CI 触发块保证**所有** base 分支的 PR 都被验证 + 可执行门禁（`scripts/ci_trigger_audit.py` + CI 自举 job） | P0 | ✅ 完成 (v124 早场) |
-| 7 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
 | 8 | Coverage dashboard | 覆盖率看板：哪些模型缺 provenance、哪些不可重放、阻塞原因分组 | P1 | ✅ 完成 (29089b1) |
 | 9 | Replay execution | CLI `model replay --run <id>` 实际重跑并输出复现报告（run-equivalent 判定） | P1 | ✅ 完成 (29089b1) |
 | 10 | Content-addressed storage | registry 产物去重（SHA-256 寻址 blob store）+ 迁移工具 | P1 | ✅ 完成 (462b7ce) |
 | 11 | Artifact compatibility | 跨 scikit-learn 版本的产物向后兼容层 + registry 健康审计 | P1 | ✅ 完成 (v122 晚场) |
 | 12 | Replay integrity guard | 冻结的 replay recipe 漂移分级（none / cosmetic / semantic）+ registry 全量审计 + 实际执行验证 | P1 | ✅ 完成 (v123 早场) |
+| 13 | PR-level CI coverage | **PR 级** CI 覆盖验证：按 **PR head 分支上的** workflow 判定每个 open PR 是否真被 CI 覆盖 + 可执行门禁（`scripts/pr_coverage_audit.py` + CI 自举 job） | P0 | ✅ 完成 (v125 晚场) |
+| 14 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
 
 ---
 
@@ -455,3 +456,95 @@ ci-trigger-audit:
 在这次修复之前，"CI 覆盖了所有 PR" 是一句**没人验证过的话**。
 它恰好在唯一一次不成立的时候（PR #63），静悄悄地失效了两轮。
 现在它是一条**CI 每次都检查、违反就红**的规则。
+
+---
+
+## DoD #13 实现要点（PR 级 CI 覆盖验证）
+
+### 问题
+
+DoD #7 修好了 workflow 文件里的 `pull_request` 过滤器，并加了一个文件级审计器。
+那是必要的，但**不充分** —— 因为它审计的是**当前分支上那一份 `ci.yml`**，
+而 GitHub 判定一个**已经存在的** PR 会不会触发 CI 时，读的是：
+
+> **PR 的 head 分支上的 workflow 定义** —— 不是 base 分支的，也不是默认分支的。
+
+于是 DoD #7 的修复**只对 PR #66 自己生效**。实测（2026-10-29 22:10）：
+
+| PR | head 分支上的 ci.yml | base | 实际 CI |
+|----|------|------|----------|
+| #60/#61/#62 | `branches: [master]`（未修） | `master` | ✅ 6/6 |
+| **#63** | **`branches: [master]`（未修）** | `feat/v13-replay-provenance` | ❌ **零次运行** |
+| #66 | 无过滤器（已修） | `feat/v13-replay-integrity-guard` | ✅ 7/7 |
+
+### 合并顺序死锁
+
+```
+#63  (head ci.yml 未修, base=feat/v13-replay-provenance)   ← 需要 CI 才能放心合并
+  ↑ 被 #66 stacked
+#66  (head ci.yml 已修, base=feat/v13-replay-integrity-guard) ← base 就是 #63
+```
+
+- 想让 #63 有 CI → 必须先把修复合进 #63 的分支
+- 而修复在 #66 上，#66 的 base 又是 #63
+
+**结果**：#63 携带的 DoD #4（51 个新测试）+ DoD #6（723 行文档）**从未被任何 CI 验证过**，
+而「CI 覆盖所有 PR」的承诺**在最需要它的那一个 PR 上依然不成立**。
+
+### 解法
+
+1. **`scripts/pr_coverage_audit.py`（新，唯一实现源）** —— 把审计对象从「workflow 文件」升级为「PR」。
+   - **读 PR head 分支上的 workflow**（`git show <head>:.github/workflows/ci.yml`），
+     **再用 PR 自己的 base 分支**去问「这份 workflow 会覆盖它吗」
+   - base 分支**从 PR 自身读取**，不靠硬编码 —— 硬编码的 base 清单迟早会漏掉一个新分支
+   - 复用 DoD #7 的解析器（`from ci_trigger_audit import ...`），**不重复实现 YAML 子集解析**
+   - **零第三方依赖**（PyYAML 不在 `requirements.lock`）
+   - **只读**：不 merge、不 push、不改写 workflow
+   - **诚实降级**：拿不到 PR 列表时**报错退出**，绝不把「查不到」报成「一切正常」
+2. **三个独立条件才算 verified**（这是 DoD #13 与 DoD #7 的本质区别）：
+   - ① head 分支上的 workflow 订阅了 `pull_request`
+   - ② 它的过滤器覆盖这个 PR 自己的 base 分支
+   - ③ **GitHub 实际报告了 checks**
+
+   ② 回答「*会*不会跑」，③ 回答「*到底*跑没跑」。**两者不可互相代替** ——
+   v123 两轮 run log 把 `MERGEABLE` 读成「已验证」，就是这么错的。
+3. **CI 新增 `pr-coverage-audit` 自举 job**：在 CI 里校验**所有 open PR** 都被覆盖 → 违反就红。
+   - 同样**不执行** `pip install -r requirements.lock` —— **守卫不能依赖它要守护的那套环境**
+   - 需要 `fetch-depth: 0`（要读各 PR 的 head 分支）+ `GH_TOKEN`
+4. **落地 #63 的 CI**：把 DoD #7 的 `ci.yml` 修复**回移到 `feat/v13-replay-integrity-guard`**（#63 的 head），
+   让 #63 **首次**真正获得 CI 验证。
+
+### 实测
+
+```
+🔍 Pull request CI coverage audit
+====================================
+
+✅ PR #66  base covered: yes   checks seen: 7   verdict: verified
+✅ PR #63  base covered: yes   checks seen: 7   verdict: verified   ← 修复前是 base-not-covered / 0 checks
+✅ PR #62  base covered: yes   checks seen: 6   verdict: verified
+✅ PR #61  base covered: yes   checks seen: 6   verdict: verified
+✅ PR #60  base covered: yes   checks seen: 6   verdict: verified
+
+5/5 pull requests are verified by CI.
+```
+
+**PR #63 的 `statusCheckRollup` 从 `[]` 变成 7 个 check** —— 这是它存在以来第一次有 CI。
+
+### 设计约束
+
+- **审计永不代替决策**：脚本报告缺口，修不修（回移 / 改 base / 改触发块）由人决定。
+- **不做隐式修复**：不自动 merge、不自动 push、不自动改写 workflow。
+- **回移修复优先于改 base**：把修复带到每个分支，比把每个 PR 都改成 base=master 更普适 ——
+  下一个 stacked PR 照样会踩同一个坑。
+- **门禁 job 不装 requirements.lock**：与 DoD #7 一致。
+
+### 与 DoD #7 的关系
+
+| | DoD #7（文件级） | DoD #13（PR 级）|
+|---|---|---|
+| 审计对象 | 一个 workflow 文件 | 每个 open PR |
+| 读的 workflow | 当前工作树 | **PR 的 head 分支** |
+| base 分支来源 | 静态清单 | **PR 自身** |
+| 判定 | 「base 会不会被覆盖」 | 「这个 PR **到底**有没有被验证」|
+| 能发现 #63 吗 | ❌ 不能（#66 分支上一切正常）| ✅ 能（唯一发现者）|

@@ -70,7 +70,7 @@ python3 -c "from core.compat import apply_shims; apply_shims(); print('OK')"
 python3 -m pytest -q --tb=short
 ```
 
-**当前基线**: 612 passed / 5 skipped / 0 FAILED（v123 早场，362.69s）
+**当前基线**: 631 passed / 5 skipped / 0 FAILED（v124 早场，393.26s）
 
 ### P1' — CI 触发覆盖自检（每次改 workflow 必跑）
 
@@ -88,6 +88,47 @@ python3 scripts/ci_trigger_audit.py --json
 该脚本只用标准库（**不依赖 `requirements.lock`**），已在 CI 中作为
 `ci-trigger-audit` job 每次运行 —— 一旦有人写回 `branches: [master]`，构建会自己变红。
 详见 [ADR-0018 DoD #7](adr/ADR-0018-v13-dod.md)。
+
+### P1'' — PR 级 CI 覆盖自检（每个 open PR 必查）
+
+P1' 审计的是**当前分支上那一份 `ci.yml`**。但 GitHub 判定一个**已存在的** PR
+会不会触发 CI 时，读的是 **PR 的 head 分支上的 workflow** —— 不是 base 分支的，
+也不是默认分支的。
+
+对 **stacked PR**，这两个不是一回事：
+
+```
+master
+  └── feat/v13-replay-provenance          (PR #62, base=master)      → ✅ 有 CI
+        └── feat/v13-replay-integrity-guard  (PR #63, base=上一级)    → ❌ 零 CI
+              └── feat/v13-ci-trigger-coverage (PR #66, base=上一级) → ✅ 有 CI
+```
+
+PR #63 的 head 分支上仍是旧的带过滤器 workflow，而修它的 #66 **stacked 在它上面** ——
+GitHub 不会把 #66 的文件变更「预演」到 #63 上，于是 #63 永远拿不到 CI。
+
+```bash
+python3 scripts/pr_coverage_audit.py
+# → ✅ 5/5 pull requests are verified by CI.
+
+python3 scripts/pr_coverage_audit.py --pr 63
+python3 scripts/pr_coverage_audit.py --json
+```
+
+三个独立条件同时成立才算 `verified`：
+
+| # | 条件 | 回答的问题 |
+|---|------|-----------|
+| 1 | head 分支的 workflow 订阅了 `pull_request` | 有没有 workflow 会响应 |
+| 2 | 它的过滤器覆盖**这个 PR 自己的** base 分支 | **会**不会跑 |
+| 3 | GitHub **实际报告了** checks | **到底**跑没跑 |
+
+② 是「会不会跑」，③ 是「到底跑没跑」—— **不可互相代替**。
+只满足 ② ③ 的 PR 仍然会显示一片空白，那正是 v123 两轮把 `MERGEABLE`
+误读成「已验证」的地方。
+
+同样只用标准库、不依赖 `requirements.lock`，已在 CI 中作为 `pr-coverage-audit`
+job 每次运行。详见 [ADR-0018 DoD #13](adr/ADR-0018-v13-dod.md)。
 
 ### P2 — 基准冒烟
 

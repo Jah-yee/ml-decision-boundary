@@ -28,6 +28,7 @@ These tests pin:
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -45,6 +46,7 @@ from pr_coverage_audit import (  # noqa: E402
     audit_prs,
     list_open_prs,
     read_workflow_at,
+    resolve_workflow_at,
     summarize,
 )
 
@@ -81,6 +83,22 @@ jobs:
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
+
+def _git(repo: Path, *args: str) -> None:
+    """Run a git command inside ``repo``, failing loudly on error."""
+    proc = subprocess.run(
+        ["git", *args],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if proc.returncode != 0:
+        raise AssertionError(
+            f"git {' '.join(args)} failed (rc={proc.returncode}): "
+            f"{(proc.stderr or proc.stdout).strip()[:400]}"
+        )
+
 
 def _pr(
     number: int = 63,
@@ -190,13 +208,95 @@ class TestHeadBranchSemantics:
     """The workflow must be read from the pull request's HEAD branch."""
 
     def test_read_workflow_at_returns_head_content(self, tmp_path):
-        """git show <ref>:<path> must return that ref's copy of the file."""
-        text = read_workflow_at("origin/master", CI_WORKFLOW, REPO_ROOT)
+        """``git show <ref>:<path>`` must return that ref's copy of the file.
+
+        This test builds its *own* throwaway repository instead of relying
+        on ``origin/master`` being present in the checkout.  The earlier
+        version did rely on it, and it failed in CI for exactly the
+        reason DoD #9 exists: a CI runner has a shallow checkout that
+        contains the running pull request's branch and little else, so
+        ``origin/master`` may simply not resolve.  A test that depends on
+        the ambient checkout is a test that measures the environment, not
+        the code.
+        """
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _git(repo, "init", "-q", "-b", "main")
+        _git(repo, "config", "user.email", "test@example.com")
+        _git(repo, "config", "user.name", "test")
+        (repo / ".github" / "workflows").mkdir(parents=True)
+        (repo / ".github" / "workflows" / CI_WORKFLOW).write_text(
+            UNFILTERED_WORKFLOW, encoding="utf-8"
+        )
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "init")
+
+        text = read_workflow_at("main", CI_WORKFLOW, repo)
         assert text is not None
         assert "name: CI" in text
 
-    def test_read_workflow_at_returns_none_for_missing_path(self):
-        assert read_workflow_at("origin/master", "no-such-workflow.yml", REPO_ROOT) is None
+    def test_read_workflow_at_returns_none_for_missing_path(self, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _git(repo, "init", "-q", "-b", "main")
+        _git(repo, "config", "user.email", "test@example.com")
+        _git(repo, "config", "user.name", "test")
+        (repo / ".github" / "workflows").mkdir(parents=True)
+        (repo / ".github" / "workflows" / CI_WORKFLOW).write_text(
+            UNFILTERED_WORKFLOW, encoding="utf-8"
+        )
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "init")
+
+        assert read_workflow_at("main", "no-such-workflow.yml", repo) is None
+
+    def test_resolve_workflow_prefers_the_api_over_local_git(self, monkeypatch):
+        """The API must win over local git.
+
+        This is the regression that made PR #67's own CI run fail: the
+        audit read the head branch from local git, and a CI runner simply
+        does not have the *other* pull requests' branches in its ref store.
+        The API is the only source that works identically on a laptop and
+        on a runner, so it must be tried first.
+        """
+        monkeypatch.setattr(
+            "pr_coverage_audit.read_workflow_from_api",
+            lambda *a, **k: "FROM-API",
+        )
+        monkeypatch.setattr(
+            "pr_coverage_audit.read_workflow_at",
+            lambda *a, **k: "FROM-GIT",
+        )
+        text, source = resolve_workflow_at("some-branch", CI_WORKFLOW, REPO_ROOT)
+        assert text == "FROM-API"
+        assert source == "api"
+
+    def test_resolve_workflow_falls_back_to_git_when_api_unavailable(self, monkeypatch):
+        """Offline use must still work — git is the fallback, not the gate."""
+        monkeypatch.setattr(
+            "pr_coverage_audit.read_workflow_from_api",
+            lambda *a, **k: None,
+        )
+        monkeypatch.setattr(
+            "pr_coverage_audit.read_workflow_at",
+            lambda *a, **k: "FROM-GIT",
+        )
+        text, source = resolve_workflow_at("some-branch", CI_WORKFLOW, REPO_ROOT)
+        assert text == "FROM-GIT"
+        assert source == "git"
+
+    def test_resolve_workflow_reports_none_when_neither_source_has_it(self, monkeypatch):
+        monkeypatch.setattr(
+            "pr_coverage_audit.read_workflow_from_api",
+            lambda *a, **k: None,
+        )
+        monkeypatch.setattr(
+            "pr_coverage_audit.read_workflow_at",
+            lambda *a, **k: None,
+        )
+        text, source = resolve_workflow_at("some-branch", CI_WORKFLOW, REPO_ROOT)
+        assert text is None
+        assert source == "none"
 
     def test_audit_reads_head_not_working_tree(self, monkeypatch):
         """The audit must consult the head branch, not the current checkout.
@@ -294,11 +394,44 @@ class TestHonestFailureMode:
         assert c.problems
 
     def test_audit_pr_records_problem_when_head_missing(self, monkeypatch):
-        monkeypatch.setattr("pr_coverage_audit.branch_exists", lambda *a, **k: False)
+        """When the head branch's workflow cannot be read, that is a
+        *problem*, not a pass.
+
+        The mock is applied at the resolution layer (``resolve_workflow_at``),
+        not at ``branch_exists``.  That used to be the gate, but after
+        DoD #9 the audit reads the head branch over the GitHub API, so
+        "the branch is not a local ref" no longer implies "the branch
+        cannot be audited".  Mocking the wrong layer would have left the
+        real failure mode untested.
+        """
+        monkeypatch.setattr(
+            "pr_coverage_audit.resolve_workflow_at",
+            lambda *a, **k: (None, "none"),
+        )
         coverage = audit_pr(_pr())
         assert coverage.problems
         assert coverage.verdict == "unknown"
         assert not coverage.is_verified
+
+    def test_audit_pr_still_verifies_when_branch_is_absent_locally(self, monkeypatch):
+        """A branch that is not a local ref must NOT block the audit.
+
+        This is the exact condition that broke PR #67's CI run: the audit
+        required ``branch_exists(head)``, and a CI runner does not have
+        the other pull requests' branches in its ref store, so every pull
+        request was reported as unknown and the guard failed the build it
+        was supposed to prove.
+        """
+        monkeypatch.setattr("pr_coverage_audit.branch_exists", lambda *a, **k: False)
+        monkeypatch.setattr(
+            "pr_coverage_audit.read_workflow_from_api",
+            lambda *a, **k: UNFILTERED_WORKFLOW,
+        )
+        coverage = audit_pr(_pr(checks=6))
+        assert not coverage.problems
+        assert coverage.workflow_source == "api"
+        assert coverage.is_verified
+        assert coverage.verdict == "verified"
 
     def test_summarize_detects_unverified(self):
         good = PrCoverage(
@@ -321,6 +454,21 @@ class TestHonestFailureMode:
 
 class TestCli:
     def test_cli_runs_and_reports(self):
+        """The CLI must produce machine-readable output.
+
+        The exit code depends on the environment: ``0`` when every pull
+        request is verified, ``1`` when some are not, and ``2`` when the
+        pull request list itself cannot be obtained (no network, no
+        ``gh``, no token).  The earlier version of this test asserted
+        ``returncode in (0, 1)`` and therefore failed on any runner
+        without an ambient ``GH_TOKEN`` — the test was measuring the
+        runner's credentials, not the CLI.
+
+        ``2`` is a legitimate, *honest* outcome, and it is the outcome the
+        script is explicitly designed to produce rather than a vacuous
+        success.  What must always hold is that the process terminates
+        with one of these codes and, for 0/1, emits valid JSON.
+        """
         proc = subprocess.run(
             [sys.executable, str(REPO_ROOT / "scripts" / "pr_coverage_audit.py"), "--json"],
             capture_output=True,
@@ -328,10 +476,43 @@ class TestCli:
             timeout=180,
             cwd=str(REPO_ROOT),
         )
-        assert proc.returncode in (0, 1), proc.stderr
+        assert proc.returncode in (0, 1, 2), (
+            f"unexpected exit code {proc.returncode}\n"
+            f"stdout: {proc.stdout[:800]}\nstderr: {proc.stderr[:800]}"
+        )
+        if proc.returncode == 2:
+            # Honest failure: the pull request state was unobtainable.
+            # The script must say so on stderr rather than print a
+            # vacuous success.
+            assert "cannot obtain pull request state" in proc.stderr, proc.stderr
+            return
         payload = json.loads(proc.stdout)
         assert "pull_requests" in payload
         assert "summary" in payload
+
+    def test_cli_without_token_fails_honestly(self):
+        """With no credentials the CLI must exit 2 and explain itself.
+
+        This pins the *honest degradation* contract end to end: a missing
+        token must never be reported as "every pull request is verified".
+        """
+        env = dict(os.environ)
+        env.pop("GH_TOKEN", None)
+        env.pop("GITHUB_TOKEN", None)
+        env["GH_CONFIG_DIR"] = str(REPO_ROOT / ".tmp-gh-empty-config")
+        proc = subprocess.run(
+            [sys.executable, str(REPO_ROOT / "scripts" / "pr_coverage_audit.py"), "--json"],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            cwd=str(REPO_ROOT),
+            env=env,
+        )
+        assert proc.returncode == 2, (
+            f"expected an honest failure (rc=2), got {proc.returncode}\n"
+            f"stdout: {proc.stdout[:800]}"
+        )
+        assert "cannot obtain pull request state" in proc.stderr, proc.stderr
 
     def test_verification_workflows_are_non_empty(self):
         assert VERIFICATION_WORKFLOWS

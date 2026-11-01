@@ -59,6 +59,14 @@ jobs:
   # head branch and fails the build if any of them would never be
   # verified.  Like the job above it does NOT install requirements.lock:
   # a guard must not depend on the environment it guards.
+  #
+  # The head-branch workflow is fetched from the GitHub Contents API, so
+  # this job does NOT depend on the runner having the other pull
+  # requests' branches in its local ref store.  The first version of this
+  # job read them from local git and failed on PR #67 (run 41265562901):
+  # a 'pull_request' event checks out a detached merge commit, so every
+  # *other* pull request's head branch was simply absent, and the guard
+  # reported 0/6 verified -- turning the proof into the failure.
   pr-coverage-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -67,9 +75,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          # Full history so the audit can read each pull request's head
-          # branch, not just the checked-out commit.
+          # Full history so the local-git fallback path can read each
+          # pull request's head branch when the API is unreachable.
           fetch-depth: 0
+
+      - name: Fetch all branches (fallback for the local-git reader)
+        # The API is the primary source; this only makes the offline
+        # fallback work too.  'git fetch origin' on a pull_request event
+        # fetches the merge ref only, which is why the fallback used to
+        # be useless on a runner.
+        run: |
+          git fetch --no-tags --prune \
+            origin '+refs/heads/*:refs/remotes/origin/*'
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -79,6 +96,7 @@ jobs:
       - name: Audit pull request CI coverage
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/pr_coverage_audit.py
 
   quality-gates:

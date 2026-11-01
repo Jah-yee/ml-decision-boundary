@@ -64,6 +64,25 @@ the base, and checks actually exist — is the pull request *verified*.
   (no network, no ``gh``, no token), the script says so and exits
   non-zero rather than reporting a vacuous success.
 
+**Head-branch content is fetched over the API, not from local git.**
+
+This is not a preference — it is a correctness requirement, learned the
+hard way.  The first version of this script read the head branch with
+``git show <branch>:.github/workflows/ci.yml`` and required the branch
+to exist as a local ref.  On a developer machine that holds, because
+every branch has been fetched.  **In CI it does not hold at all**: the
+``pull_request`` event checks out a detached merge commit, so no other
+pull request's head branch is materialised locally.  The audit therefore
+reported ``(not found on head branch)`` for *every* pull request, judged
+all of them unverified, and turned the very CI run that was supposed to
+*prove* coverage into the thing that *failed* the build (PR #67, run
+41265562901: ``pr-coverage-audit`` FAILED, 0/6 verified).
+
+The fix is to stop depending on the local ref at all: the head branch's
+workflow is fetched from the GitHub Contents API, which needs only a
+token and works identically on a laptop and on a runner.  Local git is
+kept only as a *fallback* for offline use.
+
 Usage::
 
     python3 scripts/pr_coverage_audit.py                 # all open pull requests
@@ -74,6 +93,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import shutil
 import subprocess
@@ -181,6 +201,11 @@ def read_workflow_at(ref: str, filename: str, repo_root: Path = REPO_ROOT) -> st
     ``ref`` is usually a pull request's head branch name.  Returns
     ``None`` when the file does not exist at that ref (a branch may simply
     predate the workflow).
+
+    This is the **local git** reader.  It is only correct when ``ref``
+    happens to be materialised locally — which is true on a developer
+    machine and *false* in CI.  See :func:`read_workflow_from_api` and
+    :func:`resolve_workflow_at` for the reader that is correct in both.
     """
     proc = _run(
         ["git", "show", f"{ref}:.github/workflows/{filename}"],
@@ -191,8 +216,117 @@ def read_workflow_at(ref: str, filename: str, repo_root: Path = REPO_ROOT) -> st
     return proc.stdout
 
 
+def read_workflow_from_api(
+    ref: str,
+    filename: str,
+    repo_root: Path = REPO_ROOT,
+    repo_slug: str | None = None,
+) -> str | None:
+    """Fetch ``filename`` at ``ref`` from the GitHub Contents API.
+
+    Returns the decoded file text, or ``None`` when the file does not
+    exist at that ref.
+
+    Why the API rather than local git: see the module docstring.  In CI
+    the pull request's *own* head branch is the only thing checked out,
+    so every *other* open pull request's head branch is absent locally —
+    reading them from git therefore reports "not found" for all of them.
+
+    The API path needs a token.  ``gh`` is used as the transport because
+    it already knows how to authenticate (it reads ``GH_TOKEN`` /
+    ``GITHUB_TOKEN`` from the environment itself) and how to talk to
+    GitHub Enterprise hosts, and it is present on every GitHub Actions
+    runner.
+    """
+    if not gh_available():
+        return None
+
+    slug = repo_slug or _detect_repo_slug(repo_root)
+    if not slug:
+        return None
+
+    path = f".github/workflows/{filename}"
+    proc = _run(
+        [
+            "gh", "api",
+            "--method", "GET",
+            f"repos/{slug}/contents/{path}",
+            "-f", f"ref={ref}",
+            "--jq", ".content",
+        ],
+        cwd=repo_root,
+    )
+    if proc.returncode != 0:
+        return None
+    raw = proc.stdout.strip()
+    if not raw:
+        return None
+    try:
+        return base64.b64decode(raw).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return None
+
+
+def _detect_repo_slug(repo_root: Path = REPO_ROOT) -> str | None:
+    """Return ``owner/repo`` for the checkout, or ``None`` if unknown."""
+    proc = _run(["git", "remote", "get-url", "origin"], cwd=repo_root)
+    if proc.returncode != 0:
+        return None
+    url = proc.stdout.strip()
+    if not url:
+        return None
+    # Handle both https://github.com/owner/repo.git and
+    # git@github.com:owner/repo.git forms.
+    tail = url.rstrip("/")
+    if tail.endswith(".git"):
+        tail = tail[: -len(".git")]
+    if ":" in tail and "/" not in tail.split(":")[-1]:
+        tail = tail.split(":")[-1]
+    parts = [p for p in tail.replace(":", "/").split("/") if p]
+    if len(parts) < 2:
+        return None
+    return "/".join(parts[-2:])
+
+
+def resolve_workflow_at(
+    ref: str,
+    filename: str,
+    repo_root: Path = REPO_ROOT,
+    repo_slug: str | None = None,
+) -> tuple[str | None, str]:
+    """Return ``(workflow_text, source)`` for ``filename`` at ``ref``.
+
+    ``source`` is one of:
+
+    - ``"api"``   — fetched from the GitHub Contents API (authoritative;
+      works in CI where local refs are absent);
+    - ``"git"``   — read from a local git ref (offline fallback);
+    - ``"none"``  — the file could not be found at ``ref``.
+
+    The API is tried first *on purpose*.  Local git is only a fallback
+    for offline use; using it first would make the audit's result depend
+    on which branches happen to be checked out, which is exactly the bug
+    this reader was written to fix.
+    """
+    text = read_workflow_from_api(ref, filename, repo_root, repo_slug=repo_slug)
+    if text is not None:
+        return text, "api"
+
+    text = read_workflow_at(ref, filename, repo_root)
+    if text is not None:
+        return text, "git"
+
+    return None, "none"
+
+
 def branch_exists(ref: str, repo_root: Path = REPO_ROOT) -> bool:
-    """True when ``ref`` resolves locally (as a branch or a commit)."""
+    """True when ``ref`` resolves locally (as a branch or a commit).
+
+    This is **not** a reliable indicator of "can this branch be audited".
+    A branch can be perfectly real and still absent from a CI runner's
+    ref store.  It is kept only as a cheap pre-check for the local-git
+    fallback path.
+    """
     proc = _run(["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"], cwd=repo_root)
     return proc.returncode == 0
 
@@ -210,6 +344,8 @@ class PrCoverage:
     mergeable: str | None = None
     #: The workflow that *would* run, as read from the head branch.
     workflow_name: str | None = None
+    #: Where the head-branch workflow text came from ("api" / "git" / "none").
+    workflow_source: str | None = None
     #: The pull_request branch filter found on the head branch (None = no filter).
     pull_request_branches: list[str] | None = None
     #: Does the head branch's workflow subscribe to pull_request?
@@ -274,6 +410,7 @@ class PrCoverage:
             "base_ref": self.base_ref,
             "mergeable": self.mergeable,
             "workflow_name": self.workflow_name,
+            "workflow_source": self.workflow_source,
             "pull_request_branches": self.pull_request_branches,
             "workflow_subscribes": self.workflow_subscribes,
             "base_covered": self.base_covered,
@@ -291,7 +428,11 @@ def _count_checks(status_check_rollup: Any) -> int:
     return len(status_check_rollup)
 
 
-def audit_pr(pr: dict[str, Any], repo_root: Path = REPO_ROOT) -> PrCoverage:
+def audit_pr(
+    pr: dict[str, Any],
+    repo_root: Path = REPO_ROOT,
+    repo_slug: str | None = None,
+) -> PrCoverage:
     """Audit one pull request's CI coverage.
 
     The decisive detail: the workflow is read from the pull request's
@@ -318,15 +459,10 @@ def audit_pr(pr: dict[str, Any], repo_root: Path = REPO_ROOT) -> PrCoverage:
         coverage.problems.append("pull request has no base branch")
         return coverage
 
-    if not branch_exists(head, repo_root):
-        coverage.problems.append(
-            f"head branch '{head}' is not available locally; "
-            "fetch it before auditing (git fetch origin)"
-        )
-        return coverage
-
     for filename in VERIFICATION_WORKFLOWS:
-        text = read_workflow_at(head, filename, repo_root)
+        text, source = resolve_workflow_at(
+            head, filename, repo_root, repo_slug=repo_slug
+        )
         if text is None:
             continue
 
@@ -346,15 +482,25 @@ def audit_pr(pr: dict[str, Any], repo_root: Path = REPO_ROOT) -> PrCoverage:
             tmp_path.unlink(missing_ok=True)
 
         coverage.workflow_name = filename
+        coverage.workflow_source = source
         coverage.pull_request_branches = audit.branches
         coverage.workflow_subscribes = audit.has_pull_request
         coverage.base_covered = audit.covers(base)
         break
 
     if coverage.workflow_name is None:
+        # The head branch's workflow could not be read at all.  Report it
+        # honestly as an unknown verdict — never as "not covered" (which
+        # would be a guess) and never as a pass.
+        detail = ""
+        if not branch_exists(head, repo_root):
+            detail = (
+                " (the branch is also not available locally, and the "
+                "GitHub API could not be reached — a token may be missing)"
+            )
         coverage.problems.append(
             "no verification workflow found on the head branch "
-            f"({', '.join(VERIFICATION_WORKFLOWS)})"
+            f"({', '.join(VERIFICATION_WORKFLOWS)}){detail}"
         )
 
     return coverage
@@ -363,8 +509,9 @@ def audit_pr(pr: dict[str, Any], repo_root: Path = REPO_ROOT) -> PrCoverage:
 def audit_prs(
     prs: list[dict[str, Any]],
     repo_root: Path = REPO_ROOT,
+    repo_slug: str | None = None,
 ) -> list[PrCoverage]:
-    return [audit_pr(pr, repo_root) for pr in prs]
+    return [audit_pr(pr, repo_root, repo_slug=repo_slug) for pr in prs]
 
 
 def summarize(coverages: list[PrCoverage]) -> dict[str, Any]:
@@ -396,6 +543,7 @@ def _print_report(coverages: list[PrCoverage]) -> None:
             branches = c.pull_request_branches
             shown = "(no filter)" if branches is None else ", ".join(branches)
             print(f"     workflow    : {c.workflow_name}  pull_request filter: {shown}")
+            print(f"     read from   : {c.workflow_source}")
             print(f"     base covered: {'yes' if c.base_covered else 'NO'}")
         else:
             print(f"     workflow    : (not found on head branch)")

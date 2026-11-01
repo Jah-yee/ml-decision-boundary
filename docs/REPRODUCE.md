@@ -130,6 +130,30 @@ python3 scripts/pr_coverage_audit.py --json
 同样只用标准库、不依赖 `requirements.lock`，已在 CI 中作为 `pr-coverage-audit`
 job 每次运行。详见 [ADR-0018 DoD #13](adr/ADR-0018-v13-dod.md)。
 
+#### head 分支的 workflow 从哪里读？
+
+**从 GitHub Contents API 读**（`GET /repos/{owner}/{repo}/contents/.github/workflows/ci.yml?ref={head_branch}`），
+本地 git 只作为**离线 fallback**。
+
+这一点不是风格偏好，而是**正确性要求**，且是被 CI 亲自教会的：
+
+> 第一版实现用 `git show <head_branch>:.github/workflows/ci.yml` 读文件，
+> 并要求该分支是本地 ref。开发机上成立（分支都拉过），
+> **CI 上完全不成立** —— `pull_request` 事件 checkout 的是一个 detached merge commit，
+> 仓库里**只有当前 PR 自己的 head 分支**，其他 PR 的 head 分支一个都没有。
+>
+> 结果：审计对**每一个** PR 都报 `(not found on head branch)` → verdict `unknown`
+> → 判定 0/6 verified → **那个本该证明覆盖的 CI run 反而把 build 弄红了**
+> （PR #67，run `41265562901`，`pr-coverage-audit` FAILED）。
+
+| 读取方式 | 开发机 | CI runner | 结论 |
+|---------|-------|-----------|------|
+| 本地 git | ✅ | ❌ | **不能作为唯一来源** |
+| Contents API | ✅ | ✅ | **唯一在两边都正确的来源** |
+
+> 教训：**一个门禁自身的正确性，必须在它实际运行的宿主环境里验证过**。
+> 「本地跑绿」不等于「CI 里跑绿」—— 而且这次恰恰是**门禁自己**先挂了。
+
 ### P2 — 基准冒烟
 
 ```bash

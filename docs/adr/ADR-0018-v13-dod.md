@@ -1,7 +1,7 @@
 # ADR-0018 — v13 DoD 细化：Experiment Provenance & Reproducibility
 
-**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7 / #13）
-**状态**: 🟡 Proposed（DoD #1–#9 + #11–#13 实现完成，DoD #7 与 #13 本轮交付，待 Accepted）
+**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7 / #13；2026-11-01 追加 DoD #14）
+**状态**: 🟡 Proposed（DoD #1–#9 + #11–#14 实现完成，DoD #14 本轮交付，待 Accepted）
 **维护人**: 太子
 
 ---
@@ -38,6 +38,7 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 12 | Replay integrity guard | 冻结的 replay recipe 漂移分级（none / cosmetic / semantic）+ registry 全量审计 + 实际执行验证 | P1 | ✅ 完成 (v123 早场) |
 | 13 | PR-level CI coverage | **PR 级** CI 覆盖验证：按 **PR head 分支上的** workflow 判定每个 open PR 是否真被 CI 覆盖 + 可执行门禁（`scripts/pr_coverage_audit.py` + CI 自举 job） | P0 | ✅ 完成 (v125 晚场) |
 | 14 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
+| 15 | CI-audit environment independence | **CI 审计器不得依赖运行环境**：`scripts/pr_coverage_audit.py` 的 head 分支 workflow 改为**从 GitHub Contents API 读取**（本地 git 降级为 fallback），保证在 CI runner 上与在开发机上结论一致 | P0 | ✅ 完成 (v126 晚场) |
 
 ---
 

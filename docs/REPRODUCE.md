@@ -113,6 +113,7 @@ python3 scripts/pr_coverage_audit.py
 
 python3 scripts/pr_coverage_audit.py --pr 63
 python3 scripts/pr_coverage_audit.py --json
+python3 scripts/pr_coverage_audit.py --require-checks
 ```
 
 三个独立条件同时成立才算 `verified`：
@@ -153,6 +154,49 @@ job 每次运行。详见 [ADR-0018 DoD #13](adr/ADR-0018-v13-dod.md)。
 
 > 教训：**一个门禁自身的正确性，必须在它实际运行的宿主环境里验证过**。
 > 「本地跑绿」不等于「CI 里跑绿」—— 而且这次恰恰是**门禁自己**先挂了。
+
+#### 两种门禁模式：严格模式永远不比默认模式宽松
+
+`pr_coverage_audit.py` 有两种判定模式：
+
+| 模式 | 命令 | 要求集合 |
+|------|------|---------|
+| 默认 | `python3 scripts/pr_coverage_audit.py` | `subscribes` + `base_covered` + `checks` + `auditable` |
+| 严格 | `python3 scripts/pr_coverage_audit.py --require-checks` | 上述全部 + `checks_completed` |
+
+**严格模式的要求集合是默认模式的严格超集**，因此它只可能把「通过」变成「失败」，
+绝不可能反过来。这一点不是风格偏好，而是被真实 bug 教会的：
+
+> 第一版实现用**两个各自独立的临时表达式**分别判定两种模式，
+> 而「严格」那个只看 `observed_checks`。于是：
+>
+> ```
+> PR 状态            observed_checks   默认模式   --require-checks
+> not-subscribed          7              FAIL          PASS   ← 错了
+> base-not-covered        7              FAIL          PASS   ← 错了
+> ```
+>
+> 一个 CI 从来不会为它触发的 PR，只要**身上还挂着上一次运行留下的 checks**，
+> 就能从「严格」门禁里溜过去 —— **一个比默认模式还宽松的门禁，
+> 看上去像安全网，实际是个筛子**。
+
+现在的实现把「这个门禁过不过」收敛到**唯一**一个函数 `evaluate_gate()`，
+两种模式只是传入不同的要求集合。单点决策 = 单调性可由构造保证。
+
+| 要求 | 含义 | 失败时的 verdict |
+|------|------|-----------------|
+| `subscribes` | head 分支的 workflow 订阅了 `pull_request` | `not-subscribed` |
+| `base_covered` | 该 workflow 的过滤器覆盖这个 PR 自己的 base 分支 | `base-not-covered` |
+| `checks` | GitHub 实际报告了 checks | `no-checks-reported` |
+| `auditable` | 审计没有因任何问题而无法给出结论 | `unknown` |
+| `checks_completed` | **（仅严格模式）** 已报告的 checks 真的跑完了 | — |
+
+最后一条值得单独说明：**GitHub 在 workflow「开始」时就创建 check run**，
+所以 `observed_checks` 把还在排队、还在跑的都算了进去。
+「有 check」和「check 跑完了」是两件事 —— 严格模式只认后者。
+
+> 验收：`--json` 会同时输出 `gate` 字段（含 `ok` / `failed` / `failures` / `requirements`），
+> 机器可读模式不会把「为什么没过」藏起来。
 
 ### P2 — 基准冒烟
 

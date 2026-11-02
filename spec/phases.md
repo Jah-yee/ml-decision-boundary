@@ -217,8 +217,10 @@
 - [x] CI 触发覆盖闭合 — 去掉 `pull_request` 的 `branches: [master]` 过滤器，保证所有 base 分支的 PR 都被验证 + `scripts/ci_trigger_audit.py` 可执行门禁 + CI 自举 job ✅ (2026-10-29)
 - [x] PR 级 CI 覆盖验证 — 按 **PR head 分支上的** workflow 判定每个 open PR 是否真被 CI 覆盖 + `scripts/pr_coverage_audit.py` 可执行门禁 + CI 自举 job；并回移触发修复使 PR #63 首次获得 CI ✅ (2026-10-29)
 - [x] CI 审计器环境无关性 — `scripts/pr_coverage_audit.py` 的 head 分支 workflow 改为从 **GitHub Contents API** 读取（本地 git 降级为 fallback），使审计在 CI runner 上与开发机上结论一致（修复 PR #67 上 `pr-coverage-audit` job 自身失败的问题） ✅ (2026-11-01)
+- [x] 门禁模式单调性 — `--require-checks`（严格模式）的要求集合改为默认模式的**严格超集**，两种模式共用唯一判定函数 `evaluate_gate()`；修复「严格模式比默认模式更宽松」的缺陷（not-subscribed / base-not-covered 的 PR 靠陈旧 checks 溜过门禁） ✅ (2026-11-02)
+- [x] ADR-0018 Accepted — 全部 DoD #1–#16 实现完成，v13 阶段收口 ✅ (2026-11-02)
 
-**v0-v12 已完成 ✅ | v13 进行中 🟡**
+**v0-v12 已完成 ✅ | v13 已完成 ✅**
 
 ---
 

@@ -39,11 +39,16 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from pr_coverage_audit import (  # noqa: E402
+    DEFAULT_REQUIREMENTS,
     PrAuditError,
     PrCoverage,
+    REQUIRE_CHECKS_REQUIREMENTS,
     VERIFICATION_WORKFLOWS,
+    _count_checks,
+    _count_completed_checks,
     audit_pr,
     audit_prs,
+    evaluate_gate,
     list_open_prs,
     read_workflow_at,
     resolve_workflow_at,
@@ -517,3 +522,288 @@ class TestCli:
     def test_verification_workflows_are_non_empty(self):
         assert VERIFICATION_WORKFLOWS
         assert CI_WORKFLOW in VERIFICATION_WORKFLOWS
+
+# ── Gate model: monotonicity (v13 DoD #16) ──────────────────────────────────
+
+class TestGateModel:
+    """The gate must be **monotonic** across its modes.
+
+    ``--require-checks`` is advertised as the *stricter* mode.  An
+    earlier version of this script decided the two modes with two
+    independent ad-hoc expressions, and the "stricter" one came out
+    **weaker**: it looked only at ``observed_checks``, so a pull
+    request that CI would never run for (``not-subscribed`` or
+    ``base-not-covered``) still *passed* the gate as long as it carried
+    stale checks from an earlier run.
+
+    These tests exercise the real :func:`evaluate_gate` — not a
+    re-implementation of it — so they fail if the gate logic is
+    deleted or inverted.
+    """
+
+    def _coverage(self, number: int, **kwargs) -> PrCoverage:
+        """A pull request that passes every requirement by default."""
+        defaults = dict(
+            title=f"pr-{number}",
+            head_ref="h",
+            base_ref="master",
+            workflow_name=CI_WORKFLOW,
+            workflow_source="api",
+            pull_request_branches=None,
+            workflow_subscribes=True,
+            base_covered=True,
+            observed_checks=6,
+            completed_checks=6,
+        )
+        defaults.update(kwargs)
+        return PrCoverage(number=number, **defaults)
+
+    # ── the requirement sets themselves ───────────────────────────────────
+
+    def test_strict_requirements_are_a_strict_superset(self):
+        """The structural invariant that makes monotonicity possible."""
+        assert set(DEFAULT_REQUIREMENTS) < set(REQUIRE_CHECKS_REQUIREMENTS)
+        extra = set(REQUIRE_CHECKS_REQUIREMENTS) - set(DEFAULT_REQUIREMENTS)
+        assert extra == {"checks_completed"}
+
+    def test_unknown_requirement_is_rejected(self):
+        """An unknown requirement must raise, not silently pass."""
+        with pytest.raises(ValueError, match="unknown requirement"):
+            evaluate_gate([self._coverage(1)], ("not_a_requirement",))
+
+    # ── monotonicity ──────────────────────────────────────────────────────
+
+    def test_strict_mode_is_never_laxer_than_default(self):
+        """The core regression.
+
+        For every combination of pull-request states, the strict gate
+        must fail whenever the default gate fails — and may fail more.
+        """
+        states = [
+            ("healthy", {}),
+            ("no-checks", {"observed_checks": 0, "completed_checks": 0}),
+            ("not-subscribed", {"workflow_subscribes": False}),
+            ("base-not-covered", {"base_covered": False}),
+            ("stale-checks-not-subscribed",
+             {"workflow_subscribes": False, "base_covered": False}),
+            ("stale-checks-base-not-covered",
+             {"base_covered": False}),
+            ("unauditable", {"problems": ["no verification workflow found"]}),
+            ("queued-only",
+             {"observed_checks": 6, "completed_checks": 0}),
+        ]
+        for label, kwargs in states:
+            cov = self._coverage(1, **kwargs)
+            default_ok = evaluate_gate([cov], DEFAULT_REQUIREMENTS)["ok"]
+            strict_ok = evaluate_gate([cov], REQUIRE_CHECKS_REQUIREMENTS)["ok"]
+            if not default_ok:
+                assert not strict_ok, (
+                    f"strict gate was laxer than the default for state {label!r}"
+                )
+
+    def test_the_original_bug_is_fixed(self):
+        """The exact regression: stale checks used to launder a failure.
+
+        A pull request whose head-branch workflow does not subscribe to
+        ``pull_request`` (so CI would *never* run for it) but which
+        carries checks from an earlier run must fail **both** gates.
+        """
+        cov = self._coverage(
+            99,
+            workflow_subscribes=False,
+            base_covered=False,
+            observed_checks=7,
+            completed_checks=7,
+        )
+        assert not cov.is_verified
+        default = evaluate_gate([cov], DEFAULT_REQUIREMENTS)
+        strict = evaluate_gate([cov], REQUIRE_CHECKS_REQUIREMENTS)
+        assert not default["ok"], "default gate must fail"
+        assert not strict["ok"], "strict gate must fail"
+        assert "subscribes" in strict["failures"][99]
+
+    # ── the extra strict requirement ─────────────────────────────────────
+
+    def test_queued_checks_fail_the_strict_gate_only(self):
+        """A queued-but-not-finished check fails strict, passes default.
+
+        GitHub reports a check run as soon as it is created, so
+        "a check exists" and "a check finished" are different facts.
+        """
+        cov = self._coverage(7, observed_checks=6, completed_checks=0)
+        assert evaluate_gate([cov], DEFAULT_REQUIREMENTS)["ok"]
+        strict = evaluate_gate([cov], REQUIRE_CHECKS_REQUIREMENTS)
+        assert not strict["ok"]
+        assert strict["failures"][7] == ["checks_completed"]
+
+    def test_finished_checks_pass_the_strict_gate(self):
+        cov = self._coverage(7, observed_checks=6, completed_checks=6)
+        assert evaluate_gate([cov], REQUIRE_CHECKS_REQUIREMENTS)["ok"]
+
+    # ── reporting ────────────────────────────────────────────────────────
+
+    def test_gate_reports_which_requirements_failed(self):
+        cov = self._coverage(5, workflow_subscribes=False, observed_checks=0,
+                              completed_checks=0)
+        gate = evaluate_gate([cov], DEFAULT_REQUIREMENTS)
+        assert gate["failed"] == [5]
+        assert set(gate["failures"][5]) == {"subscribes", "checks"}
+
+    def test_empty_pr_list_passes_both_gates(self):
+        """No pull requests is not a failure — there is nothing to gate."""
+        assert evaluate_gate([], DEFAULT_REQUIREMENTS)["ok"]
+        assert evaluate_gate([], REQUIRE_CHECKS_REQUIREMENTS)["ok"]
+
+    def test_gate_reports_the_evaluated_requirements(self):
+        gate = evaluate_gate([], REQUIRE_CHECKS_REQUIREMENTS)
+        assert gate["requirements"] == list(REQUIRE_CHECKS_REQUIREMENTS)
+
+
+# ── Check counting: reported vs. finished ───────────────────────────────────
+
+class TestCheckCounting:
+    """GitHub reports a check run when it is *created*, not when it
+    finishes.  Counting them all as "CI ran" is how a gate ends up
+    accepting a pull request whose CI is still warming up.
+    """
+
+    def _rollup(self, *entries):
+        return list(entries)
+
+    def test_queued_checks_are_observed_but_not_completed(self):
+        rollup = self._rollup(
+            {"status": "QUEUED", "conclusion": None},
+            {"status": "IN_PROGRESS", "conclusion": None},
+        )
+        assert _count_checks(rollup) == 2
+        assert _count_completed_checks(rollup) == 0
+
+    def test_finished_checks_are_counted(self):
+        rollup = self._rollup(
+            {"status": "COMPLETED", "conclusion": "SUCCESS"},
+            {"status": "COMPLETED", "conclusion": "FAILURE"},
+        )
+        assert _count_checks(rollup) == 2
+        assert _count_completed_checks(rollup) == 2
+
+    def test_mixed_rollup_counts_only_finished(self):
+        rollup = self._rollup(
+            {"status": "QUEUED", "conclusion": None},
+            {"status": "COMPLETED", "conclusion": "SUCCESS"},
+            {"status": "IN_PROGRESS", "conclusion": None},
+            {"status": "COMPLETED", "conclusion": "SKIPPED"},
+        )
+        assert _count_checks(rollup) == 4
+        assert _count_completed_checks(rollup) == 2
+
+    def test_non_list_rollup_counts_nothing(self):
+        assert _count_checks(None) == 0
+        assert _count_completed_checks(None) == 0
+        assert _count_completed_checks("nonsense") == 0
+
+    def test_entry_without_state_is_counted_as_completed(self):
+        """An unrecognised shape must not silently read as "no CI ran"."""
+        assert _count_completed_checks([{"name": "build"}]) == 1
+
+    def test_completed_status_without_a_conclusion_is_completed(self):
+        """``status=COMPLETED`` with ``conclusion=null`` has *finished*.
+
+        The check run reached its terminal status but carries no
+        verdict.  GitHub does emit this shape, and treating it as
+        "still running" would leave the strict gate permanently
+        unsatisfiable for such a check.
+        """
+        rollup = [{"status": "COMPLETED", "conclusion": None}]
+        assert _count_checks(rollup) == 1
+        assert _count_completed_checks(rollup) == 1
+
+    def test_a_conclusion_alone_is_enough(self):
+        """A terminal verdict without a ``status`` field still counts."""
+        assert _count_completed_checks([{"conclusion": "SUCCESS"}]) == 1
+
+    def test_real_github_rollup_shape(self):
+        """The exact shape ``gh pr list`` returns."""
+        rollup = [
+            {
+                "__typename": "CheckRun",
+                "completedAt": "2026-11-01T14:09:35Z",
+                "conclusion": "SUCCESS",
+                "name": "ci-trigger-audit",
+                "startedAt": "2026-11-01T14:09:31Z",
+                "status": "COMPLETED",
+                "workflowName": "CI",
+            },
+            {
+                "__typename": "CheckRun",
+                "conclusion": None,
+                "name": "benchmark",
+                "status": "QUEUED",
+            },
+        ]
+        assert _count_checks(rollup) == 2
+        assert _count_completed_checks(rollup) == 1
+
+
+# ── The CLI actually uses the shared gate ───────────────────────────────────
+
+class TestCliUsesTheSharedGate:
+    """The CLI must route *both* modes through :func:`evaluate_gate`.
+
+    Otherwise the monotonicity invariant holds only for the library and
+    not for the command that CI actually runs.
+    """
+
+    def _run(self, *extra, env_extra=None):
+        env = dict(os.environ)
+        if env_extra:
+            env.update(env_extra)
+        return subprocess.run(
+            [sys.executable, str(REPO_ROOT / "scripts" / "pr_coverage_audit.py"),
+             *extra],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            cwd=str(REPO_ROOT),
+            env=env,
+        )
+
+    def test_json_output_carries_the_gate_verdict(self):
+        """``--json`` must expose the gate, not just the summary.
+
+        The summary answers "is this PR verified"; the gate answers
+        "does the gate pass, and why not".  A machine-readable mode
+        that omitted the gate would hide the very thing CI needs.
+        """
+        proc = self._run("--json")
+        if proc.returncode == 2:
+            # Honest failure mode — no credentials available.
+            assert "cannot obtain pull request state" in proc.stderr
+            return
+        payload = json.loads(proc.stdout)
+        assert "gate" in payload, "the JSON output must carry the gate verdict"
+        gate = payload["gate"]
+        assert "ok" in gate
+        assert "requirements" in gate
+        assert "failures" in gate
+
+    def test_strict_mode_never_passes_when_default_would_fail(self):
+        """End-to-end monotonicity through the real CLI.
+
+        Both modes are run against the same repository state; whenever
+        the default mode fails, the strict mode must fail too.
+        """
+        default = self._run()
+        strict = self._run("--require-checks")
+        if default.returncode == 2 or strict.returncode == 2:
+            assert "cannot obtain pull request state" in default.stderr
+            return
+        if default.returncode != 0:
+            assert strict.returncode != 0, (
+                "the strict gate passed while the default gate failed"
+            )
+
+    def test_strict_mode_is_at_least_as_strict_in_the_help_text(self):
+        """The help text must not describe a *laxer* mode."""
+        proc = self._run("--help")
+        assert proc.returncode == 0
+        assert "--require-checks" in proc.stdout

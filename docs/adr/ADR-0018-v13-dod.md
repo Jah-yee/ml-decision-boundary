@@ -1,7 +1,7 @@
 # ADR-0018 — v13 DoD 细化：Experiment Provenance & Reproducibility
 
-**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7 / #13；2026-11-01 追加 DoD #14）
-**状态**: 🟡 Proposed（DoD #1–#9 + #11–#14 实现完成，DoD #14 本轮交付，待 Accepted）
+**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7 / #13；2026-11-01 追加 DoD #14；2026-11-02 追加 DoD #16）
+**状态**: ✅ Accepted（2026-11-02，DoD #1–#16 全部实现完成，v127 晚场交付）
 **维护人**: 太子
 
 ---
@@ -39,6 +39,7 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 13 | PR-level CI coverage | **PR 级** CI 覆盖验证：按 **PR head 分支上的** workflow 判定每个 open PR 是否真被 CI 覆盖 + 可执行门禁（`scripts/pr_coverage_audit.py` + CI 自举 job） | P0 | ✅ 完成 (v125 晚场) |
 | 14 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
 | 15 | CI-audit environment independence | **CI 审计器不得依赖运行环境**：`scripts/pr_coverage_audit.py` 的 head 分支 workflow 改为**从 GitHub Contents API 读取**（本地 git 降级为 fallback），保证在 CI runner 上与在开发机上结论一致 | P0 | ✅ 完成 (v126 晚场) |
+| 16 | Gate monotonicity | **门禁模式必须单调**：`--require-checks`（严格模式）的要求集合是默认模式的**严格超集**，两者共用唯一判定函数 `evaluate_gate()`；修复「严格模式比默认模式更宽松」的缺陷（not-subscribed / base-not-covered 的 PR 靠陈旧 checks 溜过门禁） | P0 | ✅ 完成 (v127 晚场) |
 
 ---
 
@@ -549,3 +550,140 @@ DoD #7 修好了 workflow 文件里的 `pull_request` 过滤器，并加了一�
 | base 分支来源 | 静态清单 | **PR 自身** |
 | 判定 | 「base 会不会被覆盖」 | 「这个 PR **到底**有没有被验证」|
 | 能发现 #63 吗 | ❌ 不能（#66 分支上一切正常）| ✅ 能（唯一发现者）|
+
+---
+
+## DoD #16 — Gate Monotonicity（v127 晚场）
+
+### 问题
+
+`scripts/pr_coverage_audit.py` 有两种判定模式：默认模式，和被文档称作
+「CI gate mode」的 `--require-checks`。
+
+上一轮（v127 早场）加进来的 `--require-checks` 是这样判的：
+
+```python
+missing = [c.number for c in coverages if c.observed_checks == 0]
+if missing:
+    return 1
+return 0
+```
+
+而默认模式判的是 `summary["ok"]`，即**所有** `c.is_verified` 都为真。
+`is_verified` 要求四件事同时成立：
+
+1. `workflow_subscribes` — head 分支的 workflow 订阅了 `pull_request`
+2. `base_covered` — 该 workflow 的过滤器覆盖这个 PR 自己的 base 分支
+3. `observed_checks > 0` — GitHub 报告了 checks
+4. `not problems` — 审计得出了结论
+
+**第 4 条之外的 1、2 两条，严格模式完全不看。** 于是：
+
+```
+PR 状态                observed_checks   默认模式   --require-checks
+not-subscribed              7              FAIL          PASS    ← 错了
+base-not-covered            7              FAIL          PASS    ← 错了
+```
+
+一个 **CI 从来不会为它触发**的 PR，只要身上还挂着**上一次运行留下的陈旧
+checks**，就能从号称「更严格」的门禁里溜过去。
+
+**一个比默认模式更宽松的门禁，看上去像安全网，实际是个筛子** ——
+而且它是那种「今天跑绿、明天出事」的筛子：只有当某个 PR 真的处于
+unverified 状态时才会漏，而这恰恰是最需要门禁生效的时刻。
+
+### 解法
+
+**把「这个门禁过不过」收敛到唯一一个函数。**
+
+```python
+DEFAULT_REQUIREMENTS = ("subscribes", "base_covered", "checks", "auditable")
+
+REQUIRE_CHECKS_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("checks_completed",)
+```
+
+```python
+def evaluate_gate(coverages, requirements=DEFAULT_REQUIREMENTS) -> dict:
+    failures = {}
+    for c in coverages:
+        failed = [r for r in requirements if _requirement_failed(c, r)]
+        if failed:
+            failures[c.number] = failed
+    return {
+        "ok": not failures,
+        "failed": sorted(failures),
+        "failures": {n: failures[n] for n in sorted(failures)},
+        "requirements": list(requirements),
+    }
+```
+
+两种模式现在只做一件事：**传入不同的要求集合**。
+因为 `REQUIRE_CHECKS_REQUIREMENTS` 是 `DEFAULT_REQUIREMENTS` 的**严格超集**，
+单调性就由**构造**保证 —— 不再依赖两段代码「碰巧」写对。
+
+### 新增的第五个要求：`checks_completed`
+
+GitHub 在 workflow **开始**时就创建 check run，所以 `observed_checks`
+把还在排队、还在跑的都算进去了。**「有 check」和「check 跑完了」是两件事**。
+
+- `PrCoverage` 新增 `completed_checks` 字段
+- 新增 `_count_completed_checks()`，按 `COMPLETED_CHECK_STATUSES` 判定
+- `to_dict()` 输出 `completed_checks`
+- 报告行改为 `checks seen : 6 (6 finished)`
+
+### 顺带修掉的一个元缺陷：测试是同义反复
+
+v127 早场遗留的 `TestRequireChecks` 测试类**看起来**在测 `--require-checks`，
+实际上它把判定逻辑**在测试里重新实现了一遍**：
+
+```python
+# Simulate the CLI's --require-checks decision logic
+def require_checks_gate(coverages):
+    missing = [c.number for c in coverages if c.observed_checks == 0]
+    return 1 if missing else 0
+```
+
+这种测试**测的是测试自己** —— 把 CLI 的这个 flag 整个删掉，它们**照样全绿**。
+它甚至把要修的 bug（只看 `observed_checks`）原样抄进了断言里。
+
+新测试全部改为**调用真实的 `evaluate_gate()`**，并新增了一个
+**bug 回归测试**：把 `REQUIRE_CHECKS_REQUIREMENTS` 改回 `("checks",)`
+（即重新注入原 bug），**必须有测试失败**。
+
+实测（bug 注入验证）：
+
+```
+FAILED TestGateModel::test_strict_requirements_are_a_strict_superset
+FAILED TestGateModel::test_strict_mode_is_never_laxer_than_default
+FAILED TestGateModel::test_the_original_bug_is_fixed
+FAILED TestGateModel::test_queued_checks_fail_the_strict_gate_only
+4 failed, 35 passed
+```
+
+### 实测
+
+| 层级 | 结果 |
+|------|------|
+| P0 | ✅ `compileall -q .` 0 errors；import smoke OK |
+| P1 | ✅ **657 passed / 5 skipped / 1 pre-existing timeout**（`test_cli_health_runs` 在 base commit `5035430` 上同样失败，与本轮无关）|
+| P1' | ✅ `ci_trigger_audit.py` exit 0，6 个 base 分支全覆盖 |
+| P1'' | ✅ `pr_coverage_audit.py` exit 0，**6/6 PR verified** |
+| P1'' strict | ✅ `--require-checks` exit 0，6/6 |
+| bug 注入 | ✅ **4 个测试失败**（新测试确实咬得住）|
+
+### 设计约束
+
+- **单一判定点**：两种模式共用 `evaluate_gate()`；新增模式必须通过**增加要求**实现，
+  不允许另起一套判定表达式。
+- **要求集合必须单调**：新模式的要求集合必须是旧模式的超集，
+  由 `test_strict_requirements_are_a_strict_superset` 钉住。
+- **未知要求必须报错**：`_requirement_failed()` 遇到未知要求名时 `raise ValueError`，
+  不得静默通过。
+- **诚实降级**：拿不到 PR 状态时仍然 rc=2（与 DoD #8/#15 一致）。
+
+### 本轮最重要的产出
+
+不是「加了 11 个测试」—— 是 **一个号称更严格的门禁，实际比默认模式更宽松**，
+这个缺陷被修掉了，而且**用 bug 注入验证过新测试确实咬得住**。
+
+一个门禁如果比它要替代的模式更宽松，它就不是门禁，是**伪装成安全网的筛子**。

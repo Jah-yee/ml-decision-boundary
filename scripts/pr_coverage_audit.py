@@ -88,7 +88,22 @@ Usage::
     python3 scripts/pr_coverage_audit.py                 # all open pull requests
     python3 scripts/pr_coverage_audit.py --pr 63          # one pull request
     python3 scripts/pr_coverage_audit.py --json           # machine-readable
-    python3 scripts/pr_coverage_audit.py --require-checks  # CI gate mode
+    python3 scripts/pr_coverage_audit.py --require-checks  # stricter gate mode
+
+**The gate is monotonic.**
+
+Both modes are decided by one function, :func:`evaluate_gate`, over a
+requirement set.  ``--require-checks`` uses a *strict superset* of the
+default requirements, so it can only ever turn a pass into a failure,
+never the other way round.
+
+This is not a stylistic preference.  An earlier version decided the two
+modes with two independent ad-hoc expressions, and the "stricter" mode
+came out **weaker**: it looked only at ``observed_checks``, so a pull
+request that CI would never run for (``not-subscribed`` or
+``base-not-covered``) still passed the gate as long as it carried stale
+checks from an earlier run.  A gate mode that is laxer than the default
+is a trap: it looks like a safety net and behaves like a sieve.
 """
 from __future__ import annotations
 
@@ -354,6 +369,13 @@ class PrCoverage:
     base_covered: bool = False
     #: How many checks GitHub actually reports for this pull request.
     observed_checks: int = 0
+    #: How many of those checks have actually *finished* (as opposed to
+    #: still being queued or in progress).  GitHub reports a check run
+    #: for a pull request as soon as it is *created*, so
+    #: :attr:`observed_checks` counts runs that have not produced a
+    #: verdict yet.  A gate that only looks at ``observed_checks`` would
+    #: accept a pull request whose CI is still warming up.
+    completed_checks: int = 0
     #: Any reason the verdict could not be established.
     problems: list[str] = field(default_factory=list)
 
@@ -391,6 +413,11 @@ class PrCoverage:
         )
 
     @property
+    def has_completed_checks(self) -> bool:
+        """True when at least one reported check has actually finished."""
+        return self.completed_checks > 0
+
+    @property
     def verdict(self) -> str:
         if self.problems:
             return "unknown"
@@ -415,6 +442,7 @@ class PrCoverage:
             "workflow_subscribes": self.workflow_subscribes,
             "base_covered": self.base_covered,
             "observed_checks": self.observed_checks,
+            "completed_checks": self.completed_checks,
             "verdict": self.verdict,
             "verified": self.is_verified,
             "problems": list(self.problems),
@@ -426,6 +454,69 @@ def _count_checks(status_check_rollup: Any) -> int:
     if not isinstance(status_check_rollup, list):
         return 0
     return len(status_check_rollup)
+
+
+#: Check *conclusions* that mean "this check has produced a verdict".
+#: Everything else (``QUEUED``, ``PENDING``, ``IN_PROGRESS``,
+#: ``WAITING``, ``REQUESTED``) means the check has not finished yet.
+COMPLETED_CHECK_STATUSES: frozenset[str] = frozenset({
+    "SUCCESS",
+    "FAILURE",
+    "ERROR",
+    "CANCELLED",
+    "TIMED_OUT",
+    "ACTION_REQUIRED",
+    "NEUTRAL",
+    "SKIPPED",
+    "STALE",
+})
+
+#: Check *statuses* that mean "this check has finished running".
+#: ``COMPLETED`` is the terminal status of a check run; the verdict
+#: itself lives in ``conclusion`` and may legitimately be ``None``.
+COMPLETED_CHECK_RUN_STATUSES: frozenset[str] = frozenset({
+    "COMPLETED",
+})
+
+
+def _count_completed_checks(status_check_rollup: Any) -> int:
+    """Count the reported check runs that have actually *finished*.
+
+    GitHub creates a check run as soon as a workflow starts, so the
+    raw rollup length counts runs that are still queued or in
+    progress.  A check that has not finished has not produced a
+    verdict yet, and treating "queued" as "passed" is exactly the
+    kind of silent hole a gate must not have.
+
+    A check counts as finished when **either** its ``conclusion`` names
+    a terminal verdict **or** its ``status`` is ``COMPLETED``.  The
+    two are independent: a check run with ``status=COMPLETED`` and
+    ``conclusion=null`` has finished running but carries no verdict
+    (this shape does occur), and a check with only a ``conclusion`` and
+    no ``status`` is already terminal.
+
+    An entry with neither field is counted as completed, so that a
+    rollup in an unfamiliar shape cannot silently read as "no CI ran".
+    """
+    if not isinstance(status_check_rollup, list):
+        return 0
+    completed = 0
+    for entry in status_check_rollup:
+        if not isinstance(entry, dict):
+            continue
+        conclusion = entry.get("conclusion")
+        status = entry.get("status")
+        if isinstance(conclusion, str) and conclusion.upper() in COMPLETED_CHECK_STATUSES:
+            completed += 1
+            continue
+        if isinstance(status, str) and status.upper() in COMPLETED_CHECK_RUN_STATUSES:
+            completed += 1
+            continue
+        if conclusion is None and status is None:
+            # No state information at all — count it, so that a rollup
+            # in an unfamiliar shape cannot silently read as "no CI ran".
+            completed += 1
+    return completed
 
 
 def audit_pr(
@@ -450,6 +541,7 @@ def audit_pr(
         base_ref=base,
         mergeable=pr.get("mergeable"),
         observed_checks=_count_checks(pr.get("statusCheckRollup")),
+        completed_checks=_count_completed_checks(pr.get("statusCheckRollup")),
     )
 
     if not head:
@@ -526,6 +618,97 @@ def summarize(coverages: list[PrCoverage]) -> dict[str, Any]:
     }
 
 
+# ── Gate model ──────────────────────────────────────────────────────────────
+
+#: The requirement set evaluated by the *default* gate.
+#:
+#: A pull request satisfies the default gate when all of these hold:
+#:
+#: ``subscribes``
+#:     the workflow on the pull request's head branch listens to
+#:     ``pull_request`` at all;
+#: ``base_covered``
+#:     that workflow's ``pull_request`` filter covers this pull
+#:     request's own base branch;
+#: ``checks``
+#:     GitHub actually reports at least one check for it;
+#: ``auditable``
+#:     no problem prevented the audit from reaching a verdict.
+DEFAULT_REQUIREMENTS: tuple[str, ...] = (
+    "subscribes",
+    "base_covered",
+    "checks",
+    "auditable",
+)
+
+#: The requirement set evaluated by the ``--require-checks`` gate.
+#:
+#: **This set is a strict superset of :data:`DEFAULT_REQUIREMENTS`.**
+#: That is the whole point: a stricter *mode* of the same gate must never
+#: be laxer than the default.  The extra requirement is that the
+#: observed checks must actually have *run* — a check that is merely
+#: *queued* has been reported by GitHub but has not produced a verdict
+#: yet, so "CI has started" is not the same as "CI has finished".
+REQUIRE_CHECKS_REQUIREMENTS: tuple[str, ...] = DEFAULT_REQUIREMENTS + (
+    "checks_completed",
+)
+
+
+def _requirement_failed(c: PrCoverage, requirement: str) -> bool:
+    """True when ``c`` fails a single requirement.
+
+    Each requirement is checked independently so that the gate can
+    report *why* a pull request failed rather than just *that* it did.
+    """
+    if requirement == "subscribes":
+        return not c.workflow_subscribes
+    if requirement == "base_covered":
+        return not c.base_covered
+    if requirement == "checks":
+        return c.observed_checks <= 0
+    if requirement == "auditable":
+        return bool(c.problems)
+    if requirement == "checks_completed":
+        return c.completed_checks <= 0
+    raise ValueError(f"unknown requirement: {requirement!r}")
+
+
+def evaluate_gate(
+    coverages: list[PrCoverage],
+    requirements: tuple[str, ...] = DEFAULT_REQUIREMENTS,
+) -> dict[str, Any]:
+    """Evaluate the gate against ``coverages``.
+
+    This is the **single** place where "does this gate pass?" is
+    decided.  Every mode of the CLI — default and ``--require-checks`` —
+    goes through it, which is what makes the modes *monotonic*: adding
+    a requirement can only ever turn a pass into a failure, never the
+    other way round.
+
+    Returns a dict with:
+
+    ``ok``
+        whether the gate passes;
+    ``failed``
+        the pull request numbers that failed the gate;
+    ``failures``
+        a mapping of pull request number to the requirements it failed;
+    ``requirements``
+        the requirement set that was evaluated.
+    """
+    failures: dict[int, list[str]] = {}
+    for c in coverages:
+        failed = [r for r in requirements if _requirement_failed(c, r)]
+        if failed:
+            failures[c.number] = failed
+    return {
+        "ok": not failures,
+        "failed": sorted(failures),
+        "failures": {n: failures[n] for n in sorted(failures)},
+        "requirements": list(requirements),
+    }
+
+
 # ── CLI ─────────────────────────────────────────────────────────────────────
 
 def _print_report(coverages: list[PrCoverage]) -> None:
@@ -547,7 +730,7 @@ def _print_report(coverages: list[PrCoverage]) -> None:
             print(f"     base covered: {'yes' if c.base_covered else 'NO'}")
         else:
             print(f"     workflow    : (not found on head branch)")
-        print(f"     checks seen : {c.observed_checks}")
+        print(f"     checks seen : {c.observed_checks} ({c.completed_checks} finished)")
         print(f"     verdict     : {c.verdict}")
         for problem in c.problems:
             print(f"     note        : {problem}")
@@ -589,7 +772,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--require-checks",
         action="store_true",
-        help="CI gate mode: fail if any pull request has no checks reported",
+        help=(
+            "stricter CI gate mode: additionally require that the reported "
+            "checks have actually finished (not merely been queued)"
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -609,28 +795,43 @@ def main(argv: list[str] | None = None) -> int:
     coverages = audit_prs(prs)
     summary = summarize(coverages)
 
+    # The gate requirements are chosen here, and the *same* evaluator
+    # decides pass/fail for every mode.  Because
+    # REQUIRE_CHECKS_REQUIREMENTS is a strict superset of
+    # DEFAULT_REQUIREMENTS, the stricter mode can only ever be
+    # *at least as strict* as the default one.  An earlier version of
+    # this script decided the two modes with two independent ad-hoc
+    # expressions, which made --require-checks strictly *weaker* than
+    # the default: a pull request that CI would never run for (not
+    # subscribed / base not covered) still passed the gate as long as
+    # it carried stale checks from an earlier run.
+    requirements = (
+        REQUIRE_CHECKS_REQUIREMENTS if args.require_checks else DEFAULT_REQUIREMENTS
+    )
+    gate = evaluate_gate(coverages, requirements)
+
     if args.json:
         print(json.dumps({
             "pull_requests": [c.to_dict() for c in coverages],
             "summary": summary,
+            "gate": gate,
         }, indent=2))
-        return 0 if summary["ok"] else 1
+        return 0 if gate["ok"] else 1
 
     summary = _print_report(coverages)
 
+    if not gate["ok"]:
+        for number, failed in gate["failures"].items():
+            print(f"❌ gate: PR #{number} failed requirement(s): {', '.join(failed)}")
+        return 1
+
     if args.require_checks:
-        # Strict mode used by CI: every pull request must have checks.
-        missing = [c.number for c in coverages if c.observed_checks == 0]
-        if missing:
-            print(
-                "❌ --require-checks: pull request(s) with no checks reported: "
-                + ", ".join(f"#{n}" for n in missing)
-            )
-            return 1
-        print("✅ --require-checks: every pull request has checks reported.")
+        print(
+            "✅ --require-checks: every pull request has finished checks."
+        )
         return 0
 
-    return 0 if summary["ok"] else 1
+    return 0
 
 
 if __name__ == "__main__":

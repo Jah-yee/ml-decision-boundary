@@ -6,7 +6,7 @@
 
 ---
 
-## 🟢 v127 晚场 状态：**v13 DoD #16（CI 门禁强度单调性）完成，P0/P1/P1'/P1'' 全绿**
+## 🟢 v127 晚场 状态：**v13 DoD #16（CI 门禁强度单调性）完成，P0/P1/P1'/P1'' 全绿，PR #67 CI 9/9 SUCCESS**
 
 ### 本轮交付：v13 DoD #16 — 门禁模式必须单调
 
@@ -19,6 +19,7 @@
 | `docs/adr/ADR-0018-v13-dod.md` | **改**：新增 DoD #16（门禁模式单调性）+ 设计约束 |
 | `spec/phases.md` | **改**：新增对应 checklist 项 |
 | `strategy/runs/2026-11-02-2138.md` | **新** 本轮 run log |
+| `.github/workflows/ci.yml` | **改**：新增 `pr-coverage-gate` job（`needs:` 全部 8 job + `pull_request` 事件守卫）|
 
 ### 问题：一个号称「更严格」的门禁，实际比默认模式更宽松
 
@@ -134,12 +135,12 @@ FAILED TestGateModel::test_queued_checks_fail_the_strict_gate_only
 | **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-07-25**（DoD #1-4 全绿）|
 | **v12 (Python API & SDK Foundation)** | ✅ **完成** — DoD #1 SDK / #2 Async queue / #3 Registry 版本化+标签查询 全绿，ADR-0017 Accepted；PR #60 已交付（OPEN / CLEAN / MERGEABLE，CI 6/6 SUCCESS），待皇上 Merge |
 | **v13 (Experiment Provenance & Reproducibility)** | 🟢 **DoD #1-#8 + #12-#16 全部完成** — #1 provenance capture（PR #61 待 Merge）/ #2 replay execution / #3 coverage dashboard / #4 content-addressed storage（PR #62 待 Merge）/ #5 artifact compatibility（v122 晚场交付）/ **#12 replay integrity guard（PR #63 待 Merge）** / **#7 CI 触发覆盖闭合（PR #66 待 Merge）** / **#8 PR 级 CI 覆盖验证（PR #67 待 Merge）** / **#14 CI 审计器环境无关性（PR #67 同批）** / **#16 CI 门禁强度单调性（PR #67 同批）**；ADR-0018 待 Accepted |
-| **本轮 PR** | 🟢 **PR #67 已更新**（v127 晚场交付 `feat/v13-pr-coverage-audit`，DoD #8 + #14 + **#16**）|
+| **本轮 PR** | 🟢 **PR #67 已更新 + CI 9/9 SUCCESS**（v127 晚场交付 `feat/v13-pr-coverage-audit`，commit `628f8ee`，DoD #8 + #14 + **#16**）|
 | **CI 触发覆盖** | ✅ **已闭合** — `pull_request` 无 `branches:` 过滤器；`scripts/ci_trigger_audit.py` 门禁（exit 0/1）+ CI `ci-trigger-audit` 自举 job |
 | **PR 级 CI 覆盖** | ✅ **已闭合** — `scripts/pr_coverage_audit.py` 门禁（exit 0/1）+ CI `pr-coverage-audit` 自举 job；**6/6 PR verified** |
 | **门禁模式单调性** | ✅ **已闭合** — 两种模式共用唯一判定函数 `evaluate_gate()`；`--require-checks` 要求集合是默认的**严格超集**（+`checks_completed`）；新增独立 CI job `pr-coverage-gate`（`needs:` 全部 8 job + `pull_request` 事件守卫）|
 | **CI 审计器环境无关性** | ✅ **已闭合** — head 分支 workflow 改为从 **GitHub Contents API** 读取（本地 git 降级为 fallback）；hermetic 测试；CI runner 上 `pr-coverage-audit` job **SUCCESS** |
-| **待合 PR #67** | 🟢 **PR #67 OPEN + CLEAN + MERGEABLE**（v13 DoD #8 + #14 + **#16**，待皇上 Merge）|
+| **待合 PR #67** | 🟢 **PR #67 OPEN + CLEAN + MERGEABLE + CI 9/9 SUCCESS**（v13 DoD #8 + #14 + **#16**，run `41458863194`，含新增 `pr-coverage-gate` 严格门禁 job，待皇上 Merge）|
 | **待合 PR #66** | 🟢 **PR #66 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #7，待皇上 Merge）|
 | **待合 PR #63** | 🟢 **PR #63 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #4 + #6，待皇上 Merge）✅ **已通过回移修复获得首次 CI 验证**|
 | **待合 PR #62** | 🟢 **PR #62 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v13 DoD #2-#4，待皇上 Merge）|
@@ -149,7 +150,7 @@ FAILED TestGateModel::test_queued_checks_fail_the_strict_gate_only
 | **v13 DoD #7** | ✅ **CI 触发覆盖闭合完成** — 修复 `pull_request: branches: [master]` 过滤器 + `scripts/ci_trigger_audit.py` 可执行门禁 + CI 自举 job + 19 测试 |
 | **v13 DoD #8** | ✅ **PR 级 CI 覆盖验证完成** — `scripts/pr_coverage_audit.py` 可执行门禁 + CI 自举 job + 回移修复使 PR #63 首次获得 CI |
 | **v13 DoD #14** | ✅ **CI 审计器环境无关性完成** — head 分支 workflow 改为从 GitHub Contents API 读取 + `resolve_workflow_at()` + `workflow_source` 字段 + hermetic 测试 + CI job 增加全量分支 fetch |
-| **v13 DoD #16** | ✅ **门禁模式单调性完成** — `evaluate_gate()` 单一判定点 + 严格超集要求集合 + `completed_checks` / `checks_completed` 要求 + 测试 22→**42** + bug 注入验证（4 failed）+ CI 独立 `pr-coverage-gate` job |
+| **v13 DoD #16** | ✅ **门禁模式单调性完成** — `evaluate_gate()` 单一判定点 + 严格超集要求集合 + `completed_checks` / `checks_completed` 要求 + 测试 22→**42** + bug 注入验证（4 failed）+ CI 独立 `pr-coverage-gate` job **已上线且 SUCCESS**（run `41458863194`，9/9）|
 | **v13 DoD #6** | ✅ **复现指南文档化完成** — `docs/REPRODUCE.md` v0.1→v1.0，ADR-0018 下轮待办第 2 条已闭合|
 | **CI 安全审计** | ✅ **master 已脱险**：PR #58/#59 merged 后 master = pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12；**master CI #40111672401 6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0） |
 

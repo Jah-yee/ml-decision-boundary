@@ -1,7 +1,7 @@
 # ADR-0018 — v13 DoD 细化：Experiment Provenance & Reproducibility
 
-**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7 / #13；2026-11-01 追加 DoD #14；2026-11-02 追加 DoD #16）
-**状态**: ✅ Accepted（2026-11-02，DoD #1–#16 全部实现完成，v127 晚场交付）
+**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7 / #13；2026-11-01 追加 DoD #14；2026-11-02 追加 DoD #16；2026-11-03 追加 DoD #17）
+**状态**: ✅ Accepted（2026-11-02，DoD #1–#16 全部实现完成，v127 晚场交付；DoD #17 于 v128 早场完成）
 **维护人**: 太子
 
 ---
@@ -40,6 +40,7 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 14 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
 | 15 | CI-audit environment independence | **CI 审计器不得依赖运行环境**：`scripts/pr_coverage_audit.py` 的 head 分支 workflow 改为**从 GitHub Contents API 读取**（本地 git 降级为 fallback），保证在 CI runner 上与在开发机上结论一致 | P0 | ✅ 完成 (v126 晚场) |
 | 16 | Gate monotonicity | **门禁模式必须单调**：`--require-checks`（严格模式）的要求集合是默认模式的**严格超集**，两者共用唯一判定函数 `evaluate_gate()`；修复「严格模式比默认模式更宽松」的缺陷（not-subscribed / base-not-covered 的 PR 靠陈旧 checks 溜过门禁） | P0 | ✅ 完成 (v127 晚场) |
+| 17 | Stack topology audit | **合并顺序可解性**：新增 `scripts/stack_topology_audit.py`，审计 stacked PR 的 **shape**（ancestry / mergeability / duplicate payload），检出 PR #63 与 PR #66 的 diverged-duplicate 拓扑缺陷；默认门禁（`mergeable` + `no_duplicate_payload`）与严格门禁（+ `linear`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；hermetic 测试 32 条（throwaway repo），含冲突检测、重复 payload 检测、诚实降级、bug 注入 | P0 | ✅ 完成 (v128 早场) |
 
 ---
 
@@ -687,3 +688,96 @@ FAILED TestGateModel::test_queued_checks_fail_the_strict_gate_only
 这个缺陷被修掉了，而且**用 bug 注入验证过新测试确实咬得住**。
 
 一个门禁如果比它要替代的模式更宽松，它就不是门禁，是**伪装成安全网的筛子**。
+
+---
+
+## DoD #17 — Stack Topology Audit（v128 早场）
+
+**日期**: 2026-11-03
+**状态**: ✅ 完成
+
+### 问题：三个已有审计都看不见「形状」
+
+此仓库使用 **stacked pull requests**：每个 PR 的 base 分支是另一个 PR 的 head 分支。
+
+```
+master
+  └── feat/v12-sdk-foundation        (PR #60)
+        └── feat/v13-provenance-provenance  (PR #61)
+              └── feat/v13-replay-provenance  (PR #62)
+                    └── feat/v13-replay-integrity-guard  (PR #63)
+                          └── feat/v13-ci-trigger-coverage  (PR #66)
+                                └── feat/v13-pr-coverage-audit  (PR #67)
+```
+
+已有三个审计，各管一摊：
+
+| 审计 | 问的问题 |
+|------|---------|
+| `ci_trigger_audit` (DoD #7) | 「PR 的 base 分支上，workflow 会触发 CI 吗？」 |
+| `pr_coverage_audit` (DoD #8) | 「每个 open PR 真的被 CI 覆盖了吗？」 |
+| `pr_coverage_audit --require-checks` (DoD #16) | 「严格模式比默认模式更宽松吗？」 |
+
+**没有一个问：「这个 stack 能按顺序合并吗？」**
+
+### 实际踩到的坑
+
+PR #63（`feat/v13-replay-integrity-guard`）与 PR #66（`feat/v13-ci-trigger-coverage`）并行准备，
+两者**独立添加了相同的 `pr-coverage-audit` job** 到 `.github/workflows/ci.yml`。
+
+- 两个分支的 `ci.yml` **字节完全一致**
+- GitHub 报告两者均为 `MERGEABLE` / `clean`
+- 但两个分支的 merge base 是 `4962d28`，其中**没有** `pr-coverage-audit` job
+- → 两者**分叉**（diverged），stack 不是线性的
+
+**这就是「形状」缺陷**：每个 PR 单独看都完美，stack 整体却不可按序合并。
+
+### 解法
+
+新增 `scripts/stack_topology_audit.py`，对每对连续 PR 检查三件事：
+
+1. **Ancestry** — 下层 PR 的 head 是上层 PR head 的祖先吗？（`git merge-base --is-ancestor`）
+2. **Mergeability** — 两个分支真合并会冲突吗？（`git merge-tree --write-tree --name-only`，**不碰 working tree**）
+3. **Duplicate payload** — 两个分支是否独立提交了相同内容？（内容相同但 merge base 没有 → 分叉重复提交的特征）
+
+**关键发现：`git merge-tree` 的退出码不是冲突信号。**
+
+第一版实现信任退出码 → 报告「mergeable: yes」→ **假阴性**，正好漏掉了它要抓的缺陷。
+冲突必须从**输出**里解析：`CONFLICT` 标记 + 冲突路径列表。退出码在不同 git 版本/冲突类型间不一致。
+
+### 门禁设计（与 DoD #16 同构）
+
+```python
+DEFAULT_REQUIREMENTS = ("mergeable", "no_duplicate_payload")
+STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
+```
+
+- 默认门禁回答：**「这个 stack 能合并吗？」**（容忍分叉，只要可合并且无重复 payload）
+- 严格门禁回答：**「这个 stack 已经准备好合并了吗？」**（额外要求线性）
+- 严格集合是默认集合的**严格超集** → 单调性由**构造**保证
+- 两种模式共用唯一判定函数 `evaluate_gate()`
+
+### 实测
+
+| 层级 | 结果 |
+|------|------|
+| P0 | ✅ `compileall -q .` 0 errors；import smoke OK |
+| P1 | ✅ **32 passed**（`test_stack_topology_audit.py`，全部 hermetic throwaway repo）|
+| 全量审计测试 | ✅ **93 passed**（`stack_topology_audit` + `pr_coverage_audit` + `ci_trigger_audit`）|
+| Live audit | ✅ `stack_topology_audit.py` exit 1（**正确**检出 PR #63/#66 分叉重复提交）|
+| Bottom-up merge | ✅ **6/6 PR 合并零冲突**（实测验证：stack 本身可合并，但拓扑不线性）|
+
+### 设计约束
+
+- **只读**：审计永不 merge / push / 改写分支
+- **无第三方依赖**：不 import PyYAML（不在 `requirements.lock`）
+- **诚实降级**：拿不到 PR 列表时 `rc=2`，绝不报「一切正常」
+- **默认分支检测**：不硬编码 `master`；通过 `gh repo view --json defaultBranchRef` + `git symbolic-ref` + fallback 三级检测
+- **退出码不是冲突信号**：冲突从输出解析，不从退出码判
+
+### 本轮最重要的产出
+
+不是「加了 32 个测试」—— 是 **三个已有审计都看不见的「形状」维度被补上了**，
+而且**第一个实现版本就漏掉了它要抓的缺陷**（信任退出码 → 假阴性）。
+
+一个审计如果对它要抓的缺陷报「一切正常」，它就不是审计，是**盖章**。

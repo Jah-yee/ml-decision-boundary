@@ -219,6 +219,7 @@
 - [x] CI 审计器环境无关性 — `scripts/pr_coverage_audit.py` 的 head 分支 workflow 改为从 **GitHub Contents API** 读取（本地 git 降级为 fallback），使审计在 CI runner 上与开发机上结论一致（修复 PR #67 上 `pr-coverage-audit` job 自身失败的问题） ✅ (2026-11-01)
 - [x] 门禁模式单调性 — `--require-checks`（严格模式）的要求集合改为默认模式的**严格超集**，两种模式共用唯一判定函数 `evaluate_gate()`；修复「严格模式比默认模式更宽松」的缺陷（not-subscribed / base-not-covered 的 PR 靠陈旧 checks 溜过门禁） ✅ (2026-11-02)
 - [x] ADR-0018 Accepted — 全部 DoD #1–#16 实现完成，v13 阶段收口 ✅ (2026-11-02)
+- [x] Stack topology audit — **合并顺序可解性**：新增 `scripts/stack_topology_audit.py` 审计 stacked PR 的 **shape**（ancestry / mergeability / duplicate payload），检出 PR #63 与 PR #66 的 diverged-duplicate 拓扑缺陷；默认门禁（`mergeable` + `no_duplicate_payload`）与严格门禁（+ `linear`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；hermetic 测试 32 条；**关键发现：`git merge-tree` 的退出码不是冲突信号**，必须从输出解析 ✅ (2026-11-03)
 
 **v0-v12 已完成 ✅ | v13 已完成 ✅**
 

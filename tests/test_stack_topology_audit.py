@@ -584,10 +584,30 @@ class TestCli:
             timeout=180,
         )
 
-    def test_cli_json_output_is_parseable(self):
-        proc = self._run(["--json"], REPO_ROOT)
-        # The live repository's stack may or may not be clean; the JSON
-        # must be well-formed either way.
+    def _fake_gh(self, tmp_path: Path) -> Path:
+        """Create a fake ``gh`` that returns an empty PR list — hermetic, no network."""
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        gh_script = bin_dir / "gh"
+        gh_script.write_text(
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            "if 'pr' in sys.argv and 'list' in sys.argv:\n"
+            "    print('[]')\n"
+            "else:\n"
+            "    print('fake gh: unexpected args', file=sys.stderr)\n"
+            "    sys.exit(0)\n"
+        )
+        gh_script.chmod(0o755)
+        return bin_dir
+
+    def test_cli_json_output_is_parseable(self, tmp_path, monkeypatch):
+        bin_dir = self._fake_gh(tmp_path)
+        monkeypatch.setenv("PATH", f"{bin_dir}:{__import__('os').environ['PATH']}")
+        repo = _init(tmp_path / "repo")
+        _commit(repo, "a.txt", "base\n", "base")
+        proc = self._run(["--json"], repo)
+        # Empty stack -> gate passes (exit 0); JSON must be well-formed.
         assert proc.returncode in (0, 1), proc.stderr
         payload = json.loads(proc.stdout)
         assert "gate" in payload
@@ -595,13 +615,21 @@ class TestCli:
         assert "merge_order" in payload
         assert isinstance(payload["gate"]["requirements"], list)
 
-    def test_cli_gate_requirements_are_reported(self):
-        proc = self._run(["--json"], REPO_ROOT)
+    def test_cli_gate_requirements_are_reported(self, tmp_path, monkeypatch):
+        bin_dir = self._fake_gh(tmp_path)
+        monkeypatch.setenv("PATH", f"{bin_dir}:{__import__('os').environ['PATH']}")
+        repo = _init(tmp_path / "repo")
+        _commit(repo, "a.txt", "base\n", "base")
+        proc = self._run(["--json"], repo)
         payload = json.loads(proc.stdout)
         assert payload["gate"]["requirements"] == list(DEFAULT_REQUIREMENTS)
 
-    def test_cli_strict_mode_adds_a_requirement(self):
-        proc = self._run(["--json", "--strict"], REPO_ROOT)
+    def test_cli_strict_mode_adds_a_requirement(self, tmp_path, monkeypatch):
+        bin_dir = self._fake_gh(tmp_path)
+        monkeypatch.setenv("PATH", f"{bin_dir}:{__import__('os').environ['PATH']}")
+        repo = _init(tmp_path / "repo")
+        _commit(repo, "a.txt", "base\n", "base")
+        proc = self._run(["--json", "--strict"], repo)
         payload = json.loads(proc.stdout)
         assert payload["gate"]["requirements"] == list(STRICT_REQUIREMENTS)
         assert len(STRICT_REQUIREMENTS) > len(DEFAULT_REQUIREMENTS)

@@ -70,7 +70,7 @@ python3 -c "from core.compat import apply_shims; apply_shims(); print('OK')"
 python3 -m pytest -q --tb=short
 ```
 
-**当前基线**: 612 passed / 5 skipped / 0 FAILED（v123 早场，362.69s）
+**当前基线**: 631 passed / 5 skipped / 0 FAILED（v124 早场，393.26s）
 
 ### P1' — CI 触发覆盖自检（每次改 workflow 必跑）
 
@@ -88,6 +88,115 @@ python3 scripts/ci_trigger_audit.py --json
 该脚本只用标准库（**不依赖 `requirements.lock`**），已在 CI 中作为
 `ci-trigger-audit` job 每次运行 —— 一旦有人写回 `branches: [master]`，构建会自己变红。
 详见 [ADR-0018 DoD #7](adr/ADR-0018-v13-dod.md)。
+
+### P1'' — PR 级 CI 覆盖自检（每个 open PR 必查）
+
+P1' 审计的是**当前分支上那一份 `ci.yml`**。但 GitHub 判定一个**已存在的** PR
+会不会触发 CI 时，读的是 **PR 的 head 分支上的 workflow** —— 不是 base 分支的，
+也不是默认分支的。
+
+对 **stacked PR**，这两个不是一回事：
+
+```
+master
+  └── feat/v13-replay-provenance          (PR #62, base=master)      → ✅ 有 CI
+        └── feat/v13-replay-integrity-guard  (PR #63, base=上一级)    → ❌ 零 CI
+              └── feat/v13-ci-trigger-coverage (PR #66, base=上一级) → ✅ 有 CI
+```
+
+PR #63 的 head 分支上仍是旧的带过滤器 workflow，而修它的 #66 **stacked 在它上面** ——
+GitHub 不会把 #66 的文件变更「预演」到 #63 上，于是 #63 永远拿不到 CI。
+
+```bash
+python3 scripts/pr_coverage_audit.py
+# → ✅ 5/5 pull requests are verified by CI.
+
+python3 scripts/pr_coverage_audit.py --pr 63
+python3 scripts/pr_coverage_audit.py --json
+python3 scripts/pr_coverage_audit.py --require-checks
+```
+
+三个独立条件同时成立才算 `verified`：
+
+| # | 条件 | 回答的问题 |
+|---|------|-----------|
+| 1 | head 分支的 workflow 订阅了 `pull_request` | 有没有 workflow 会响应 |
+| 2 | 它的过滤器覆盖**这个 PR 自己的** base 分支 | **会**不会跑 |
+| 3 | GitHub **实际报告了** checks | **到底**跑没跑 |
+
+② 是「会不会跑」，③ 是「到底跑没跑」—— **不可互相代替**。
+只满足 ② ③ 的 PR 仍然会显示一片空白，那正是 v123 两轮把 `MERGEABLE`
+误读成「已验证」的地方。
+
+同样只用标准库、不依赖 `requirements.lock`，已在 CI 中作为 `pr-coverage-audit`
+job 每次运行。详见 [ADR-0018 DoD #13](adr/ADR-0018-v13-dod.md)。
+
+#### head 分支的 workflow 从哪里读？
+
+**从 GitHub Contents API 读**（`GET /repos/{owner}/{repo}/contents/.github/workflows/ci.yml?ref={head_branch}`），
+本地 git 只作为**离线 fallback**。
+
+这一点不是风格偏好，而是**正确性要求**，且是被 CI 亲自教会的：
+
+> 第一版实现用 `git show <head_branch>:.github/workflows/ci.yml` 读文件，
+> 并要求该分支是本地 ref。开发机上成立（分支都拉过），
+> **CI 上完全不成立** —— `pull_request` 事件 checkout 的是一个 detached merge commit，
+> 仓库里**只有当前 PR 自己的 head 分支**，其他 PR 的 head 分支一个都没有。
+>
+> 结果：审计对**每一个** PR 都报 `(not found on head branch)` → verdict `unknown`
+> → 判定 0/6 verified → **那个本该证明覆盖的 CI run 反而把 build 弄红了**
+> （PR #67，run `41265562901`，`pr-coverage-audit` FAILED）。
+
+| 读取方式 | 开发机 | CI runner | 结论 |
+|---------|-------|-----------|------|
+| 本地 git | ✅ | ❌ | **不能作为唯一来源** |
+| Contents API | ✅ | ✅ | **唯一在两边都正确的来源** |
+
+> 教训：**一个门禁自身的正确性，必须在它实际运行的宿主环境里验证过**。
+> 「本地跑绿」不等于「CI 里跑绿」—— 而且这次恰恰是**门禁自己**先挂了。
+
+#### 两种门禁模式：严格模式永远不比默认模式宽松
+
+`pr_coverage_audit.py` 有两种判定模式：
+
+| 模式 | 命令 | 要求集合 |
+|------|------|---------|
+| 默认 | `python3 scripts/pr_coverage_audit.py` | `subscribes` + `base_covered` + `checks` + `auditable` |
+| 严格 | `python3 scripts/pr_coverage_audit.py --require-checks` | 上述全部 + `checks_completed` |
+
+**严格模式的要求集合是默认模式的严格超集**，因此它只可能把「通过」变成「失败」，
+绝不可能反过来。这一点不是风格偏好，而是被真实 bug 教会的：
+
+> 第一版实现用**两个各自独立的临时表达式**分别判定两种模式，
+> 而「严格」那个只看 `observed_checks`。于是：
+>
+> ```
+> PR 状态            observed_checks   默认模式   --require-checks
+> not-subscribed          7              FAIL          PASS   ← 错了
+> base-not-covered        7              FAIL          PASS   ← 错了
+> ```
+>
+> 一个 CI 从来不会为它触发的 PR，只要**身上还挂着上一次运行留下的 checks**，
+> 就能从「严格」门禁里溜过去 —— **一个比默认模式还宽松的门禁，
+> 看上去像安全网，实际是个筛子**。
+
+现在的实现把「这个门禁过不过」收敛到**唯一**一个函数 `evaluate_gate()`，
+两种模式只是传入不同的要求集合。单点决策 = 单调性可由构造保证。
+
+| 要求 | 含义 | 失败时的 verdict |
+|------|------|-----------------|
+| `subscribes` | head 分支的 workflow 订阅了 `pull_request` | `not-subscribed` |
+| `base_covered` | 该 workflow 的过滤器覆盖这个 PR 自己的 base 分支 | `base-not-covered` |
+| `checks` | GitHub 实际报告了 checks | `no-checks-reported` |
+| `auditable` | 审计没有因任何问题而无法给出结论 | `unknown` |
+| `checks_completed` | **（仅严格模式）** 已报告的 checks 真的跑完了 | — |
+
+最后一条值得单独说明：**GitHub 在 workflow「开始」时就创建 check run**，
+所以 `observed_checks` 把还在排队、还在跑的都算了进去。
+「有 check」和「check 跑完了」是两件事 —— 严格模式只认后者。
+
+> 验收：`--json` 会同时输出 `gate` 字段（含 `ok` / `failed` / `failures` / `requirements`），
+> 机器可读模式不会把「为什么没过」藏起来。
 
 ### P2 — 基准冒烟
 

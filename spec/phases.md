@@ -215,8 +215,14 @@
 - [x] Replay integrity guard — 冻结 recipe 漂移分级（none/cosmetic/semantic）+ registry 全量审计 + 实际执行验证（Registry/SDK/CLI/HTTP 四端）✅ (2026-10-28)
 - [x] 回归验证与 CI 全绿 ✅ (2026-10-28)
 - [x] CI 触发覆盖闭合 — 去掉 `pull_request` 的 `branches: [master]` 过滤器，保证所有 base 分支的 PR 都被验证 + `scripts/ci_trigger_audit.py` 可执行门禁 + CI 自举 job ✅ (2026-10-29)
+- [x] PR 级 CI 覆盖验证 — 按 **PR head 分支上的** workflow 判定每个 open PR 是否真被 CI 覆盖 + `scripts/pr_coverage_audit.py` 可执行门禁 + CI 自举 job；并回移触发修复使 PR #63 首次获得 CI ✅ (2026-10-29)
+- [x] CI 审计器环境无关性 — `scripts/pr_coverage_audit.py` 的 head 分支 workflow 改为从 **GitHub Contents API** 读取（本地 git 降级为 fallback），使审计在 CI runner 上与开发机上结论一致（修复 PR #67 上 `pr-coverage-audit` job 自身失败的问题） ✅ (2026-11-01)
+- [x] 门禁模式单调性 — `--require-checks`（严格模式）的要求集合改为默认模式的**严格超集**，两种模式共用唯一判定函数 `evaluate_gate()`；修复「严格模式比默认模式更宽松」的缺陷（not-subscribed / base-not-covered 的 PR 靠陈旧 checks 溜过门禁） ✅ (2026-11-02)
+- [x] ADR-0018 Accepted — 全部 DoD #1–#16 实现完成，v13 阶段收口 ✅ (2026-11-02)
+- [x] Stack topology audit — **合并顺序可解性**：新增 `scripts/stack_topology_audit.py` 审计 stacked PR 的 **shape**（ancestry / mergeability / duplicate payload），检出 PR #63 与 PR #66 的 diverged-duplicate 拓扑缺陷；默认门禁（`mergeable` + `no_duplicate_payload`）与严格门禁（+ `linear`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；hermetic 测试 32 条；**关键发现：`git merge-tree` 的退出码不是冲突信号**，必须从输出解析 ✅ (2026-11-03)
+- [x] Job dependency graph audit — **工作流内部的作业依赖图**：新增 `scripts/job_graph_audit.py` 审计 `jobs:` 块的三个具体缺陷 —— **dangling `needs:`**（指向不存在的 job → 整个 workflow 被 GitHub 拒绝，所有质量 job 一起被跳过）、**`needs:` cycle**（job 静默永不运行）、**ungated verification job**（gate 的 `needs:` 没有包含新验证 job → gate 报告「已验证」但实际未验证，与 DoD #16 缺陷同构）；默认门禁（`no_dangling_needs` + `no_self_dependency` + `acyclic` + `gate_coverage`）与严格门禁（+ `all_jobs_reachable`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；hermetic 测试 **62 条**（10 个 Test 类，含 bug 注入）；CI job `job-graph-audit` 已加入 `pr-coverage-gate.needs` ✅ (2026-11-04)
 
-**v0-v12 已完成 ✅ | v13 进行中 🟡**
+**v0-v12 已完成 ✅ | v13 已完成 ✅**
 
 ---
 

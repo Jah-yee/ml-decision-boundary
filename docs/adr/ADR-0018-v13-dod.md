@@ -1,7 +1,7 @@
 # ADR-0018 — v13 DoD 细化：Experiment Provenance & Reproducibility
 
-**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7）
-**状态**: 🟡 Proposed（DoD #1–#9 + #11–#12 实现完成，DoD #7 本轮交付，待 Accepted）
+**日期**: 2026-10-26（2026-10-27 追加 DoD #8 / #9 / #11；2026-10-28 追加 DoD #12；2026-10-29 追加 DoD #7 / #13；2026-11-01 追加 DoD #14；2026-11-02 追加 DoD #16；2026-11-03 追加 DoD #17）
+**状态**: ✅ Accepted（2026-11-02，DoD #1–#16 全部实现完成，v127 晚场交付；DoD #17 于 v128 早场完成）
 **维护人**: 太子
 
 ---
@@ -31,12 +31,16 @@ CHARTER 的工程使命要求“每一次训练都可追溯、可回归测试、
 | 5 | Replay recipe | provenance 附带可执行重放方案（SDK 精确片段 + CLI 命令 + 依赖锁定摘要） | P1 | ✅ 完成 (5e7f843) |
 | 6 | HTTP provenance API | `GET /api/provenance` 暴露 provenance / diff / replay | P1 | ✅ 完成 (5e7f843) |
 | 7 | CI trigger coverage | CI 触发块保证**所有** base 分支的 PR 都被验证 + 可执行门禁（`scripts/ci_trigger_audit.py` + CI 自举 job） | P0 | ✅ 完成 (v124 早场) |
-| 7 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
 | 8 | Coverage dashboard | 覆盖率看板：哪些模型缺 provenance、哪些不可重放、阻塞原因分组 | P1 | ✅ 完成 (29089b1) |
 | 9 | Replay execution | CLI `model replay --run <id>` 实际重跑并输出复现报告（run-equivalent 判定） | P1 | ✅ 完成 (29089b1) |
 | 10 | Content-addressed storage | registry 产物去重（SHA-256 寻址 blob store）+ 迁移工具 | P1 | ✅ 完成 (462b7ce) |
 | 11 | Artifact compatibility | 跨 scikit-learn 版本的产物向后兼容层 + registry 健康审计 | P1 | ✅ 完成 (v122 晚场) |
 | 12 | Replay integrity guard | 冻结的 replay recipe 漂移分级（none / cosmetic / semantic）+ registry 全量审计 + 实际执行验证 | P1 | ✅ 完成 (v123 早场) |
+| 13 | PR-level CI coverage | **PR 级** CI 覆盖验证：按 **PR head 分支上的** workflow 判定每个 open PR 是否真被 CI 覆盖 + 可执行门禁（`scripts/pr_coverage_audit.py` + CI 自举 job） | P0 | ✅ 完成 (v125 晚场) |
+| 14 | Honest replay | CLI 重放命令仅在可精确复现时标记 exact，否则警告并引导使用 SDK | P1 | ✅ 完成 (5e7f843) |
+| 15 | CI-audit environment independence | **CI 审计器不得依赖运行环境**：`scripts/pr_coverage_audit.py` 的 head 分支 workflow 改为**从 GitHub Contents API 读取**（本地 git 降级为 fallback），保证在 CI runner 上与在开发机上结论一致 | P0 | ✅ 完成 (v126 晚场) |
+| 16 | Gate monotonicity | **门禁模式必须单调**：`--require-checks`（严格模式）的要求集合是默认模式的**严格超集**，两者共用唯一判定函数 `evaluate_gate()`；修复「严格模式比默认模式更宽松」的缺陷（not-subscribed / base-not-covered 的 PR 靠陈旧 checks 溜过门禁） | P0 | ✅ 完成 (v127 晚场) |
+| 17 | Stack topology audit | **合并顺序可解性**：新增 `scripts/stack_topology_audit.py`，审计 stacked PR 的 **shape**（ancestry / mergeability / duplicate payload），检出 PR #63 与 PR #66 的 diverged-duplicate 拓扑缺陷；默认门禁（`mergeable` + `no_duplicate_payload`）与严格门禁（+ `linear`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；hermetic 测试 32 条（throwaway repo），含冲突检测、重复 payload 检测、诚实降级、bug 注入 | P0 | ✅ 完成 (v128 早场) |
 
 ---
 
@@ -455,3 +459,404 @@ ci-trigger-audit:
 在这次修复之前，"CI 覆盖了所有 PR" 是一句**没人验证过的话**。
 它恰好在唯一一次不成立的时候（PR #63），静悄悄地失效了两轮。
 现在它是一条**CI 每次都检查、违反就红**的规则。
+
+---
+
+## DoD #13 实现要点（PR 级 CI 覆盖验证）
+
+### 问题
+
+DoD #7 修好了 workflow 文件里的 `pull_request` 过滤器，并加了一个文件级审计器。
+那是必要的，但**不充分** —— 因为它审计的是**当前分支上那一份 `ci.yml`**，
+而 GitHub 判定一个**已经存在的** PR 会不会触发 CI 时，读的是：
+
+> **PR 的 head 分支上的 workflow 定义** —— 不是 base 分支的，也不是默认分支的。
+
+于是 DoD #7 的修复**只对 PR #66 自己生效**。实测（2026-10-29 22:10）：
+
+| PR | head 分支上的 ci.yml | base | 实际 CI |
+|----|------|------|----------|
+| #60/#61/#62 | `branches: [master]`（未修） | `master` | ✅ 6/6 |
+| **#63** | **`branches: [master]`（未修）** | `feat/v13-replay-provenance` | ❌ **零次运行** |
+| #66 | 无过滤器（已修） | `feat/v13-replay-integrity-guard` | ✅ 7/7 |
+
+### 合并顺序死锁
+
+```
+#63  (head ci.yml 未修, base=feat/v13-replay-provenance)   ← 需要 CI 才能放心合并
+  ↑ 被 #66 stacked
+#66  (head ci.yml 已修, base=feat/v13-replay-integrity-guard) ← base 就是 #63
+```
+
+- 想让 #63 有 CI → 必须先把修复合进 #63 的分支
+- 而修复在 #66 上，#66 的 base 又是 #63
+
+**结果**：#63 携带的 DoD #4（51 个新测试）+ DoD #6（723 行文档）**从未被任何 CI 验证过**，
+而「CI 覆盖所有 PR」的承诺**在最需要它的那一个 PR 上依然不成立**。
+
+### 解法
+
+1. **`scripts/pr_coverage_audit.py`（新，唯一实现源）** —— 把审计对象从「workflow 文件」升级为「PR」。
+   - **读 PR head 分支上的 workflow**（`git show <head>:.github/workflows/ci.yml`），
+     **再用 PR 自己的 base 分支**去问「这份 workflow 会覆盖它吗」
+   - base 分支**从 PR 自身读取**，不靠硬编码 —— 硬编码的 base 清单迟早会漏掉一个新分支
+   - 复用 DoD #7 的解析器（`from ci_trigger_audit import ...`），**不重复实现 YAML 子集解析**
+   - **零第三方依赖**（PyYAML 不在 `requirements.lock`）
+   - **只读**：不 merge、不 push、不改写 workflow
+   - **诚实降级**：拿不到 PR 列表时**报错退出**，绝不把「查不到」报成「一切正常」
+2. **三个独立条件才算 verified**（这是 DoD #13 与 DoD #7 的本质区别）：
+   - ① head 分支上的 workflow 订阅了 `pull_request`
+   - ② 它的过滤器覆盖这个 PR 自己的 base 分支
+   - ③ **GitHub 实际报告了 checks**
+
+   ② 回答「*会*不会跑」，③ 回答「*到底*跑没跑」。**两者不可互相代替** ——
+   v123 两轮 run log 把 `MERGEABLE` 读成「已验证」，就是这么错的。
+3. **CI 新增 `pr-coverage-audit` 自举 job**：在 CI 里校验**所有 open PR** 都被覆盖 → 违反就红。
+   - 同样**不执行** `pip install -r requirements.lock` —— **守卫不能依赖它要守护的那套环境**
+   - 需要 `fetch-depth: 0`（要读各 PR 的 head 分支）+ `GH_TOKEN`
+4. **落地 #63 的 CI**：把 DoD #7 的 `ci.yml` 修复**回移到 `feat/v13-replay-integrity-guard`**（#63 的 head），
+   让 #63 **首次**真正获得 CI 验证。
+
+### 实测
+
+```
+🔍 Pull request CI coverage audit
+====================================
+
+✅ PR #66  base covered: yes   checks seen: 7   verdict: verified
+✅ PR #63  base covered: yes   checks seen: 7   verdict: verified   ← 修复前是 base-not-covered / 0 checks
+✅ PR #62  base covered: yes   checks seen: 6   verdict: verified
+✅ PR #61  base covered: yes   checks seen: 6   verdict: verified
+✅ PR #60  base covered: yes   checks seen: 6   verdict: verified
+
+5/5 pull requests are verified by CI.
+```
+
+**PR #63 的 `statusCheckRollup` 从 `[]` 变成 7 个 check** —— 这是它存在以来第一次有 CI。
+
+### 设计约束
+
+- **审计永不代替决策**：脚本报告缺口，修不修（回移 / 改 base / 改触发块）由人决定。
+- **不做隐式修复**：不自动 merge、不自动 push、不自动改写 workflow。
+- **回移修复优先于改 base**：把修复带到每个分支，比把每个 PR 都改成 base=master 更普适 ——
+  下一个 stacked PR 照样会踩同一个坑。
+- **门禁 job 不装 requirements.lock**：与 DoD #7 一致。
+
+### 与 DoD #7 的关系
+
+| | DoD #7（文件级） | DoD #13（PR 级）|
+|---|---|---|
+| 审计对象 | 一个 workflow 文件 | 每个 open PR |
+| 读的 workflow | 当前工作树 | **PR 的 head 分支** |
+| base 分支来源 | 静态清单 | **PR 自身** |
+| 判定 | 「base 会不会被覆盖」 | 「这个 PR **到底**有没有被验证」|
+| 能发现 #63 吗 | ❌ 不能（#66 分支上一切正常）| ✅ 能（唯一发现者）|
+
+---
+
+## DoD #16 — Gate Monotonicity（v127 晚场）
+
+### 问题
+
+`scripts/pr_coverage_audit.py` 有两种判定模式：默认模式，和被文档称作
+「CI gate mode」的 `--require-checks`。
+
+上一轮（v127 早场）加进来的 `--require-checks` 是这样判的：
+
+```python
+missing = [c.number for c in coverages if c.observed_checks == 0]
+if missing:
+    return 1
+return 0
+```
+
+而默认模式判的是 `summary["ok"]`，即**所有** `c.is_verified` 都为真。
+`is_verified` 要求四件事同时成立：
+
+1. `workflow_subscribes` — head 分支的 workflow 订阅了 `pull_request`
+2. `base_covered` — 该 workflow 的过滤器覆盖这个 PR 自己的 base 分支
+3. `observed_checks > 0` — GitHub 报告了 checks
+4. `not problems` — 审计得出了结论
+
+**第 4 条之外的 1、2 两条，严格模式完全不看。** 于是：
+
+```
+PR 状态                observed_checks   默认模式   --require-checks
+not-subscribed              7              FAIL          PASS    ← 错了
+base-not-covered            7              FAIL          PASS    ← 错了
+```
+
+一个 **CI 从来不会为它触发**的 PR，只要身上还挂着**上一次运行留下的陈旧
+checks**，就能从号称「更严格」的门禁里溜过去。
+
+**一个比默认模式更宽松的门禁，看上去像安全网，实际是个筛子** ——
+而且它是那种「今天跑绿、明天出事」的筛子：只有当某个 PR 真的处于
+unverified 状态时才会漏，而这恰恰是最需要门禁生效的时刻。
+
+### 解法
+
+**把「这个门禁过不过」收敛到唯一一个函数。**
+
+```python
+DEFAULT_REQUIREMENTS = ("subscribes", "base_covered", "checks", "auditable")
+
+REQUIRE_CHECKS_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("checks_completed",)
+```
+
+```python
+def evaluate_gate(coverages, requirements=DEFAULT_REQUIREMENTS) -> dict:
+    failures = {}
+    for c in coverages:
+        failed = [r for r in requirements if _requirement_failed(c, r)]
+        if failed:
+            failures[c.number] = failed
+    return {
+        "ok": not failures,
+        "failed": sorted(failures),
+        "failures": {n: failures[n] for n in sorted(failures)},
+        "requirements": list(requirements),
+    }
+```
+
+两种模式现在只做一件事：**传入不同的要求集合**。
+因为 `REQUIRE_CHECKS_REQUIREMENTS` 是 `DEFAULT_REQUIREMENTS` 的**严格超集**，
+单调性就由**构造**保证 —— 不再依赖两段代码「碰巧」写对。
+
+### 新增的第五个要求：`checks_completed`
+
+GitHub 在 workflow **开始**时就创建 check run，所以 `observed_checks`
+把还在排队、还在跑的都算进去了。**「有 check」和「check 跑完了」是两件事**。
+
+- `PrCoverage` 新增 `completed_checks` 字段
+- 新增 `_count_completed_checks()`，按 `COMPLETED_CHECK_STATUSES` 判定
+- `to_dict()` 输出 `completed_checks`
+- 报告行改为 `checks seen : 6 (6 finished)`
+
+### 顺带修掉的一个元缺陷：测试是同义反复
+
+v127 早场遗留的 `TestRequireChecks` 测试类**看起来**在测 `--require-checks`，
+实际上它把判定逻辑**在测试里重新实现了一遍**：
+
+```python
+# Simulate the CLI's --require-checks decision logic
+def require_checks_gate(coverages):
+    missing = [c.number for c in coverages if c.observed_checks == 0]
+    return 1 if missing else 0
+```
+
+这种测试**测的是测试自己** —— 把 CLI 的这个 flag 整个删掉，它们**照样全绿**。
+它甚至把要修的 bug（只看 `observed_checks`）原样抄进了断言里。
+
+新测试全部改为**调用真实的 `evaluate_gate()`**，并新增了一个
+**bug 回归测试**：把 `REQUIRE_CHECKS_REQUIREMENTS` 改回 `("checks",)`
+（即重新注入原 bug），**必须有测试失败**。
+
+实测（bug 注入验证）：
+
+```
+FAILED TestGateModel::test_strict_requirements_are_a_strict_superset
+FAILED TestGateModel::test_strict_mode_is_never_laxer_than_default
+FAILED TestGateModel::test_the_original_bug_is_fixed
+FAILED TestGateModel::test_queued_checks_fail_the_strict_gate_only
+4 failed, 35 passed
+```
+
+### 实测
+
+| 层级 | 结果 |
+|------|------|
+| P0 | ✅ `compileall -q .` 0 errors；import smoke OK |
+| P1 | ✅ **657 passed / 5 skipped / 1 pre-existing timeout**（`test_cli_health_runs` 在 base commit `5035430` 上同样失败，与本轮无关）|
+| P1' | ✅ `ci_trigger_audit.py` exit 0，6 个 base 分支全覆盖 |
+| P1'' | ✅ `pr_coverage_audit.py` exit 0，**6/6 PR verified** |
+| P1'' strict | ✅ `--require-checks` exit 0，6/6 |
+| bug 注入 | ✅ **4 个测试失败**（新测试确实咬得住）|
+
+### 设计约束
+
+- **单一判定点**：两种模式共用 `evaluate_gate()`；新增模式必须通过**增加要求**实现，
+  不允许另起一套判定表达式。
+- **要求集合必须单调**：新模式的要求集合必须是旧模式的超集，
+  由 `test_strict_requirements_are_a_strict_superset` 钉住。
+- **未知要求必须报错**：`_requirement_failed()` 遇到未知要求名时 `raise ValueError`，
+  不得静默通过。
+- **诚实降级**：拿不到 PR 状态时仍然 rc=2（与 DoD #8/#15 一致）。
+
+### 本轮最重要的产出
+
+不是「加了 11 个测试」—— 是 **一个号称更严格的门禁，实际比默认模式更宽松**，
+这个缺陷被修掉了，而且**用 bug 注入验证过新测试确实咬得住**。
+
+一个门禁如果比它要替代的模式更宽松，它就不是门禁，是**伪装成安全网的筛子**。
+
+---
+
+## DoD #17 — Stack Topology Audit（v128 早场）
+
+**日期**: 2026-11-03
+**状态**: ✅ 完成
+
+### 问题：三个已有审计都看不见「形状」
+
+此仓库使用 **stacked pull requests**：每个 PR 的 base 分支是另一个 PR 的 head 分支。
+
+```
+master
+  └── feat/v12-sdk-foundation        (PR #60)
+        └── feat/v13-provenance-provenance  (PR #61)
+              └── feat/v13-replay-provenance  (PR #62)
+                    └── feat/v13-replay-integrity-guard  (PR #63)
+                          └── feat/v13-ci-trigger-coverage  (PR #66)
+                                └── feat/v13-pr-coverage-audit  (PR #67)
+```
+
+已有三个审计，各管一摊：
+
+| 审计 | 问的问题 |
+|------|---------|
+| `ci_trigger_audit` (DoD #7) | 「PR 的 base 分支上，workflow 会触发 CI 吗？」 |
+| `pr_coverage_audit` (DoD #8) | 「每个 open PR 真的被 CI 覆盖了吗？」 |
+| `pr_coverage_audit --require-checks` (DoD #16) | 「严格模式比默认模式更宽松吗？」 |
+
+**没有一个问：「这个 stack 能按顺序合并吗？」**
+
+### 实际踩到的坑
+
+PR #63（`feat/v13-replay-integrity-guard`）与 PR #66（`feat/v13-ci-trigger-coverage`）并行准备，
+两者**独立添加了相同的 `pr-coverage-audit` job** 到 `.github/workflows/ci.yml`。
+
+- 两个分支的 `ci.yml` **字节完全一致**
+- GitHub 报告两者均为 `MERGEABLE` / `clean`
+- 但两个分支的 merge base 是 `4962d28`，其中**没有** `pr-coverage-audit` job
+- → 两者**分叉**（diverged），stack 不是线性的
+
+**这就是「形状」缺陷**：每个 PR 单独看都完美，stack 整体却不可按序合并。
+
+### 解法
+
+新增 `scripts/stack_topology_audit.py`，对每对连续 PR 检查三件事：
+
+1. **Ancestry** — 下层 PR 的 head 是上层 PR head 的祖先吗？（`git merge-base --is-ancestor`）
+2. **Mergeability** — 两个分支真合并会冲突吗？（`git merge-tree --write-tree --name-only`，**不碰 working tree**）
+3. **Duplicate payload** — 两个分支是否独立提交了相同内容？（内容相同但 merge base 没有 → 分叉重复提交的特征）
+
+**关键发现：`git merge-tree` 的退出码不是冲突信号。**
+
+第一版实现信任退出码 → 报告「mergeable: yes」→ **假阴性**，正好漏掉了它要抓的缺陷。
+冲突必须从**输出**里解析：`CONFLICT` 标记 + 冲突路径列表。退出码在不同 git 版本/冲突类型间不一致。
+
+### 门禁设计（与 DoD #16 同构）
+
+```python
+DEFAULT_REQUIREMENTS = ("mergeable", "no_duplicate_payload")
+STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
+```
+
+- 默认门禁回答：**「这个 stack 能合并吗？」**（容忍分叉，只要可合并且无重复 payload）
+- 严格门禁回答：**「这个 stack 已经准备好合并了吗？」**（额外要求线性）
+- 严格集合是默认集合的**严格超集** → 单调性由**构造**保证
+- 两种模式共用唯一判定函数 `evaluate_gate()`
+
+### 实测
+
+| 层级 | 结果 |
+|------|------|
+| P0 | ✅ `compileall -q .` 0 errors；import smoke OK |
+| P1 | ✅ **32 passed**（`test_stack_topology_audit.py`，全部 hermetic throwaway repo）|
+| 全量审计测试 | ✅ **93 passed**（`stack_topology_audit` + `pr_coverage_audit` + `ci_trigger_audit`）|
+| Live audit | ✅ `stack_topology_audit.py` exit 1（**正确**检出 PR #63/#66 分叉重复提交）|
+| Bottom-up merge | ✅ **6/6 PR 合并零冲突**（实测验证：stack 本身可合并，但拓扑不线性）|
+
+### 设计约束
+
+- **只读**：审计永不 merge / push / 改写分支
+- **无第三方依赖**：不 import PyYAML（不在 `requirements.lock`）
+- **诚实降级**：拿不到 PR 列表时 `rc=2`，绝不报「一切正常」
+- **默认分支检测**：不硬编码 `master`；通过 `gh repo view --json defaultBranchRef` + `git symbolic-ref` + fallback 三级检测
+- **退出码不是冲突信号**：冲突从输出解析，不从退出码判
+
+### 本轮最重要的产出
+
+不是「加了 32 个测试」—— 是 **三个已有审计都看不见的「形状」维度被补上了**，
+而且**第一个实现版本就漏掉了它要抓的缺陷**（信任退出码 → 假阴性）。
+
+一个审计如果对它要抓的缺陷报「一切正常」，它就不是审计，是**盖章**。
+
+---
+
+## DoD #18 — Job Dependency Graph Audit（v129 晚场）
+
+### 问题：四个已有审计都看不见「作业依赖图」
+
+| 审计 | 问的问题 |
+|------|---------|
+| `ci_trigger_audit` (DoD #7) | 「PR 的 base 分支上，workflow 会触发 CI 吗？」 |
+| `pr_coverage_audit` (DoD #8) | 「每个 open PR 真的被 CI 覆盖了吗？」 |
+| `pr_coverage_audit --require-checks` (DoD #16) | 「严格模式比默认模式更宽松吗？」 |
+| `stack_topology_audit` (DoD #17) | 「这个 stack 能按顺序合并吗？」 |
+
+四个审计都在问关于 **workflow 的问题**。没有一个问：**workflow 内部的 `jobs:` 块，作业依赖图本身健康吗？**
+
+### 三个具体缺陷
+
+1. **Dangling `needs:` target** — 致命。如果 `pr-coverage-gate` 引用了一个不存在的 job，GitHub 会拒绝**整个 workflow**（不只是 gate）。所有真实质量 job（`quality-gates`、`benchmark`、`security-audit`、……）一起被跳过。一个字符的拼写错误就能把绿色 CI 变成「什么都没验证」的 CI，而且它会在引入错误的 PR 上大声报错。
+
+2. **`needs:` cycle** — 静默。一个 job 如果在传递上依赖自己，会被从执行顺序中丢弃，workflow 仍然「整体成功」，只要被跳过的 job 不是任何人关注的那个。
+
+3. **Ungated verification job** — 危险方向的谎言。如果有人加了一个新验证 job（比如 `license-audit`）但忘了在 `pr-coverage-gate` 的 `needs:` 里加上它，gate 会报告「这个 PR 已完全验证」，而新 job 根本没跑、可能已经失败、它的结果不在 gate 的判定里。**gate 在撒谎，而且是往危险方向撒谎** —— 这与 DoD #16 的缺陷（严格门禁比默认门禁更宽松）完全同构。
+
+**Point 3 是这个 audit 存在的原因：它必须是 gate 而不是 lint。** DoD #16 的教训泛化了：*一个 gate 如果不对它要抓的缺陷报失败，它就不是 gate，是橡皮章。*
+
+### 解法
+
+新增 `scripts/job_graph_audit.py`：
+
+1. **解析**：纯 stdlib YAML 解析（不依赖 PyYAML），提取每个 job 的 `needs:` 列表 + 是否有 `run:` 步骤（区分验证 job 和纯 gate）
+2. **分类**：
+   - **Gate**：job 名以 `-gate` 或 `-audit` 结尾，或者没有 `run:` 步骤
+   - **Aggregating gate**：gate 且有非空 `needs:`
+   - **Verification job**：有 `run:` 步骤且不是 gate
+3. **三检**：
+   - `dangling_needs` — `needs:` 引用的 job 名不在 workflow 中
+   - `self_dependencies` — job 直接或间接依赖自己
+   - `cycles` — 传递闭包找环（忽略 dangling target，因为它们会被 GitHub 拒绝）
+   - `ungated_jobs` — 存在验证 job 不在任何 aggregating gate 的 `needs:` 里
+   - `unreachable_jobs`（严格模式）— 存在 job 不从任何 gate 可达
+
+### 门禁设计（与 DoD #16 / #17 同构）
+
+```python
+DEFAULT_REQUIREMENTS = ("no_dangling_needs", "no_self_dependency", "acyclic", "gate_coverage")
+STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("all_jobs_reachable",)
+```
+
+- 默认门禁：**「作业依赖图健康吗？」**（容忍不可达 job，只要没有悬空依赖/自依赖/环/无人门禁的验证 job）
+- 严格门禁：**「每个 job 都从某个 gate 可达吗？」**（额外要求全覆盖）
+- 严格集合是默认集合的**严格超集** → 单调性由**构造**保证
+- 两种模式共用唯一判定函数 `evaluate_gate()`
+
+### 实测
+
+| 层级 | 结果 |
+|------|------|
+| P0 | ✅ `compileall -q` 0 errors |
+| P1 | ✅ **62 passed**（`test_job_graph_audit.py`，10 个 Test 类，全部 hermetic）|
+| 全量审计测试 | ✅ **155 passed**（`job_graph_audit` + `stack_topology_audit` + `pr_coverage_audit` + `ci_trigger_audit`）|
+| Live audit | ✅ `job_graph_audit.py --strict` exit 0（当前 workflow 图健康）|
+| CI 集成 | ✅ `job-graph-audit` job 已加入 `ci.yml`，并加入 `pr-coverage-gate.needs` |
+| YAML | ✅ `ci.yml` 解析通过，10 个 job，`pr-coverage-gate.needs` 含 `job-graph-audit` |
+
+### 设计约束
+
+- **无第三方依赖**：不 import PyYAML（不在 `requirements.lock`），CI job 不安装任何依赖
+- **只读**：审计永不修改 workflow 文件
+- **诚实降级**：workflow 文件不存在时 `rc=2`，绝不报「一切正常」
+- **hermetic 测试**：全部 62 条测试用 throwaway workflow 文件，不依赖真实仓库
+- **bug 注入**：`TestBugInjection` 类验证每个缺陷检测器确实咬得住
+
+### 本轮最重要的产出
+
+不是「加了 62 个测试」—— 是 **四个已有审计都看不见的「作业依赖图」维度被补上了**，
+而且**第一个实现版本就可能漏掉它要抓的缺陷**（如果信任 `needs:` 列表而不做传递闭包检查）。
+
+一个 gate 如果不对它要抓的缺陷报失败，它就不是 gate，是**橡皮章**。

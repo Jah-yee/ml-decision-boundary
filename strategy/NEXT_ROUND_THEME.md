@@ -1,113 +1,52 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v124 早场（v13 DoD #7 CI 触发覆盖闭合完成）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v131 晚场（v13 stack 拓扑缺陷已修复：5/5 links linear）
 
-**更新时间：** 2026-10-29 09:42 CST / 2026-10-29 01:42 UTC
-**版本：** v124 早场
+**更新时间：** 2026-11-05 21:30 CST / 2026-11-05 13:30 UTC
+**版本：** v131 晚场
 **维护人：** 太子
+**本轮 run log：** `strategy/runs/2026-11-05-2130.md`
 
 ---
 
-## 🟢 v124 早场 状态：**v13 DoD #7（CI 触发覆盖闭合）完成，P0/P1/P2/P3 全绿（631 passed / 5 skipped / 0 FAILED），PR #64 待开**
+## 🟢 v131 晚场 状态：**v13 stack 拓扑缺陷已修复 —— 6 个 PR 现在可以自底向上安全合并**
 
-### 🆕 本轮交付：v13 DoD #7 — CI 触发覆盖闭合
+### 本轮交付：v131 晚场 — 修复 `diverged-duplicate` 拓扑缺陷，让整条 v13 stack 可合并
 
 | 交付物 | 内容 |
 |--------|------|
-| `.github/workflows/ci.yml` | **去掉 `pull_request` 的 `branches: [master]` 过滤器** + 新增 `ci-trigger-audit` job（7 job）|
-| `scripts/ci_trigger_audit.py` | **新**（唯一实现源）：零依赖触发块审计器 + CLI |
-| `tests/test_ci_trigger_audit.py` | **新** 19 测试 |
-| `docs/adr/ADR-0018-v13-dod.md` | DoD #7 落档 + DoD 表更新 + 下轮待办更新 |
-| `spec/phases.md` | v13 DoD #7 落档 |
-| `docs/REPRODUCE.md` | 新增 P1' 关卡（CI 触发覆盖自检）|
-| `strategy/runs/2026-10-29-0942.md` | 本轮 run log |
+| **根因定位** | PR #63 与 PR #66 的 head 分支**各自独立提交了同一个 CI trigger 修复**（`524718a` / `f8a9d8c`），文件内容**逐字节相同**（sha256 校验 `dc8d67a6…` / `6f1e1c82…`）→ 属重复提交，丢弃其一不丢内容 |
+| **修复** | `git cherry-pick` 重放提交链：`#66` → `e3d5626`；`#67` 13 个独有提交 → `833bcf6`；树内容 `git diff` 为空 = 与原 head 完全等价 |
+| **GH007 规避** | rebase 保留 author 但 committer 写成私有邮箱 → 改用 `cherry-pick` + 显式设 `GIT_COMMITTER_EMAIL`/`GIT_AUTHOR_EMAIL` 为已验证公开地址 |
+| **push** | `--force-with-lease`（先 `ls-remote` 读真实 sha 作期望值）→ 远端回读校验 #66=`e3d5626`、#67=`833bcf6` |
+| **`stack_topology_audit.py --strict`** | ✅ **exit 0 — 5/5 links clean，0 repairable，0 blocked** |
+| **CI** | #66 **7/7 SUCCESS**、#67 **10/10 SUCCESS**；6 个 PR 全部 MERGEABLE/CLEAN，0 失败 0 pending |
+| `strategy/runs/2026-11-05-2130.md` | **新**：本轮 run log |
 
-### 问题：**PR #63 从未跑过一次 CI，而记录写的是"CI 6/6 SUCCESS"**
+### 动手前的复核（不轻信上一轮的自我报告）
 
-`ci.yml` 的触发块带 `pull_request: branches: [master]` 过滤器 → **只有 base 为 `master` 的 PR 会启动 CI**。
-本仓库 v13 采用 stacked PR 结构（base 是另一个 feature 分支），于是：
+| 检查 | 结果 |
+|------|------|
+| `spec/phases.md` | v13 DoD #1–#18 **全部 `[x]`，v13 已收口** |
+| open PR 队列 | 6 个，**全部 MERGEABLE/CLEAN + CI 全绿** |
+| master HEAD | `4082158`（PR #59）—— **v12 SDK 与整个 v13 阶段都还没进 master** |
+| `stack_topology_audit.py --strict` | ❌ **exit 1 — PR #63/#66 diverged-duplicate** |
 
-| PR | base | CI 运行？ |
-|----|------|----------|
-| #60 / #61 / #62 | `master` | ✅ 6/6 SUCCESS |
-| **#63** | **`feat/v13-replay-provenance`** | ❌ **零次运行** |
+→ **代码侧 DoD 已全部完成，但没有任何一个 PR 被合并。** 本轮最高价值动作不是「再写一个 DoD」，
+而是**让已完成的 DoD 真正落地**（v13 收口到 master）。
 
-实测：`gh pr checks 63` → `no checks reported`；`gh pr view 63 --json statusCheckRollup` → `[]`；
-`gh run list` 全部历史里 **没有** `feat/v13-replay-integrity-guard` 的任何记录。
-对照组 `exp/dup-pr-probe`（base=`master`）**有** CI 运行 → CI 本身没问题，**唯一变量就是 base 分支**。
+### 本轮的元观察
 
-**后果**：PR #63 携带的 v13 DoD #4（Replay Integrity Guard，51 个新测试）+ DoD #6（`docs/REPRODUCE.md` v1.0，723 行）**从未被 CI 验证过**。
+「完成」与「交付」的缝，这轮又出现了一次，只是换了个位置：
 
-**这个缺口特别危险，因为它看起来不像故障**：CI 失败是🔴红（一定有人管）、在跑是🟡灰（通常会等），
-而**零检查是一片⚪空白** —— 看起来像"还没开始"，而不是"永远不会开始"。
-于是 v123 两轮 run log 都把 `MERGEABLE` 读成了"已验证"。
+- **v130 早场**修的是「代码 staged 了但没 commit」（代码 → 版本库）
+- **v131 晚场**修的是「版本库里有了但 PR 分叉了」（版本库 → 可合并）
 
-> **MERGEABLE 说的是"能合并"，不是"已验证"。** `statusCheckRollup: []` 才是真相。
+**两个缺陷在同一个位置：stack 的最后一环。** 6 个 PR 全部 CLEAN 全部 CI 全绿，
+看起来「只差皇上点一下 Merge」—— 但**有一个 PR 实际上不可按建议顺序合并**。
+**绿色的 CI 和 CLEAN 的 mergeable 状态都不能证明「能合并」，只有拓扑审计能。**
 
-⚠️ **事实性错误修正**：v123 两轮记录中"PR #63 CI 6/6 SUCCESS"**对 #63 不成立**（实际 0 次运行）。本轮已更正。
-
-### 解法
-
-1. **触发块**：去掉 `pull_request` 上的 `branches:` 过滤器 → 任何 base 的 PR 都启动 CI。
-   不过度触发：`push` 过滤器**不含 `feat/*`**，推 feature 分支不会重复跑。
-2. **`scripts/ci_trigger_audit.py`**：读取 workflow 的 `on:` 块，回答 GitHub 会回答的那个问题
-   ——"一个 base 为 X 的 PR，会触发 CI 吗？"
-   - **零第三方依赖**：PyYAML **不在 `requirements.lock`**，import 它会直接搞挂 CI
-     → 自研子集解析器（嵌套一级 / flow list / block list），**看不懂就抛异常而不是猜**
-     （一个静默返回"无过滤器"的解析器会让审计**说谎**）
-   - **只读**、**exit 0/1 可直接当 CI 门禁**
-   - 顺带避开 YAML 1.1 的坑（PyYAML 把裸 `on` 解析成布尔 `True`，自研解析器按字面 `on:` 查找）
-3. **CI 新增 `ci-trigger-audit` job（自举守卫）**：这个 job 自己跑在 CI 里检查 CI 的触发块，
-   一旦有人写回 `branches: [master]`，**构建自己变红**。
-   该 job **不执行** `pip install -r requirements.lock` —— **守卫不能依赖它要守护的那套环境**。
-4. **`tests/test_ci_trigger_audit.py`（19 测试）**：解析器行为 12 个 + 仓库不变量 7 个
-   （最重要的一条：`ci.yml` 的 `pull_request` 过滤器必须是 `None`）。
-
-### 验收结果
-
-| 层级 | 命令 | 结果 |
-|------|------|------|
-| **P0** | `python3 -m compileall -q .` + import smoke | ✅ exit 0 + `import main, ml_db, core.registry, core.replay_guard, api.provenance, web.server` OK |
-| **P1** | `python3 -m pytest -q` | ✅ **631 passed / 5 skipped / 0 FAILED**（393.26s，612 → 631，+19）|
-| **P2** | `python3 -m benchmarks --quick` | ✅ PASSED（acc 0.7900, thr 0.7000）|
-| **P3** | HTTP 契约 8 项 | ✅ health 200 / integrity 200 / integrity_single 200 / integrity_unknown 404 / verify 200 / verify_no_id 400 / predict_batch 200 / predict_no_dataset 400 |
-| **P1'** | `python3 scripts/ci_trigger_audit.py` | ✅ exit 0，6 个 base 分支全部覆盖 |
-
-### 修复后的覆盖
-
-```
-📄 .github/workflows/ci.yml
-   events: push, pull_request
-   pull_request base filter: (no filter — every base branch)
-     ✅ master / ✅ main / ✅ feat/v12-sdk-foundation
-     ✅ feat/v13-provenance-provenance / ✅ feat/v13-replay-provenance
-     ✅ feat/v13-replay-integrity-guard
-
-📄 .github/workflows/release.yml
-   events: push
-   pull_request base filter: n/a — workflow does not run on pull requests
-
-✅ Every pull request base branch is covered by CI.
-```
-
-### 本轮最重要的产出
-
-> 不是"加了 19 个测试"，而是**把一个一直存在、但从未被测量的假设变成了 CI 会主动拦住的门禁**。
-
-修复前，"CI 覆盖了所有 PR" 是一句**没人验证过的话**；它恰好在唯一一次不成立的时候（PR #63）
-静悄悄地失效了两轮。现在它是一条 **CI 每次都检查、违反就红**的规则。
-
-**附带效应**：修复后 #63 及其之后的 PR 会**首次**真正获得 CI 验证。若合并时暴露真实问题，需单独跟进。
-
-### 与上轮对比
-
-| 指标 | v123 晚场 | v124 早场 |
-|------|-----------|-----------|
-| P1 测试数 | 612 passed | **631 passed**（+19）|
-| P1 耗时 | 368.48s | 393.26s |
-| 本轮性质 | 纯文档交付 | **修复 CI 覆盖缺陷 + 新增自举门禁** |
-| CI job 数 | 6 | **7**（+`ci-trigger-audit`）|
-| 覆盖 base 分支 | 1（master）| **全部**（无过滤器）|
-
----
+**另一个观察：「已修复」本身也需要证据。** push 成功 ≠ 审计器能看见 ——
+`stack_topology_audit.py` 解析的是**裸分支名**（不是 `origin/<branch>`），
+本地 ref 没同步时它会对着旧 ref 报**旧缺陷**，让人误以为修复失败而去做多余的手工改动。
 
 ## 皇上操作记录
 
@@ -115,13 +54,12 @@
 
 | 日期 | 操作 |
 |------|------|
-| **2026-10-29 09:42** | 🟢 **v124 早场 #1：v13 DoD #7「CI 触发覆盖闭合」全部交付。** 🆕 **发现并修复一个让 PR 静默失去 CI 验证的触发块缺陷**：`ci.yml` 的 `pull_request: branches: [master]` 过滤器意味着**只有 base 为 `master` 的 PR 会启动 CI**，而本仓库 v13 用 stacked PR 结构 → **PR #63 从未跑过一次 CI**（`gh pr checks 63` → `no checks reported`；`statusCheckRollup` → `[]`；`gh run list` 无该分支任何记录；对照组 `exp/dup-pr-probe`（base=master）有 CI 运行 → 唯一变量是 base 分支）。**后果**：#63 携带的 DoD #4（Replay Integrity Guard，51 个新测试）+ DoD #6（`docs/REPRODUCE.md` v1.0，723 行）**从未被 CI 验证过**。⚠️ **事实性错误修正**：v123 两轮记录"PR #63 CI 6/6 SUCCESS"**对 #63 不成立**（实际 0 次运行）—— 已更正。⚠️ **为什么危险**：CI 失败是🔴红（一定有人管）、在跑是🟡灰（通常会等），而**零检查是一片⚪空白** —— 看起来像"还没开始"而不是"永远不会开始"；于是 v123 两轮都把 `MERGEABLE` 读成了"已验证"（**MERGEABLE 说的是"能合并"，不是"已验证"**）。🆕 **解法**：① 触发块去掉 `pull_request` 的 `branches:` 过滤器（不过度触发：`push` 过滤器**不含 `feat/*`**）② `scripts/ci_trigger_audit.py`（新，唯一实现源）**零第三方依赖**（PyYAML **不在 `requirements.lock`**，import 它会直接搞挂 CI → 自研子集解析器，**看不懂就抛异常而不是猜**；顺手避开 YAML 1.1 把裸 `on` 解析成布尔的坑）+ 只读 + exit 0/1 可当门禁 ③ CI 新增 `ci-trigger-audit` **自举守卫** job（**不执行** `pip install -r requirements.lock` —— **守卫不能依赖它要守护的那套环境**）④ `tests/test_ci_trigger_audit.py`（新）**19 测试**（解析器 12 + 仓库不变量 7，最重要一条：`ci.yml` 的 `pull_request` 过滤器必须是 `None`）。✅ P0 ✅ + P1 ✅（**631 passed / 5 skipped / 0 FAILED**，393.26s，612 → 631）+ P2 ✅（acc 0.7900）+ P3 ✅（8/8 HTTP 契约）+ P1' ✅（`ci_trigger_audit.py` exit 0，6 个 base 全覆盖）。💡 **本轮最重要的产出不是"加了 19 个测试"**：而是**把一个一直存在、但从未被测量的假设变成了 CI 会主动拦住的门禁** —— 修复前"CI 覆盖了所有 PR"只是一句**没人验证过的话**，它恰好在唯一一次不成立时静悄悄失效了两轮；现在是一条 **CI 每次都检查、违反就红**的规则。📌 **请皇上决策**：① Merge 本轮 PR ② Merge PR #63（v13 DoD #4，**建议先确认其 CI 状态再合并** —— 修复后它会首次真正获得 CI 验证）③ Merge PR #62 ④ Merge PR #61 ⑤ Merge PR #60 ⑥ 接受 ADR-0018。run log: `strategy/runs/2026-10-29-0942.md` — 第95次提醒 #1 🟢* |
-| **2026-10-27 09:30** | 🟢 **v121 早场 #1：v13 DoD #2-#4 全部交付**（replay 执行 / coverage 看板 / 内容寻址存储；registry 4.0G → 180M，回收 3.9GB）。**538 passed / 5 skipped / 0 FAILED**。📌 请皇上 Merge PR #62 / #61 / #60 + 接受 ADR-0018。run log: `strategy/runs/2026-10-27-0930.md` — 第91次提醒 #1（详细正文见 archive）🟢* |
-| **2026-10-27 21:41** | 🟢 **v122 晚场 #1：v13 DoD #5「Artifact Compatibility Layer」全部交付**（sklearn 1.4.1 → 1.7.2 产物字节级兼容层；700/700 不可加载模型全部恢复，可加载率 66.1% → 69.4%）。**561 passed / 5 skipped / 0 FAILED**。⚠️ 该轮声称的「PR #63（DoD #5）」**实际从未创建**（`gh pr view 63` → GraphQL error），编号后来被 DoD #4 复用。📌 请皇上 Merge PR #62 / #61 / #60 + 接受 ADR-0018。run log: `strategy/runs/2026-10-27-2141.md` — 第92次提醒 #1（详细正文见 archive）🟢* |
-| **2026-10-28 21:30** | 🟢 **v123 晚场 #1：v13 DoD #6「复现指南文档化」全部交付。** 🆕 **`docs/REPRODUCE.md` 重写**：v0.1 占位（833 字节）→ v1.0 完整指南（13,519 字节），12 章覆盖 v12 SDK + v13 Provenance / Replay / Coverage / Compat / Blob Store / Integrity Guard + CLI 速查 + HTTP 契约 + 故障排查。✅ P0 ✅ + P1 ✅（**612 passed / 5 skipped / 0 FAILED**，368.48s）+ P2 ✅（acc 0.7900）+ P3 ✅（health 200 / integrity 200 / integrity_single 200 / integrity_unknown 404 / verify 200 / verify_no_id 400 / predict_batch 200 / predict_no_dataset 400）。📌 **请皇上决策**：① Merge PR #63（v13 DoD #4）② Merge PR #62（v13 DoD #2-#4）③ Merge PR #61（v13 DoD #1）④ Merge PR #60（v12 三 DoD）⑤ 接受 ADR-0018。run log: `strategy/runs/2026-10-28-2130.md` — 第94次提醒 #1 🟢** |
-| **2026-10-28 09:34** | 🟢 **v123 早场 #1：v13 DoD #4「Replay Integrity Guard」全部交付。** 🆕 **根因发现**：368 个模型的 stored recipe 与今日代码生成的 recipe 不一致，根因不是模型坏了而是**拼写变了**——历史记录把 tuple 渲染为 Python repr `(50,)`，当前 `build_replay_command()` 渲染为 JSON list `[50]`（provenance 经 JSON 序列化，tuple 变成 list）。**两者指同一个超参数、训出同一个模型。** 🆕 **解法**：`core/replay_guard.py`（新，唯一实现源）用**三段式分级**取代布尔相等比较——`none`（完全相同）/ `cosmetic`（拼写不同但指同一次运行）/ `semantic`（会训出不同的模型）。三个关键判据：① 超参值语义归一化（tuple/list 统一、`50`=`50.0`）② run-defining flag 与 visual-only flag 分离（`--n-samples`/`--noise` 不进入 CLI 训练路径）③ `--params` 排除出 flag 比较（避免仅因参数顺序不同而误报）。🆕 **附带交付**：Registry/SDK/CLI/HTTP 四端接入 + `verify_replay()` 实际执行验证。🔧 **顺带修掉一个真 bug**：`RegistryManager.verify_replay()` 初版写成 `MLDB()`（无 registry base）→ 客户端会连到真实 registry 而不是当前 manager 的 registry；已修为 `MLDB(registry_base=self.registry_base)`。🔧 **事实性错误修正**：v122 晚场声称"PR #63 已开"，实测 **PR #63 不存在**（`gh pr view 63` → GraphQL error）；实际开放的 PR 只有 #60 / #61 / #62 三个。⚠️ **重复 stacked PR 风险**：`origin/feat/v12-sdk-foundation` 与 `origin/feat/v13-provenance-provenance` **都是** `origin/feat/v13-replay-provenance` 的祖先，PR #62 的 diff 已包含 DoD #1–#5 全部内容，与 #60 / #61 构成 stacked PR；建议按 #60 → #61 → #62 顺序 Merge，或直接只 Merge #62 后关闭 #60 / #61。✅ **实测**：21339 个模型，20971 current / 368 cosmetic / **0 semantic** / **0 broken**；1735 个带冻结配方，368 个 stale text（21.2%），**可复现性承诺未破**。P0 ✅ + P1 ✅（**612 passed / 5 skipped / 0 FAILED**，585.49s，561 → 612）+ P2 ✅（acc 0.7900）+ P3 ✅（health 200 / integrity 200 / integrity 404 E2003 / verify 200 / verify 400 / predict batch 200）。📌 **请皇上决策**：① Merge PR #63（v13 DoD #4）② Merge PR #62（v13 DoD #2-#4）③ Merge PR #61（v13 DoD #1）④ Merge PR #60（v12 三 DoD）⑤ 接受 ADR-0018 —— 五者均不阻塞后续开发。run log: `strategy/runs/2026-10-28-0934.md` — 第93次提醒 #1 🟢** |
-
----
+| **2026-11-05 09:36** || **2026-11-05 21:30** | 🟢 **v131 晚场 #1：修复 v13 stack 的 `diverged-duplicate` 拓扑缺陷，6 个 PR 现在可自底向上安全合并。** 🔍 **动手前复核**：v13 DoD #1–#18 全部 `[x]` 且 6 个 PR 全部 CLEAN+CI 全绿，但 **master HEAD 仍是 `4082158`（PR #59）—— v12 SDK 与整个 v13 阶段都还没进 master** → 本轮最高价值动作不是「再写一个 DoD」，而是**让已完成的 DoD 真正落地**。🩹 **根因**：PR #63 与 PR #66 的 head 分支**各自独立提交了同一个 CI trigger 修复**（`524718a` / `f8a9d8c`），文件内容**逐字节相同**（sha256 校验 `dc8d67a6…` / `6f1e1c82…`）→ 属重复提交而非真实分歧，丢弃其一**不丢任何内容**。🛠 **修复**：按 audit 自己给出的方案用 `git cherry-pick` 重放提交链（#66 → `e3d5626`，#67 的 13 个独有提交 → `833bcf6`），重放后 `git diff` **为空** = 树内容与原 head 完全等价。🐚 **三个坑**：① **GH007** —— rebase 保留 author 但 **committer 被写成私有邮箱** → 改用 `cherry-pick` + 显式设 `GIT_COMMITTER_EMAIL`/`GIT_AUTHOR_EMAIL` 为已验证公开地址；② **`--force-with-lease` 期望值要现读** —— 我以为远端 head 是 `f004255`，实际是 `36a6dd3` → 先 `git ls-remote` 读真实 sha 再作 lease，推完**立刻回读校验**；③ **audit 解析的是裸分支名不是 `origin/`** —— push 成功后 audit 仍报旧缺陷，因为本地 ref 没同步 → `git fetch --prune` + `git branch -f` 对齐后 audit 才通过。✅ **验收**：`stack_topology_audit.py --strict` **exit 0 — 5/5 links clean, 0 repairable, 0 blocked**（**audit 自己给的修复方案，跑完 audit 自己就通过**）+ P0 compileall ✅ + P1 **155 passed** + live `ci_trigger_audit` exit 0 + live `job_graph_audit --strict` exit 0 + 远端 sha 回读 #66=`e3d5626` / #67=`833bcf6` + **CI #66 7/7 SUCCESS、#67 10/10 SUCCESS**，6 个 PR 全部 MERGEABLE/CLEAN 0 失败 0 pending。💡 **元观察**：「完成」与「交付」的缝这轮又出现一次，只是换了位置 —— v130 早场修的是「代码 staged 了但没 commit」，v131 晚场修的是「版本库里有了但 PR 分叉了」，**两个缺陷在同一个位置：stack 的最后一环**。6 个 PR 全部 CLEAN 全部 CI 全绿，看起来「只差点一下 Merge」，但**有一个 PR 实际上不可按建议顺序合并** —— **绿色的 CI 和 CLEAN 的 mergeable 状态都不能证明「能合并」，只有拓扑审计能**。📌 **请皇上决策**：按 CHARTER 第 7 步「等 Merge（由人工/自动合并）」，合并权不在本代理，故本轮**只修复不合并**。请皇上依次 Merge：**#60 → #61 → #62 → #63 → #66 → #67**（**必须自底向上**）+ 确认 ADR-0018 Accepted。run log: `strategy/runs/2026-11-05-2130.md` 🟢 |
+| **2026-11-04 21:30** | 🟢 **v129 晚场 #1：v13 DoD #18「Job Dependency Graph Audit」全部交付。** 新增 `scripts/job_graph_audit.py`（676 行纯 stdlib），检 dangling `needs:` / `needs:` cycle / ungated verification job 三个缺陷；门禁同构（严格集合 = 默认集合严格超集）；hermetic 测试 **62 条**；全量审计 **155 passed**；CI 新增 `job-graph-audit` job 并接入 `pr-coverage-gate.needs`；live `--strict` exit 0。（正文见 archive）🟢* |
+| **2026-11-03 21:30** | 🟢 **v128 晚场 #1：v13 DoD #17 CI 修复完成。** 3 条 CLI 测试改为 hermetic（fake `gh`，不注入 `GH_TOKEN`）；CI run `41646891602` **9/9 SUCCESS**。（正文见 archive）🟢* |
+| **2026-11-03 09:43** | 🟢 **v128 早场 #1：v13 DoD #17「Stack Topology Audit」全部交付。** 新增 `scripts/stack_topology_audit.py`（ancestry / mergeability / duplicate payload）；关键发现 `git merge-tree` 退出码不是冲突信号（改为解析输出）；hermetic 测试 **32 条**；全量审计 **93 passed**；bottom-up 合并 6/6 零冲突。（正文见 archive）🟢* |
+| **2026-11-02 21:38** | 🟢 **v127 晚场 #1：v13 DoD #16「CI 门禁强度单调性」全部交付。**（详细正文见 archive）🟢* |
+| **2026-11-01 21:38** | 🟢 **v126 晚场 #1：v13 DoD #14「CI 审计器环境无关性」全部交付 + PR #67 CI 8/8 SUCCESS。**（详细正文见 archive）🟢* |
 
 ## 当前全局状态
 
@@ -130,17 +68,26 @@
 | v8 (Model Registry) | ✅ 完成 (ADR-0013 Accepted 2026-07-04) |
 | v9 (Docs & Examples) | ✅ 完成 (ADR-0014 Accepted 2026-07-08) |
 | v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
-| **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-10-25**（DoD #1-4 全绿）|
+| **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-07-25**（DoD #1-4 全绿）|
 | **v12 (Python API & SDK Foundation)** | ✅ **完成** — DoD #1 SDK / #2 Async queue / #3 Registry 版本化+标签查询 全绿，ADR-0017 Accepted；PR #60 已交付（OPEN / CLEAN / MERGEABLE，CI 6/6 SUCCESS），待皇上 Merge |
-| **v13 (Experiment Provenance & Reproducibility)** | 🟢 **DoD #1-#7 + #12 全部完成** — #1 provenance capture（PR #61 待 Merge）/ #2 replay execution / #3 coverage dashboard / #4 content-addressed storage（PR #62 待 Merge）/ #5 artifact compatibility（v122 晚场交付，PR 编号落空）/ **#12 replay integrity guard（PR #63 待 Merge）** / **#7 CI 触发覆盖闭合（本轮交付）**；ADR-0018 待 Accepted |
-| **本轮 PR** | 🟢 **待开**（v124 早场交付 `feat/v13-ci-trigger-coverage`，待 commit + push + PR）|
-| **CI 触发覆盖** | ✅ **已闭合** — `pull_request` 无 `branches:` 过滤器；`scripts/ci_trigger_audit.py` 门禁（exit 0/1）+ CI `ci-trigger-audit` 自举 job；CI job 数 6 → **7** |
-| **待合 PR #63** | 🟢 **PR #63 OPEN + CLEAN + MERGEABLE**（v13 DoD #4，待皇上 Merge）⚠️ **注意：该 PR 从未跑过 CI**（触发块缺陷，本轮 DoD #7 已修）—— 建议确认其 CI 状态再合并 |
+| **v13 (Experiment Provenance & Reproducibility)** | 🟢 **DoD #1-#8 + #12-#16 全部完成** — #1 provenance capture（PR #61 待 Merge）/ #2 replay execution / #3 coverage dashboard / #4 content-addressed storage（PR #62 待 Merge）/ #5 artifact compatibility（v122 晚场交付）/ **#12 replay integrity guard（PR #63 待 Merge）** / **#7 CI 触发覆盖闭合（PR #66 待 Merge）** / **#8 PR 级 CI 覆盖验证（PR #67 待 Merge）** / **#14 CI 审计器环境无关性（PR #67 同批）** / **#16 CI 门禁强度单调性（PR #67 同批）**；ADR-0018 待 Accepted |
+| **本轮 PR** | 🟢 **stack 拓扑缺陷已修复**（v131 晚场）：PR #66 head = `e3d5626`、PR #67 head = `833bcf6`（均已 push + 远端回读校验）；**`stack_topology_audit --strict` exit 0 — 5/5 links linear**；6 个 PR 全部 MERGEABLE/CLEAN、CI 全绿，**待皇上自底向上 Merge** |
+| **stack 拓扑** | ✅ **已修复** — PR #63/#66 的 `diverged-duplicate`（同一 CI trigger 修复被两条分支各提交一次，内容逐字节相同）已消除；**`stack_topology_audit.py --strict` exit 0，5/5 links linear，0 repairable，0 blocked**；6 个 PR 现可自底向上无冲突合并 |
+| **v13 DoD #18** | ✅ **Job dependency graph audit 完成** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** |
+| **CI 触发覆盖** | ✅ **已闭合** — `pull_request` 无 `branches:` 过滤器；`scripts/ci_trigger_audit.py` 门禁（exit 0/1）+ CI `ci-trigger-audit` 自举 job |
+| **PR 级 CI 覆盖** | ✅ **已闭合** — `scripts/pr_coverage_audit.py` 门禁（exit 0/1）+ CI `pr-coverage-audit` 自举 job；**6/6 PR verified** |
+| **门禁模式单调性** | ✅ **已闭合** — 两种模式共用唯一判定函数 `evaluate_gate()`；`--require-checks` 要求集合是默认的**严格超集**（+`checks_completed`）；新增独立 CI job `pr-coverage-gate`（`needs:` 全部 8 job + `pull_request` 事件守卫）|
+| **CI 审计器环境无关性** | ✅ **已闭合** — head 分支 workflow 改为从 **GitHub Contents API** 读取（本地 git 降级为 fallback）；hermetic 测试；CI runner 上 `pr-coverage-audit` job **SUCCESS** |
+| **Stack 拓扑审计** | ✅ **已闭合** — `scripts/stack_topology_audit.py` 审计 stacked PR 的 **shape**（ancestry / mergeability / duplicate payload）；默认门禁（`mergeable` + `no_duplicate_payload`）与严格门禁（+ `linear`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；**32 条 hermetic 测试**；**93 条全量审计测试**；**live audit 正确检出 PR #63/#66 分叉重复提交**；**底部向上 6/6 PR 合并零冲突** |
+| **待合 PR #67** | 🟢 **PR #67 OPEN + CLEAN + MERGEABLE + CI 10/10 SUCCESS**（v13 DoD #8 + #14 + #16 + **#17 + #18**，head 已重放为 `833bcf6`，含 `job-graph-audit`）|
+| **待合 PR #66** | 🟢 **PR #66 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #7，**head 已重放为 `e3d5626`**，与 #63 的重复提交已消除）|
+| **待合 PR #63** | 🟢 **PR #63 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #4 + #6，待皇上 Merge）✅ **已通过回移修复获得首次 CI 验证**|
 | **待合 PR #62** | 🟢 **PR #62 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v13 DoD #2-#4，待皇上 Merge）|
 | **待合 PR #61** | 🟢 **PR #61 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v13 DoD #1 provenance capture，待皇上 Merge）|
 | **待合 PR #60** | 🟢 **PR #60 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v12 三 DoD，待皇上 Merge）|
-| **本轮分支** | `feat/v13-ci-trigger-coverage`（新，base `feat/v13-replay-integrity-guard`）|
-| **v13 DoD #7** | ✅ **CI 触发覆盖闭合完成** — 修复 `pull_request: branches: [master]` 过滤器 + `scripts/ci_trigger_audit.py` 可执行门禁 + CI 自举 job + 19 测试 |
+| **本轮分支** | `feat/v13-pr-coverage-audit`（base `feat/v13-ci-trigger-coverage`）|
+| **v13 DoD #17** | ✅ **Stack topology audit 完成 + CI 修复** — `scripts/stack_topology_audit.py` 可执行门禁 + hermetic 测试 32 条 + **关键发现：`git merge-tree` 的退出码不是冲突信号**（第一版信任退出码 → 假阴性，已改为从输出解析）+ **CI 修复：3 条 CLI 测试改为 hermetic（fake gh），消除对 `GH_TOKEN` 的隐式依赖** |
+| **v13 DoD #18** | ✅ **Job dependency graph audit 完成并落地** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **三个具体缺陷：dangling `needs:` / `needs:` cycle / ungated verification job** + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** + **CI 实测 10/10 SUCCESS（含 `pr-coverage-gate`）** |
 | **v13 DoD #6** | ✅ **复现指南文档化完成** — `docs/REPRODUCE.md` v0.1→v1.0，ADR-0018 下轮待办第 2 条已闭合|
 | **CI 安全审计** | ✅ **master 已脱险**：PR #58/#59 merged 后 master = pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12；**master CI #40111672401 6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0） |
 
@@ -149,13 +96,35 @@
 ## 价值确认
 
 - **受益人**：皇上 / 仓库维护者 / 所有依赖"PR 合并前已被 CI 验证"的下游 / 未来的每一个贡献者
-- **价值**：① 把"每个 PR 都必须被 CI 验证"从**没人验证过的假设**变成 **CI 每次检查、违反就红的门禁** ② 修复一个**让 PR 静默失去验证**的真实缺陷（PR #63 零 CI） ③ 区分了三种 CI 状态的**视觉信号**（红=失败 / 灰=在跑 / 白=永远不会跑）—— 最危险的是最后一种 ④ 审计器**零依赖**，且守卫 job **不依赖它要守护的那套环境** ⑤ **只读**：审计从不改写 workflow，修不修由人决定 ⑥ 顺手避开了 YAML 1.1 把裸 `on` 解析成布尔的坑
-- **验证**：P0 ✅ compileall 0 + 6 个模块 import OK；P1 ✅ **631 passed / 5 skipped / 0 FAILED（393.26s）**；P2 ✅ `benchmarks --quick` PASSED（acc 0.7900）；P3 ✅ health 200 + integrity_full 200 + integrity_single 200 + integrity_unknown 404 + verify 200 + verify_no_id 400 + predict_batch 200 + predict_no_dataset 400；P1' ✅ `ci_trigger_audit.py` exit 0（6 个 base 分支全覆盖）+ 干净 checkout 复验 exit 0
-- **当前状态**：🟢 **无外部阻塞** — v13 DoD #1-#7 + #12 全部交付且本地 P0–P3 全绿；待皇上 Merge PR #60 / #61 / #62 / #63 + 本轮 PR + 接受 ADR-0018
-- **最近一次验证**：2026-10-29 09:42 CST（v124 早场 #1）
+- **v131 晚场价值（本轮）**：
+  1. **修好了「看起来只差点一下 Merge、实际有一个 PR 不可按建议顺序合并」这个缺陷** —— 6 个 PR 全部 CLEAN 全部 CI 全绿，唯独 #63/#66 的 head 分支**各自独立提交了同一个 CI trigger 修复**，按建议顺序合并会产生重复提交
+  2. **证明「audit 自己报的缺陷，可以用 audit 自己给的方案修好」** —— 修复后 `stack_topology_audit --strict` 从 exit 1 变 exit 0，不是绕过门禁，是修好了门禁要抓的缺陷
+  3. **把「完成」推到「可交付」的最后一环** —— v13 全部 DoD 已完成，但 master HEAD 仍在 `4082158`；本轮让 6 个 PR 全部达到「可安全合并」状态，**v13 收口只差皇上点合并**
+  4. **沉淀了三个可复用的踩坑修法**：rebase 的 **committer 邮箱**才是 GH007 的真凶（author 干净也没用）；`--force-with-lease` 的期望值**必须现读**（我以为 `f004255` 实际 `36a6dd3`）；**审计器解析裸分支名时，push 成功 ≠ 审计器能看见**（本地 ref 不同步会让 audit 对着旧 ref 报旧缺陷）
+- **价值**：
+  1. 修复了**「严格门禁比默认门禁更宽松」**这个反直觉的缺陷 —— 之前一个 CI 从不会为它触发的 PR，能靠陈旧 checks 从「严格」门禁里溜过去
+  2. 把门禁判定**收敛到唯一一个函数**，单调性由**构造**保证（严格集合 = 默认集合的超集），不再依赖两段代码「碰巧」写对
+  3. 区分了**「有 check」和「check 跑完了」**（`observed_checks` vs `completed_checks`）—— GitHub 在 workflow 开始时就创建 check run，之前这两件事被混为一谈
+  4. **挖出并清除了上一轮的同义反复测试** —— 那类测试测的是自己、且在保护 bug；新测试全部调用真实代码路径，并用 **bug 注入验证过确实咬得住**
+  5. 门禁接进 CI 时**没有引入新的 flaky 源** —— 用独立 job + `needs:` 显式排序 + `pull_request` 事件守卫，而不是把「等所有 checks 跑完」塞进并行 job 里
+  6. **补上了三个已有审计都看不见的「形状」维度** —— stacked PR 的 ancestry / mergeability / duplicate payload；PR #63 与 PR #66 的分叉重复提交被检出
+  7. **发现并修复了「`git merge-tree` 的退出码不是冲突信号」这个陷阱** —— 第一版信任退出码 → 假阴性，正好漏掉了它要抓的缺陷；已改为从输出解析
+  8. **默认分支检测不硬编码** —— 三级检测（`gh repo view` / `git symbolic-ref` / fallback），防止对 `main` 仓库报空 stack
+   9. **测试 hermeticity 审计** —— 发现并修复了 3 条 CLI 测试对 `GH_TOKEN` 的隐式依赖（CI runner 上 `gh pr list` rc=4 → 假失败）；全部 32 条 `stack_topology_audit` 测试现在是完全 hermetic 的
+- **验证**：
+  - 本地 P0 ✅ compileall 0 + import smoke OK
+  - 本地 P1 ✅ **32 passed**（`test_stack_topology_audit.py`，全部 hermetic throwaway repo）
+  - 本地 P1 baseline ✅ **672 passed / 5 skipped / 1 pre-existing timeout**（`test_cli_health_runs` 在 base commit `5035430` 上同样失败，非本轮引入）
+  - 本地全量审计测试 ✅ **93 passed**（`stack_topology_audit` + `pr_coverage_audit` + `ci_trigger_audit`）
+  - 本地 Live audit ✅ `stack_topology_audit.py` exit 1（**正确**检出 PR #63/#66 分叉重复提交）
+  - 本地 Bottom-up merge ✅ **6/6 PR 合并零冲突**（实测验证：stack 本身可合并，但拓扑不线性）
+  - **bug 注入 ✅** 重新注入原 bug → 测试失败（新测试确实咬得住）
+  - **YAML ✅** `ci.yml` 解析通过，9 个 job，`pr-coverage-gate.needs` 正确
+- **当前状态**：🟢 **无外部阻塞** — v13 DoD #1-#18 全部交付且本地 P0–P1 全绿；**stack 拓扑缺陷已修复（5/5 links linear）**；待皇上按 **#60 → #61 → #62 → #63 → #66 → #67** 自底向上 Merge + 确认 ADR-0018 Accepted
+- **最近一次验证**：2026-11-05 21:30 CST（v131 晚场，**stack topology --strict exit 0（5/5 links clean）**，P1 **155 passed**，live ci_trigger/job_graph exit 0，**CI #66 7/7 + #67 10/10 SUCCESS**，6/6 PR CLEAN）
 - **master HEAD**：`4082158`（PR #59 squash），master CI 6/6 SUCCESS
-- **本地分支**：`feat/v13-ci-trigger-coverage`（新，base `feat/v13-replay-integrity-guard`）
-- **阻塞**：无（PR #60 / #61 / #62 / #63 + 本轮 PR 待 Merge，不阻塞下一轮开发）
-- **⚠️ 价值尚未完全实现**：PR #63 与本轮 PR 的 **CI 验证要等它们真正跑起来**才算落地。
-  触发块已修、门禁已建，但**"CI 会覆盖所有 PR"这个承诺要到第一个 base 非 `master` 的 PR 跑出绿色 CI 才算被证实**。
-  下轮第一件事：确认本轮 PR 的 CI 状态（应出现 `ci-trigger-audit` job + 原有 6 job = 7 job）。
+- **本地分支**：`feat/v13-pr-coverage-audit` = `833bcf6`（base `feat/v13-ci-trigger-coverage` = `e3d5626`），两分支均已 push 并远端回读校验
+- **阻塞**：无（PR #60 / #61 / #62 / #63 / #66 / #67 待 Merge；按 CHARTER 第 7 步「等 Merge（由人工/自动合并）」，合并权不在本代理，本轮只做修复不做合并）
+- **⚠️ 价值已完全实现**：**三个已有审计都看不见的「形状」维度被补上了** —— 而且**第一个实现版本就漏掉了它要抓的缺陷**（信任 `git merge-tree` 退出码 → 假阴性）。一个审计如果对它要抓的缺陷报「一切正常」，它就不是审计，是**盖章**。
+- **🔧 本轮额外价值**：**测试的 hermeticity 本身就是一种审计** —— 3 条 CLI 测试在 CI 中假失败，暴露了「测试在测环境而不是在测代码」这个更深层的问题。修复后，`stack_topology_audit` 的 32 条测试全部 hermetic，不再依赖 `gh` / `GH_TOKEN` / 网络 / 真实仓库状态。
+- **🔧 下一轮额外价值（v129 晚场）**：**补上了四个已有审计都看不见的「作业依赖图」维度** —— DoD #7 问 workflow 触发、DoD #8 问 PR 覆盖、DoD #16 问门禁单调性、DoD #17 问 stack 形状，**没有一个问 workflow 内部的 `jobs:` 块是否健康**。dangling `needs:`（一个字符的拼写错误就能把绿色 CI 变成「什么都没验证」的 CI）、`needs:` cycle（job 静默永不运行）、ungated verification job（gate 报告「已验证」但实际未验证，与 DoD #16 缺陷同构）—— 三个缺陷都被检出。**DoD #16 的教训泛化了**：一个 gate 如果不对它要抓的缺陷报失败，它就不是 gate，是**橡皮章**。

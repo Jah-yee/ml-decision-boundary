@@ -43,6 +43,167 @@ jobs:
       - name: Audit CI trigger coverage
         run: python3 scripts/ci_trigger_audit.py
 
+  # DoD #8 — the pull-request-level counterpart of the audit above.
+  #
+  # scripts/ci_trigger_audit.py asks "would CI run for a PR with base X?"
+  # about the workflow on *this* branch.  That is not what GitHub decides.
+  # GitHub reads workflow definitions from a pull request's HEAD branch,
+  # so a stacked PR whose head branch still carries an old filtered
+  # workflow stays unverified no matter what this branch looks like.
+  #
+  # PR #63 was exactly that case: it accumulated zero CI runs, and the
+  # fix for it (PR #66) was stacked on top of it, so GitHub never
+  # previewed the fix downwards.
+  #
+  # This job audits every open pull request against the workflow on *its*
+  # head branch and fails the build if any of them would never be
+  # verified.  Like the job above it does NOT install requirements.lock:
+  # a guard must not depend on the environment it guards.
+  #
+  # The head-branch workflow is fetched from the GitHub Contents API, so
+  # this job does NOT depend on the runner having the other pull
+  # requests' branches in its local ref store.  The first version of this
+  # job read them from local git and failed on PR #67 (run 41265562901):
+  # a 'pull_request' event checks out a detached merge commit, so every
+  # *other* pull request's head branch was simply absent, and the guard
+  # reported 0/6 verified -- turning the proof into the failure.
+  pr-coverage-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          # Full history so the local-git fallback path can read each
+          # pull request's head branch when the API is unreachable.
+          fetch-depth: 0
+
+      - name: Fetch all branches (fallback for the local-git reader)
+        # The API is the primary source; this only makes the offline
+        # fallback work too.  'git fetch origin' on a pull_request event
+        # fetches the merge ref only, which is why the fallback used to
+        # be useless on a runner.
+        run: |
+          git fetch --no-tags --prune \
+            origin '+refs/heads/*:refs/remotes/origin/*'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Audit pull request CI coverage
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/pr_coverage_audit.py
+
+  # DoD #18 — audit the *inside* of the workflow: the job dependency
+  # graph.  Every previous audit (DoD #7/#8/#16/#17) asks a question
+  # *about* the workflow -- would it trigger, is every PR covered, is
+  # the gate monotonic, can the stack be merged.  None of them looks
+  # at the ``jobs:`` block and asks whether the job graph itself is
+  # sound.
+  #
+  # Three concrete defects this catches:
+  # 1. A dangling ``needs:`` target kills the *entire* workflow -- a
+  #    one-character typo turns a green CI into a CI that verifies
+  #    nothing, and it does so loudly on the PR that introduced it.
+  # 2. A ``needs:`` cycle makes jobs silently never run.
+  # 3. An ungated verification job makes the gate *lie* -- the exact
+  #    analogue of the DoD #16 defect (a stricter gate that was laxer
+  #    than the default).  This is why the audit is a *gate* rather
+  #    than a lint: a gate that does not fail on the defect it exists
+  #    to catch is a rubber stamp.
+  #
+  # Like ci-trigger-audit this job installs no third-party packages:
+  # the audit uses only the Python standard library.
+  job-graph-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Audit job dependency graph
+        run: python3 scripts/job_graph_audit.py
+
+  # The strict CI gate for *this* pull request.
+  #
+  # It is a separate job rather than a step inside pr-coverage-audit on
+  # purpose.  "have the checks finished?" is only answerable *after* the
+  # sibling jobs are done -- and the jobs run in parallel, so a step in
+  # pr-coverage-audit would observe its siblings still running and fail
+  # the build for the wrong reason.  (Measured on run 41314763785:
+  # pr-coverage-audit finished at 14:09:38, hyperparam-sweep at
+  # 14:11:11 -- 93 seconds later.)  `needs:` makes the ordering
+  # explicit instead of leaving it to luck.
+  #
+  # The default audit in pr-coverage-audit asks a different question:
+  # "is every open pull request covered by CI, and has CI reported for
+  # it?"  This job asks the sharper one: "did this pull request's CI
+  # actually run to completion?"
+  pr-coverage-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - ci-trigger-audit
+      - pr-coverage-audit
+      - job-graph-audit
+      - quality-gates
+      - benchmark
+      - depth-sweep
+      - hyperparam-sweep
+      - security-audit
+      - quality-checks
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # This job gates a *pull request*, so it only makes sense on a
+      # pull_request event.  On a push (the other trigger of this
+      # workflow) there is no pull request to gate, so the job reports
+      # success and stops.  Without this guard the empty PR number would
+      # reach argparse and fail the build for the wrong reason.
+      - name: Skip when there is no pull request
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          echo "::notice::Not a pull_request event -- nothing to gate."
+          exit 0
+
+      - name: Gate — this pull request must have *finished* checks
+        if: ${{ github.event_name == 'pull_request' }}
+        # GitHub creates a check run as soon as a workflow starts, so
+        # "a check exists" and "a check ran to completion" are
+        # different facts -- and only the second one is evidence that
+        # CI verified this code.
+        #
+        # The strict mode's requirements are a strict *superset* of the
+        # default mode's (see scripts/pr_coverage_audit.py), so this
+        # gate can only ever turn a pass into a failure, never the
+        # other way round.  That is the property this job relies on.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: python3 scripts/pr_coverage_audit.py --pr "$PR_NUMBER" --require-checks
+
   quality-gates:
     runs-on: ubuntu-latest
     timeout-minutes: 15

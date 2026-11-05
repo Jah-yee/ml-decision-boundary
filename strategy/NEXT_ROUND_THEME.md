@@ -105,14 +105,14 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("all_jobs_reachable",)
 | **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-07-25**（DoD #1-4 全绿）|
 | **v12 (Python API & SDK Foundation)** | ✅ **完成** — DoD #1 SDK / #2 Async queue / #3 Registry 版本化+标签查询 全绿，ADR-0017 Accepted；PR #60 已交付（OPEN / CLEAN / MERGEABLE，CI 6/6 SUCCESS），待皇上 Merge |
 | **v13 (Experiment Provenance & Reproducibility)** | 🟢 **DoD #1-#8 + #12-#16 全部完成** — #1 provenance capture（PR #61 待 Merge）/ #2 replay execution / #3 coverage dashboard / #4 content-addressed storage（PR #62 待 Merge）/ #5 artifact compatibility（v122 晚场交付）/ **#12 replay integrity guard（PR #63 待 Merge）** / **#7 CI 触发覆盖闭合（PR #66 待 Merge）** / **#8 PR 级 CI 覆盖验证（PR #67 待 Merge）** / **#14 CI 审计器环境无关性（PR #67 同批）** / **#16 CI 门禁强度单调性（PR #67 同批）**；ADR-0018 待 Accepted |
-| **本轮 PR** | 🟢 **DoD #18 已 commit + push + PR #67 正文更新，全部落地**（v130 早场，commit `ab7b35b`，PR #67 OPEN/MERGEABLE/CLEAN）|
+| **本轮 PR** | 🟢 **DoD #18 已 commit + push + PR #67 正文更新，全部落地**（v130 早场，commit `ab7b35b` + `ab04e77`，PR #67 OPEN/MERGEABLE/CLEAN，**CI 10/10 SUCCESS**）|
 | **v13 DoD #18** | ✅ **Job dependency graph audit 完成** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** |
 | **CI 触发覆盖** | ✅ **已闭合** — `pull_request` 无 `branches:` 过滤器；`scripts/ci_trigger_audit.py` 门禁（exit 0/1）+ CI `ci-trigger-audit` 自举 job |
 | **PR 级 CI 覆盖** | ✅ **已闭合** — `scripts/pr_coverage_audit.py` 门禁（exit 0/1）+ CI `pr-coverage-audit` 自举 job；**6/6 PR verified** |
 | **门禁模式单调性** | ✅ **已闭合** — 两种模式共用唯一判定函数 `evaluate_gate()`；`--require-checks` 要求集合是默认的**严格超集**（+`checks_completed`）；新增独立 CI job `pr-coverage-gate`（`needs:` 全部 8 job + `pull_request` 事件守卫）|
 | **CI 审计器环境无关性** | ✅ **已闭合** — head 分支 workflow 改为从 **GitHub Contents API** 读取（本地 git 降级为 fallback）；hermetic 测试；CI runner 上 `pr-coverage-audit` job **SUCCESS** |
 | **Stack 拓扑审计** | ✅ **已闭合** — `scripts/stack_topology_audit.py` 审计 stacked PR 的 **shape**（ancestry / mergeability / duplicate payload）；默认门禁（`mergeable` + `no_duplicate_payload`）与严格门禁（+ `linear`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；**32 条 hermetic 测试**；**93 条全量审计测试**；**live audit 正确检出 PR #63/#66 分叉重复提交**；**底部向上 6/6 PR 合并零冲突** |
-| **待合 PR #67** | 🟢 **PR #67 OPEN + CLEAN + MERGEABLE**（v13 DoD #8 + #14 + #16 + **#17 + #18**，标题/正文已更新覆盖 #18，待皇上 Merge）|
+| **待合 PR #67** | 🟢 **PR #67 OPEN + CLEAN + MERGEABLE + CI 10/10 SUCCESS**（v13 DoD #8 + #14 + #16 + **#17 + #18**，标题/正文已更新覆盖 #18，含新增 `job-graph-audit`，待皇上 Merge）|
 | **待合 PR #66** | 🟢 **PR #66 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #7，待皇上 Merge）|
 | **待合 PR #63** | 🟢 **PR #63 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #4 + #6，待皇上 Merge）✅ **已通过回移修复获得首次 CI 验证**|
 | **待合 PR #62** | 🟢 **PR #62 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v13 DoD #2-#4，待皇上 Merge）|
@@ -120,7 +120,7 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("all_jobs_reachable",)
 | **待合 PR #60** | 🟢 **PR #60 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v12 三 DoD，待皇上 Merge）|
 | **本轮分支** | `feat/v13-pr-coverage-audit`（base `feat/v13-ci-trigger-coverage`）|
 | **v13 DoD #17** | ✅ **Stack topology audit 完成 + CI 修复** — `scripts/stack_topology_audit.py` 可执行门禁 + hermetic 测试 32 条 + **关键发现：`git merge-tree` 的退出码不是冲突信号**（第一版信任退出码 → 假阴性，已改为从输出解析）+ **CI 修复：3 条 CLI 测试改为 hermetic（fake gh），消除对 `GH_TOKEN` 的隐式依赖** |
-| **v13 DoD #18** | ✅ **Job dependency graph audit 完成** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **三个具体缺陷：dangling `needs:` / `needs:` cycle / ungated verification job** + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** |
+| **v13 DoD #18** | ✅ **Job dependency graph audit 完成并落地** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **三个具体缺陷：dangling `needs:` / `needs:` cycle / ungated verification job** + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** + **CI 实测 10/10 SUCCESS（含 `pr-coverage-gate`）** |
 | **v13 DoD #6** | ✅ **复现指南文档化完成** — `docs/REPRODUCE.md` v0.1→v1.0，ADR-0018 下轮待办第 2 条已闭合|
 | **CI 安全审计** | ✅ **master 已脱险**：PR #58/#59 merged 后 master = pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12；**master CI #40111672401 6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0） |
 
@@ -149,7 +149,7 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("all_jobs_reachable",)
   - **bug 注入 ✅** 重新注入原 bug → 测试失败（新测试确实咬得住）
   - **YAML ✅** `ci.yml` 解析通过，9 个 job，`pr-coverage-gate.needs` 正确
 - **当前状态**：🟢 **无外部阻塞** — v13 DoD #1-#18 全部交付且本地 P0–P1 全绿；待皇上 Merge PR #60 / #61 / #62 / #63 / #66 / #67 + 接受 ADR-0018
-- **最近一次验证**：2026-11-04 21:30 CST（v129 晚场 #1，P1 62+155 passed，live audit --strict exit 0）
+- **最近一次验证**：2026-11-05 09:36 CST（v130 早场，P1 62 + 155 passed，live audit --strict exit 0，**PR #67 CI 10/10 SUCCESS**）
 - **master HEAD**：`4082158`（PR #59 squash），master CI 6/6 SUCCESS
 - **本地分支**：`feat/v13-pr-coverage-audit`（base `feat/v13-ci-trigger-coverage`）
 - **阻塞**：无（PR #60 / #61 / #62 / #63 / #66 / #67 待 Merge，不阻塞下一轮开发）

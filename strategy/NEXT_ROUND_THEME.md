@@ -1,4 +1,4 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v129 晚场（v13 DoD #18 Job Graph Audit 完成）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v130 早场（v13 DoD #18 已落地：commit + push + PR #67）
 
 **更新时间：** 2026-11-05 09:36 CST / 2026-11-05 01:36 UTC
 **版本：** v130 早场

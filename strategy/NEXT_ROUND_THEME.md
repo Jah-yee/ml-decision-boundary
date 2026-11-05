@@ -1,22 +1,41 @@
 # NEXT_ROUND_THEME.md — ml-decision-boundary v129 晚场（v13 DoD #18 Job Graph Audit 完成）
 
-**更新时间：** 2026-11-04 21:30 CST / 2026-11-04 13:30 UTC
-**版本：** v129 晚场
+**更新时间：** 2026-11-05 09:36 CST / 2026-11-05 01:36 UTC
+**版本：** v130 早场
 **维护人：** 太子
+**本轮 run log：** `strategy/runs/2026-11-05-0936.md`
 
 ---
 
-## 🟢 v129 晚场 状态：**v13 DoD #18 Job Graph Audit 完成，待 commit + PR**
+## 🟢 v130 早场 状态：**v13 DoD #18 已 commit + push + PR #67 正文更新，全部落地**
 
-### 本轮交付：v13 DoD #18 — Job Dependency Graph Audit
+### 本轮交付：v130 早场 — 收尾 v129 晚场未竟事项（DoD #18 commit + PR）
 
 | 交付物 | 内容 |
 |--------|------|
-| `scripts/job_graph_audit.py` | **新**：676 行，纯 stdlib YAML 解析 + 三检（dangling needs / self-dependency / cycle / gate coverage）+ `evaluate_gate()` + `DEFAULT_REQUIREMENTS` / `STRICT_REQUIREMENTS` + CLI（`--json` / `--strict`）|
-| `tests/test_job_graph_audit.py` | **新**：**62** 条 hermetic 测试（10 个 Test 类），覆盖解析 / 分类 / 悬空依赖 / 自依赖 / 环 / 门禁覆盖 / 可达性 / CLI / bug 注入 |
-| `.github/workflows/ci.yml` | **改**：新增 `job-graph-audit` job（5 min timeout，零依赖），加入 `pr-coverage-gate.needs` |
-| `docs/adr/ADR-0018-v13-dod.md` | **改**：新增 DoD #18 章节 |
-| `spec/phases.md` | **改**：新增 DoD #18 checklist 项 |
+| `git` | **commit `ab7b35b`**（9 文件，+1879/−35）—— v129 晚场的 DoD #18 成果此前**只 staged 未 commit**，一行都没进版本库 |
+| `push` | 远端 `feat/v13-pr-coverage-audit` sha 回读校验 == `ab7b35b` |
+| `PR #67` | **不新开 PR**（head 分支本就是同一条），改用 REST PATCH 更新标题 + 正文，覆盖 DoD #8/#14/#16/#17/#18 |
+| `strategy/runs/2026-11-05-0936.md` | **新**：本轮 run log |
+| `strategy/NEXT_ROUND_THEME.md` + archive | 状态更新 + 归档迁移（20,710 → **15,366** 字节，↓26%） |
+
+### 动手前的现状复核（不轻信上一轮的自我报告）
+
+| 检查 | 结果 |
+|------|------|
+| P0 `compileall` | ✅ |
+| P1 `test_job_graph_audit.py` | ✅ **62 passed** |
+| 全量审计测试（4 审计器） | ✅ **155 passed** |
+| Live `job_graph_audit.py --strict` | ✅ **exit 0**（ci.yml 10 job 图健康）|
+
+→ 上一轮代码质量是真的，**不需要返工**，可以安全提交。
+
+### 本轮的元观察（比代码更值钱）
+
+playbook 把「代码实现 + 测试」列为交付物，却**没把「代码进 git、进 PR」显式列为可验收项**。
+结果一轮结束时状态写着「DoD #18 完成」，而实际上**它一行都还没进版本库**。
+
+**「完成」是内部信号，「价值」是外部信号。** 这里的具体形状是：代码跑通了 ≠ 代码交付了；**进了 git、开了 PR 才算交付**。
 
 ### 问题：四个已有审计都看不见「作业依赖图」
 
@@ -63,6 +82,7 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("all_jobs_reachable",)
 
 | 日期 | 操作 |
 |------|------|
+| **2026-11-05 09:36** | 🟢 **v130 早场 #1：DoD #18「代码进 git、进 PR」收尾，全部落地。** 🔍 **发现上一轮（v129 晚场）只把代码 staged 住，没有 commit、没有 PR** —— 状态写「DoD #18 完成」，但代码**一行都还没进版本库**。🆕 **解法**：① **动手前先复核**（不轻信上一轮自我报告）：P0 compileall ✅ / P1 **62 passed** / 全量审计 **155 passed** / live `--strict` **exit 0** → 确认代码质量真实，**不返工** ② **commit `ab7b35b`**（9 文件 +1879/−35），author 与 committer 同用已验证公开邮箱 `166608075+Jah-yee@users.noreply.github.com`（避免 GH007 拒推）③ **push 后立刻回读远端 sha** 校验 == `ab7b35b`（不拿 `git push` stdout 当证据）④ **不新开 PR**：PR #67 的 head 分支本就是同一条 `feat/v13-pr-coverage-audit`，新开只会造成同代码两个 PR 的噪声 → 改用 **REST PATCH** 更新 #67 标题 + 正文（`gh pr edit` 会因 projects-classic 弃用报错且正文**实际没改成功**）⑤ **归档迁移**：`NEXT_ROUND_THEME.md` 已 20,710B > playbook 20K 阈值 → 把 v126–v129 操作记录**正文**迁入 archive，主题文件只留摘要行 → **20,710 → 15,366B（↓26%）**⑥ 补齐上一轮遗漏的 run log（2026-11-03-2130 / 2026-11-04-2130）✅ P0 ✅ + P1 ✅ **62 passed** + 全量 **155 passed** + live exit 0 + commit/远端 sha/PR 状态/主题体积 四项校验全过。💡 **本轮最重要的产出不是代码，是一条流程漏洞**：playbook 把「代码实现 + 测试」列为交付物，却**没把「代码进 git、进 PR」显式列为可验收项** —— 结果一轮结束时状态写着「完成」，而实际上一行都没进版本库。**「完成」是内部信号，「价值」是外部信号。** 代码跑通了 ≠ 代码交付了；**进了 git、开了 PR 才算交付**。📌 **请皇上决策**：① **Merge PR #67**（DoD #8/#14/#16/#17/#18，已含 DoD #18，CI 中）② Merge PR #66 ③ Merge PR #63 ④ Merge PR #62 ⑤ Merge PR #61 ⑥ Merge PR #60 ⑦ 接受 ADR-0018。run log: `strategy/runs/2026-11-05-0936.md` 🟢 |
 | **2026-11-04 21:30** | 🟢 **v129 晚场 #1：v13 DoD #18「Job Dependency Graph Audit」全部交付。** 新增 `scripts/job_graph_audit.py`（676 行纯 stdlib），检 dangling `needs:` / `needs:` cycle / ungated verification job 三个缺陷；门禁同构（严格集合 = 默认集合严格超集）；hermetic 测试 **62 条**；全量审计 **155 passed**；CI 新增 `job-graph-audit` job 并接入 `pr-coverage-gate.needs`；live `--strict` exit 0。（正文见 archive）🟢* |
 | **2026-11-03 21:30** | 🟢 **v128 晚场 #1：v13 DoD #17 CI 修复完成。** 3 条 CLI 测试改为 hermetic（fake `gh`，不注入 `GH_TOKEN`）；CI run `41646891602` **9/9 SUCCESS**。（正文见 archive）🟢* |
 | **2026-11-03 09:43** | 🟢 **v128 早场 #1：v13 DoD #17「Stack Topology Audit」全部交付。** 新增 `scripts/stack_topology_audit.py`（ancestry / mergeability / duplicate payload）；关键发现 `git merge-tree` 退出码不是冲突信号（改为解析输出）；hermetic 测试 **32 条**；全量审计 **93 passed**；bottom-up 合并 6/6 零冲突。（正文见 archive）🟢* |
@@ -85,14 +105,14 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("all_jobs_reachable",)
 | **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-07-25**（DoD #1-4 全绿）|
 | **v12 (Python API & SDK Foundation)** | ✅ **完成** — DoD #1 SDK / #2 Async queue / #3 Registry 版本化+标签查询 全绿，ADR-0017 Accepted；PR #60 已交付（OPEN / CLEAN / MERGEABLE，CI 6/6 SUCCESS），待皇上 Merge |
 | **v13 (Experiment Provenance & Reproducibility)** | 🟢 **DoD #1-#8 + #12-#16 全部完成** — #1 provenance capture（PR #61 待 Merge）/ #2 replay execution / #3 coverage dashboard / #4 content-addressed storage（PR #62 待 Merge）/ #5 artifact compatibility（v122 晚场交付）/ **#12 replay integrity guard（PR #63 待 Merge）** / **#7 CI 触发覆盖闭合（PR #66 待 Merge）** / **#8 PR 级 CI 覆盖验证（PR #67 待 Merge）** / **#14 CI 审计器环境无关性（PR #67 同批）** / **#16 CI 门禁强度单调性（PR #67 同批）**；ADR-0018 待 Accepted |
-| **本轮 PR** | 🟢 **DoD #18 代码已就绪，待 commit + PR**（v129 晚场，`feat/v13-pr-coverage-audit`，DoD #18 Job Graph Audit）|
+| **本轮 PR** | 🟢 **DoD #18 已 commit + push + PR #67 正文更新，全部落地**（v130 早场，commit `ab7b35b`，PR #67 OPEN/MERGEABLE/CLEAN）|
 | **v13 DoD #18** | ✅ **Job dependency graph audit 完成** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** |
 | **CI 触发覆盖** | ✅ **已闭合** — `pull_request` 无 `branches:` 过滤器；`scripts/ci_trigger_audit.py` 门禁（exit 0/1）+ CI `ci-trigger-audit` 自举 job |
 | **PR 级 CI 覆盖** | ✅ **已闭合** — `scripts/pr_coverage_audit.py` 门禁（exit 0/1）+ CI `pr-coverage-audit` 自举 job；**6/6 PR verified** |
 | **门禁模式单调性** | ✅ **已闭合** — 两种模式共用唯一判定函数 `evaluate_gate()`；`--require-checks` 要求集合是默认的**严格超集**（+`checks_completed`）；新增独立 CI job `pr-coverage-gate`（`needs:` 全部 8 job + `pull_request` 事件守卫）|
 | **CI 审计器环境无关性** | ✅ **已闭合** — head 分支 workflow 改为从 **GitHub Contents API** 读取（本地 git 降级为 fallback）；hermetic 测试；CI runner 上 `pr-coverage-audit` job **SUCCESS** |
 | **Stack 拓扑审计** | ✅ **已闭合** — `scripts/stack_topology_audit.py` 审计 stacked PR 的 **shape**（ancestry / mergeability / duplicate payload）；默认门禁（`mergeable` + `no_duplicate_payload`）与严格门禁（+ `linear`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；**32 条 hermetic 测试**；**93 条全量审计测试**；**live audit 正确检出 PR #63/#66 分叉重复提交**；**底部向上 6/6 PR 合并零冲突** |
-| **待合 PR #67** | 🟢 **PR #67 OPEN + CLEAN + MERGEABLE + CI 9/9 SUCCESS**（v13 DoD #8 + #14 + #16 + **#17**，待皇上 Merge）|
+| **待合 PR #67** | 🟢 **PR #67 OPEN + CLEAN + MERGEABLE**（v13 DoD #8 + #14 + #16 + **#17 + #18**，标题/正文已更新覆盖 #18，待皇上 Merge）|
 | **待合 PR #66** | 🟢 **PR #66 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #7，待皇上 Merge）|
 | **待合 PR #63** | 🟢 **PR #63 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #4 + #6，待皇上 Merge）✅ **已通过回移修复获得首次 CI 验证**|
 | **待合 PR #62** | 🟢 **PR #62 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v13 DoD #2-#4，待皇上 Merge）|

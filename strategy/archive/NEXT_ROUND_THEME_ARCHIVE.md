@@ -1206,3 +1206,11 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
 
 🟢 **v128 早场 #1：v13 DoD #17「Stack Topology Audit」全部交付。** 🔍 **三个已有审计（workflow 内容 / CI 覆盖 / 门禁单调性）都看不见「形状」维度**：PR #63 与 PR #66 并行准备，独立添加了相同的 `pr-coverage-audit` job，两者 `ci.yml` 字节一致、GitHub 报告 `MERGEABLE`/`clean`，但 merge base `4962d28` 中没有该 job → **分叉**。🆕 **解法**：① 新增 `scripts/stack_topology_audit.py`，对每对连续 PR 检查三件事 —— **ancestry**（`git merge-base --is-ancestor`）、**mergeability**（`git merge-tree --write-tree --name-only`，不碰 working tree）、**duplicate payload**（内容相同但 merge base 没有 → 分叉重复提交的特征）② **关键发现：`git merge-tree` 的退出码不是冲突信号** —— 第一版信任退出码 → 报告「mergeable: yes」→ **假阴性**，正好漏掉了它要抓的缺陷；已改为从**输出**解析 `CONFLICT` 标记 + 冲突路径列表 ③ 门禁设计与 DoD #16 同构：`DEFAULT_REQUIREMENTS = ("mergeable", "no_duplicate_payload")` / `STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)`，严格集合是默认集合的严格超集 → 单调性由构造保证；默认门禁回答「能合并吗？」，严格门禁回答「已经准备好合并了吗？」④ **默认分支检测不硬编码**：通过 `gh repo view --json defaultBranchRef` + `git symbolic-ref` + fallback 三级检测，防止对 `main` 仓库报空 stack ⑤ hermetic 测试 **32 条**（全部 throwaway repo），含冲突检测 / 重复 payload / 分叉 / 诚实降级 / bug 注入 / CLI；**全量审计测试 93 passed**（`stack_topology_audit` + `pr_coverage_audit` + `ci_trigger_audit`）⑥ **实测验证**：底部向上 6/6 PR 合并**零冲突**（stack 本身可合并，但拓扑不线性）；live audit exit 1 **正确**检出 PR #63/#66 分叉重复提交。✅ P0 ✅ + P1 ✅（**32 passed**）+ P1 baseline ✅（**672 passed / 5 skipped / 1 pre-existing timeout**，`test_cli_health_runs` 与上轮一致）+ **全量审计测试 93 passed** + **bottom-up merge 6/6 零冲突**。💡 **本轮最重要的产出不是「加了 32 个测试」**：是 **三个已有审计都看不见的「形状」维度被补上了**，而且**第一个实现版本就漏掉了它要抓的缺陷**（信任退出码 → 假阴性）。一个审计如果对它要抓的缺陷报「一切正常」，它就不是审计，是**盖章**。📌 **请皇上决策**：① **Merge PR #67**（v13 DoD #8 + #14 + #16 + **#17**，待 Merge）② Merge PR #66（v13 DoD #7）③ Merge PR #63（v13 DoD #4 + #6）④ Merge PR #62 ⑤ Merge PR #61 ⑥ Merge PR #60 ⑦ 接受 ADR-0018。run log: `strategy/runs/2026-11-03-0943.md` 🟢
 
+
+
+## 皇上操作记录（自 NEXT_ROUND_THEME.md 迁出，2026-11-05 21:30）
+
+| **2026-11-01 09:48** | 🟢 **v125 晚场 #1：v13 DoD #8「PR 级 CI 覆盖验证」全部交付 + 解开合并顺序死锁。**（详细正文见 archive）🟢* |
+| **2026-10-29 09:42** | 🟢 **v124 早场 #1：v13 DoD #7「CI 触发覆盖闭合」全部交付。**（详细正文见 archive）🟢* |
+| **2026-10-27 09:30** | 🟢 **v121 早场 #1：v13 DoD #2-#4 全部交付**（详细正文见 archive）🟢* |
+| **2026-10-27 21:41** | 🟢 **v122 晚场 #1：v13 DoD #5「Artifact Compatibility Layer」全部交付**（详细正文见 archive）🟢* |

@@ -1,60 +1,61 @@
-# NEXT_ROUND_THEME.md — ml-decision-boundary v128 早场（v13 DoD #17 Stack Topology Audit 完成）
+# NEXT_ROUND_THEME.md — ml-decision-boundary v129 晚场（v13 DoD #18 Job Graph Audit 完成）
 
-**更新时间：** 2026-11-03 09:43 CST / 2026-11-03 01:43 UTC
-**版本：** v128 早场
+**更新时间：** 2026-11-04 21:30 CST / 2026-11-04 13:30 UTC
+**版本：** v129 晚场
 **维护人：** 太子
 
 ---
 
-## 🟢 v128 早场 状态：**v13 DoD #17（Stack Topology Audit）完成，P0/P1 全绿，PR #67 待更新**
+## 🟢 v129 晚场 状态：**v13 DoD #18 Job Graph Audit 完成，待 commit + PR**
 
-### 本轮交付：v13 DoD #17 — 合并顺序可解性
+### 本轮交付：v13 DoD #18 — Job Dependency Graph Audit
 
 | 交付物 | 内容 |
 |--------|------|
-| `scripts/stack_topology_audit.py` | **新**：stack topology 审计器 — ancestry / mergeability / duplicate payload 三检 + `evaluate_gate()` + `DEFAULT_REQUIREMENTS` / `STRICT_REQUIREMENTS` + `default_branch()` 三级检测 + CLI（`--json` / `--strict` / `--pr`）|
-| `tests/test_stack_topology_audit.py` | **新**：**32** 条 hermetic 测试（全部 throwaway repo），覆盖冲突检测 / 重复 payload / 分叉 / 诚实降级 / bug 注入 / CLI |
-| `docs/adr/ADR-0018-v13-dod.md` | **改**：新增 DoD #17 章节（问题 / 解法 / 实测 / 设计约束）|
-| `spec/phases.md` | **改**：新增 DoD #17 checklist 项 |
-| `strategy/runs/2026-11-03-0943.md` | **新** 本轮 run log |
+| `scripts/job_graph_audit.py` | **新**：676 行，纯 stdlib YAML 解析 + 三检（dangling needs / self-dependency / cycle / gate coverage）+ `evaluate_gate()` + `DEFAULT_REQUIREMENTS` / `STRICT_REQUIREMENTS` + CLI（`--json` / `--strict`）|
+| `tests/test_job_graph_audit.py` | **新**：**62** 条 hermetic 测试（10 个 Test 类），覆盖解析 / 分类 / 悬空依赖 / 自依赖 / 环 / 门禁覆盖 / 可达性 / CLI / bug 注入 |
+| `.github/workflows/ci.yml` | **改**：新增 `job-graph-audit` job（5 min timeout，零依赖），加入 `pr-coverage-gate.needs` |
+| `docs/adr/ADR-0018-v13-dod.md` | **改**：新增 DoD #18 章节 |
+| `spec/phases.md` | **改**：新增 DoD #18 checklist 项 |
 
-### 问题：三个已有审计都看不见「形状」
+### 问题：四个已有审计都看不见「作业依赖图」
 
 | 审计 | 问的问题 |
 |------|---------|
 | `ci_trigger_audit` (DoD #7) | 「PR 的 base 分支上，workflow 会触发 CI 吗？」 |
 | `pr_coverage_audit` (DoD #8) | 「每个 open PR 真的被 CI 覆盖了吗？」 |
 | `pr_coverage_audit --require-checks` (DoD #16) | 「严格模式比默认模式更宽松吗？」 |
+| `stack_topology_audit` (DoD #17) | 「这个 stack 能按顺序合并吗？」 |
 
-**没有一个问：「这个 stack 能按顺序合并吗？」**
+**没有一个问：「workflow 内部的 `jobs:` 块，作业依赖图本身健康吗？」**
 
-### 实际踩到的坑
+### 三个具体缺陷
 
-PR #63 与 PR #66 并行准备，**独立添加了相同的 `pr-coverage-audit` job**：
-- 两者 `ci.yml` **字节完全一致**
-- GitHub 报告 `MERGEABLE` / `clean`
-- 但 merge base `4962d28` 中**没有** `pr-coverage-audit` job
-- → 两者**分叉**（diverged），stack 不是线性的
+1. **Dangling `needs:` target** — 致命。如果 `pr-coverage-gate` 引用了一个不存在的 job，GitHub 会拒绝**整个 workflow**。所有真实质量 job 一起被跳过。一个字符的拼写错误就能把绿色 CI 变成「什么都没验证」的 CI。
+2. **`needs:` cycle** — 静默。一个 job 如果在传递上依赖自己，会被从执行顺序中丢弃，workflow 仍然「整体成功」。
+3. **Ungated verification job** — 危险方向的谎言。如果有人加了一个新验证 job 但忘了在 `pr-coverage-gate` 的 `needs:` 里加上它，gate 会报告「这个 PR 已完全验证」，而新 job 根本没跑。**与 DoD #16 缺陷完全同构**。
 
-### 关键发现：`git merge-tree` 的退出码不是冲突信号
+**关键设计决策**：Point 3 是这个 audit 存在的原因 —— 它必须是 **gate** 而不是 lint。DoD #16 的教训泛化了：*一个 gate 如果不对它要抓的缺陷报失败，它就不是 gate，是橡皮章。*
 
-第一版实现信任退出码 → 报告「mergeable: yes」→ **假阴性**，正好漏掉了它要抓的缺陷。
-冲突必须从**输出**里解析：`CONFLICT` 标记 + 冲突路径列表。
-
-### 底部向上合并实际零冲突
-
-实测：6/6 PR 按推荐顺序合并，**零冲突**。stack 本身可合并，但拓扑不线性。
-
-### 门禁设计（与 DoD #16 同构）
+### 门禁设计（与 DoD #16/#17 同构）
 
 ```python
-DEFAULT_REQUIREMENTS = ("mergeable", "no_duplicate_payload")
-STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
+DEFAULT_REQUIREMENTS = ("no_dangling_needs", "no_self_dependency", "acyclic", "gate_coverage")
+STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("all_jobs_reachable",)
 ```
 
-- 默认门禁：**「能合并吗？」**（容忍分叉，只要可合并且无重复 payload）
-- 严格门禁：**「已经准备好合并了吗？」**（额外要求线性）
+- 默认门禁：**「作业依赖图健康吗？」**
+- 严格门禁：**「每个 job 都从某个 gate 可达吗？」**
 - 严格集合是默认集合的**严格超集** → 单调性由**构造**保证
+- 两种模式共用唯一判定函数 `evaluate_gate()`
+
+### 验证
+
+- ✅ P0 compileall 无错误
+- ✅ P1 `test_job_graph_audit.py` **62 passed**（10 个 Test 类，全部 hermetic throwaway workflow）
+- ✅ 全量审计测试 **155 passed**（`job_graph_audit` + `stack_topology_audit` + `pr_coverage_audit` + `ci_trigger_audit`）
+- ✅ Live audit `--strict` exit 0（当前 workflow 图健康，10 个 job，`pr-coverage-gate.needs` 含 `job-graph-audit`）
+- ✅ `ci.yml` YAML 解析通过
 
 ## 皇上操作记录
 
@@ -62,7 +63,9 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
 
 | 日期 | 操作 |
 |------|------|
-| **2026-11-03 09:43** | 🟢 **v128 早场 #1：v13 DoD #17「Stack Topology Audit」全部交付。** 🔍 **三个已有审计（workflow 内容 / CI 覆盖 / 门禁单调性）都看不见「形状」维度**：PR #63 与 PR #66 并行准备，独立添加了相同的 `pr-coverage-audit` job，两者 `ci.yml` 字节一致、GitHub 报告 `MERGEABLE`/`clean`，但 merge base `4962d28` 中没有该 job → **分叉**。🆕 **解法**：① 新增 `scripts/stack_topology_audit.py`，对每对连续 PR 检查三件事 —— **ancestry**（`git merge-base --is-ancestor`）、**mergeability**（`git merge-tree --write-tree --name-only`，不碰 working tree）、**duplicate payload**（内容相同但 merge base 没有 → 分叉重复提交的特征）② **关键发现：`git merge-tree` 的退出码不是冲突信号** —— 第一版信任退出码 → 报告「mergeable: yes」→ **假阴性**，正好漏掉了它要抓的缺陷；已改为从**输出**解析 `CONFLICT` 标记 + 冲突路径列表 ③ 门禁设计与 DoD #16 同构：`DEFAULT_REQUIREMENTS = ("mergeable", "no_duplicate_payload")` / `STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)`，严格集合是默认集合的严格超集 → 单调性由构造保证；默认门禁回答「能合并吗？」，严格门禁回答「已经准备好合并了吗？」④ **默认分支检测不硬编码**：通过 `gh repo view --json defaultBranchRef` + `git symbolic-ref` + fallback 三级检测，防止对 `main` 仓库报空 stack ⑤ hermetic 测试 **32 条**（全部 throwaway repo），含冲突检测 / 重复 payload / 分叉 / 诚实降级 / bug 注入 / CLI；**全量审计测试 93 passed**（`stack_topology_audit` + `pr_coverage_audit` + `ci_trigger_audit`）⑥ **实测验证**：底部向上 6/6 PR 合并**零冲突**（stack 本身可合并，但拓扑不线性）；live audit exit 1 **正确**检出 PR #63/#66 分叉重复提交。✅ P0 ✅ + P1 ✅（**32 passed**）+ P1 baseline ✅（**672 passed / 5 skipped / 1 pre-existing timeout**，`test_cli_health_runs` 与上轮一致）+ **全量审计测试 93 passed** + **bottom-up merge 6/6 零冲突**。💡 **本轮最重要的产出不是「加了 32 个测试」**：是 **三个已有审计都看不见的「形状」维度被补上了**，而且**第一个实现版本就漏掉了它要抓的缺陷**（信任退出码 → 假阴性）。一个审计如果对它要抓的缺陷报「一切正常」，它就不是审计，是**盖章**。📌 **请皇上决策**：① **Merge PR #67**（v13 DoD #8 + #14 + #16 + **#17**，待 Merge）② Merge PR #66（v13 DoD #7）③ Merge PR #63（v13 DoD #4 + #6）④ Merge PR #62 ⑤ Merge PR #61 ⑥ Merge PR #60 ⑦ 接受 ADR-0018。run log: `strategy/runs/2026-11-03-0943.md` 🟢 |
+| **2026-11-04 21:30** | 🟢 **v129 晚场 #1：v13 DoD #18「Job Dependency Graph Audit」全部交付。** 新增 `scripts/job_graph_audit.py`（676 行纯 stdlib），检 dangling `needs:` / `needs:` cycle / ungated verification job 三个缺陷；门禁同构（严格集合 = 默认集合严格超集）；hermetic 测试 **62 条**；全量审计 **155 passed**；CI 新增 `job-graph-audit` job 并接入 `pr-coverage-gate.needs`；live `--strict` exit 0。（正文见 archive）🟢* |
+| **2026-11-03 21:30** | 🟢 **v128 晚场 #1：v13 DoD #17 CI 修复完成。** 3 条 CLI 测试改为 hermetic（fake `gh`，不注入 `GH_TOKEN`）；CI run `41646891602` **9/9 SUCCESS**。（正文见 archive）🟢* |
+| **2026-11-03 09:43** | 🟢 **v128 早场 #1：v13 DoD #17「Stack Topology Audit」全部交付。** 新增 `scripts/stack_topology_audit.py`（ancestry / mergeability / duplicate payload）；关键发现 `git merge-tree` 退出码不是冲突信号（改为解析输出）；hermetic 测试 **32 条**；全量审计 **93 passed**；bottom-up 合并 6/6 零冲突。（正文见 archive）🟢* |
 | **2026-11-02 21:38** | 🟢 **v127 晚场 #1：v13 DoD #16「CI 门禁强度单调性」全部交付。**（详细正文见 archive）🟢* |
 | **2026-11-01 21:38** | 🟢 **v126 晚场 #1：v13 DoD #14「CI 审计器环境无关性」全部交付 + PR #67 CI 8/8 SUCCESS。**（详细正文见 archive）🟢* |
 | **2026-11-01 09:48** | 🟢 **v125 晚场 #1：v13 DoD #8「PR 级 CI 覆盖验证」全部交付 + 解开合并顺序死锁。**（详细正文见 archive）🟢* |
@@ -82,7 +85,8 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
 | **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-07-25**（DoD #1-4 全绿）|
 | **v12 (Python API & SDK Foundation)** | ✅ **完成** — DoD #1 SDK / #2 Async queue / #3 Registry 版本化+标签查询 全绿，ADR-0017 Accepted；PR #60 已交付（OPEN / CLEAN / MERGEABLE，CI 6/6 SUCCESS），待皇上 Merge |
 | **v13 (Experiment Provenance & Reproducibility)** | 🟢 **DoD #1-#8 + #12-#16 全部完成** — #1 provenance capture（PR #61 待 Merge）/ #2 replay execution / #3 coverage dashboard / #4 content-addressed storage（PR #62 待 Merge）/ #5 artifact compatibility（v122 晚场交付）/ **#12 replay integrity guard（PR #63 待 Merge）** / **#7 CI 触发覆盖闭合（PR #66 待 Merge）** / **#8 PR 级 CI 覆盖验证（PR #67 待 Merge）** / **#14 CI 审计器环境无关性（PR #67 同批）** / **#16 CI 门禁强度单调性（PR #67 同批）**；ADR-0018 待 Accepted |
-| **本轮 PR** | 🟢 **PR #67 已更新 + CI 9/9 SUCCESS**（v128 早场交付 `feat/v13-pr-coverage-audit`，commit `15fc338`，DoD #8 + #14 + #16 + **#17**）|
+| **本轮 PR** | 🟢 **DoD #18 代码已就绪，待 commit + PR**（v129 晚场，`feat/v13-pr-coverage-audit`，DoD #18 Job Graph Audit）|
+| **v13 DoD #18** | ✅ **Job dependency graph audit 完成** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** |
 | **CI 触发覆盖** | ✅ **已闭合** — `pull_request` 无 `branches:` 过滤器；`scripts/ci_trigger_audit.py` 门禁（exit 0/1）+ CI `ci-trigger-audit` 自举 job |
 | **PR 级 CI 覆盖** | ✅ **已闭合** — `scripts/pr_coverage_audit.py` 门禁（exit 0/1）+ CI `pr-coverage-audit` 自举 job；**6/6 PR verified** |
 | **门禁模式单调性** | ✅ **已闭合** — 两种模式共用唯一判定函数 `evaluate_gate()`；`--require-checks` 要求集合是默认的**严格超集**（+`checks_completed`）；新增独立 CI job `pr-coverage-gate`（`needs:` 全部 8 job + `pull_request` 事件守卫）|
@@ -95,7 +99,8 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
 | **待合 PR #61** | 🟢 **PR #61 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v13 DoD #1 provenance capture，待皇上 Merge）|
 | **待合 PR #60** | 🟢 **PR #60 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v12 三 DoD，待皇上 Merge）|
 | **本轮分支** | `feat/v13-pr-coverage-audit`（base `feat/v13-ci-trigger-coverage`）|
-| **v13 DoD #17** | ✅ **Stack topology audit 完成** — `scripts/stack_topology_audit.py` 可执行门禁 + hermetic 测试 32 条 + **关键发现：`git merge-tree` 的退出码不是冲突信号**（第一版信任退出码 → 假阴性，已改为从输出解析）|
+| **v13 DoD #17** | ✅ **Stack topology audit 完成 + CI 修复** — `scripts/stack_topology_audit.py` 可执行门禁 + hermetic 测试 32 条 + **关键发现：`git merge-tree` 的退出码不是冲突信号**（第一版信任退出码 → 假阴性，已改为从输出解析）+ **CI 修复：3 条 CLI 测试改为 hermetic（fake gh），消除对 `GH_TOKEN` 的隐式依赖** |
+| **v13 DoD #18** | ✅ **Job dependency graph audit 完成** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **三个具体缺陷：dangling `needs:` / `needs:` cycle / ungated verification job** + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** |
 | **v13 DoD #6** | ✅ **复现指南文档化完成** — `docs/REPRODUCE.md` v0.1→v1.0，ADR-0018 下轮待办第 2 条已闭合|
 | **CI 安全审计** | ✅ **master 已脱险**：PR #58/#59 merged 后 master = pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12；**master CI #40111672401 6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0） |
 
@@ -113,6 +118,7 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
   6. **补上了三个已有审计都看不见的「形状」维度** —— stacked PR 的 ancestry / mergeability / duplicate payload；PR #63 与 PR #66 的分叉重复提交被检出
   7. **发现并修复了「`git merge-tree` 的退出码不是冲突信号」这个陷阱** —— 第一版信任退出码 → 假阴性，正好漏掉了它要抓的缺陷；已改为从输出解析
   8. **默认分支检测不硬编码** —— 三级检测（`gh repo view` / `git symbolic-ref` / fallback），防止对 `main` 仓库报空 stack
+   9. **测试 hermeticity 审计** —— 发现并修复了 3 条 CLI 测试对 `GH_TOKEN` 的隐式依赖（CI runner 上 `gh pr list` rc=4 → 假失败）；全部 32 条 `stack_topology_audit` 测试现在是完全 hermetic 的
 - **验证**：
   - 本地 P0 ✅ compileall 0 + import smoke OK
   - 本地 P1 ✅ **32 passed**（`test_stack_topology_audit.py`，全部 hermetic throwaway repo）
@@ -122,9 +128,11 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
   - 本地 Bottom-up merge ✅ **6/6 PR 合并零冲突**（实测验证：stack 本身可合并，但拓扑不线性）
   - **bug 注入 ✅** 重新注入原 bug → 测试失败（新测试确实咬得住）
   - **YAML ✅** `ci.yml` 解析通过，9 个 job，`pr-coverage-gate.needs` 正确
-- **当前状态**：🟢 **无外部阻塞** — v13 DoD #1-#17 全部交付且本地 P0–P1 全绿；待皇上 Merge PR #60 / #61 / #62 / #63 / #66 / #67 + 接受 ADR-0018
-- **最近一次验证**：2026-11-03 09:43 CST（v128 早场 #1）
+- **当前状态**：🟢 **无外部阻塞** — v13 DoD #1-#18 全部交付且本地 P0–P1 全绿；待皇上 Merge PR #60 / #61 / #62 / #63 / #66 / #67 + 接受 ADR-0018
+- **最近一次验证**：2026-11-04 21:30 CST（v129 晚场 #1，P1 62+155 passed，live audit --strict exit 0）
 - **master HEAD**：`4082158`（PR #59 squash），master CI 6/6 SUCCESS
 - **本地分支**：`feat/v13-pr-coverage-audit`（base `feat/v13-ci-trigger-coverage`）
 - **阻塞**：无（PR #60 / #61 / #62 / #63 / #66 / #67 待 Merge，不阻塞下一轮开发）
 - **⚠️ 价值已完全实现**：**三个已有审计都看不见的「形状」维度被补上了** —— 而且**第一个实现版本就漏掉了它要抓的缺陷**（信任 `git merge-tree` 退出码 → 假阴性）。一个审计如果对它要抓的缺陷报「一切正常」，它就不是审计，是**盖章**。
+- **🔧 本轮额外价值**：**测试的 hermeticity 本身就是一种审计** —— 3 条 CLI 测试在 CI 中假失败，暴露了「测试在测环境而不是在测代码」这个更深层的问题。修复后，`stack_topology_audit` 的 32 条测试全部 hermetic，不再依赖 `gh` / `GH_TOKEN` / 网络 / 真实仓库状态。
+- **🔧 下一轮额外价值（v129 晚场）**：**补上了四个已有审计都看不见的「作业依赖图」维度** —— DoD #7 问 workflow 触发、DoD #8 问 PR 覆盖、DoD #16 问门禁单调性、DoD #17 问 stack 形状，**没有一个问 workflow 内部的 `jobs:` 块是否健康**。dangling `needs:`（一个字符的拼写错误就能把绿色 CI 变成「什么都没验证」的 CI）、`needs:` cycle（job 静默永不运行）、ungated verification job（gate 报告「已验证」但实际未验证，与 DoD #16 缺陷同构）—— 三个缺陷都被检出。**DoD #16 的教训泛化了**：一个 gate 如果不对它要抓的缺陷报失败，它就不是 gate，是**橡皮章**。

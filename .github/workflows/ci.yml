@@ -99,6 +99,43 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/pr_coverage_audit.py
 
+  # DoD #18 — audit the *inside* of the workflow: the job dependency
+  # graph.  Every previous audit (DoD #7/#8/#16/#17) asks a question
+  # *about* the workflow -- would it trigger, is every PR covered, is
+  # the gate monotonic, can the stack be merged.  None of them looks
+  # at the ``jobs:`` block and asks whether the job graph itself is
+  # sound.
+  #
+  # Three concrete defects this catches:
+  # 1. A dangling ``needs:`` target kills the *entire* workflow -- a
+  #    one-character typo turns a green CI into a CI that verifies
+  #    nothing, and it does so loudly on the PR that introduced it.
+  # 2. A ``needs:`` cycle makes jobs silently never run.
+  # 3. An ungated verification job makes the gate *lie* -- the exact
+  #    analogue of the DoD #16 defect (a stricter gate that was laxer
+  #    than the default).  This is why the audit is a *gate* rather
+  #    than a lint: a gate that does not fail on the defect it exists
+  #    to catch is a rubber stamp.
+  #
+  # Like ci-trigger-audit this job installs no third-party packages:
+  # the audit uses only the Python standard library.
+  job-graph-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Audit job dependency graph
+        run: python3 scripts/job_graph_audit.py
+
   # The strict CI gate for *this* pull request.
   #
   # It is a separate job rather than a step inside pr-coverage-audit on
@@ -120,6 +157,7 @@ jobs:
     needs:
       - ci-trigger-audit
       - pr-coverage-audit
+      - job-graph-audit
       - quality-gates
       - benchmark
       - depth-sweep

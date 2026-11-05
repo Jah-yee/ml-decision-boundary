@@ -781,3 +781,82 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
 而且**第一个实现版本就漏掉了它要抓的缺陷**（信任退出码 → 假阴性）。
 
 一个审计如果对它要抓的缺陷报「一切正常」，它就不是审计，是**盖章**。
+
+---
+
+## DoD #18 — Job Dependency Graph Audit（v129 晚场）
+
+### 问题：四个已有审计都看不见「作业依赖图」
+
+| 审计 | 问的问题 |
+|------|---------|
+| `ci_trigger_audit` (DoD #7) | 「PR 的 base 分支上，workflow 会触发 CI 吗？」 |
+| `pr_coverage_audit` (DoD #8) | 「每个 open PR 真的被 CI 覆盖了吗？」 |
+| `pr_coverage_audit --require-checks` (DoD #16) | 「严格模式比默认模式更宽松吗？」 |
+| `stack_topology_audit` (DoD #17) | 「这个 stack 能按顺序合并吗？」 |
+
+四个审计都在问关于 **workflow 的问题**。没有一个问：**workflow 内部的 `jobs:` 块，作业依赖图本身健康吗？**
+
+### 三个具体缺陷
+
+1. **Dangling `needs:` target** — 致命。如果 `pr-coverage-gate` 引用了一个不存在的 job，GitHub 会拒绝**整个 workflow**（不只是 gate）。所有真实质量 job（`quality-gates`、`benchmark`、`security-audit`、……）一起被跳过。一个字符的拼写错误就能把绿色 CI 变成「什么都没验证」的 CI，而且它会在引入错误的 PR 上大声报错。
+
+2. **`needs:` cycle** — 静默。一个 job 如果在传递上依赖自己，会被从执行顺序中丢弃，workflow 仍然「整体成功」，只要被跳过的 job 不是任何人关注的那个。
+
+3. **Ungated verification job** — 危险方向的谎言。如果有人加了一个新验证 job（比如 `license-audit`）但忘了在 `pr-coverage-gate` 的 `needs:` 里加上它，gate 会报告「这个 PR 已完全验证」，而新 job 根本没跑、可能已经失败、它的结果不在 gate 的判定里。**gate 在撒谎，而且是往危险方向撒谎** —— 这与 DoD #16 的缺陷（严格门禁比默认门禁更宽松）完全同构。
+
+**Point 3 是这个 audit 存在的原因：它必须是 gate 而不是 lint。** DoD #16 的教训泛化了：*一个 gate 如果不对它要抓的缺陷报失败，它就不是 gate，是橡皮章。*
+
+### 解法
+
+新增 `scripts/job_graph_audit.py`：
+
+1. **解析**：纯 stdlib YAML 解析（不依赖 PyYAML），提取每个 job 的 `needs:` 列表 + 是否有 `run:` 步骤（区分验证 job 和纯 gate）
+2. **分类**：
+   - **Gate**：job 名以 `-gate` 或 `-audit` 结尾，或者没有 `run:` 步骤
+   - **Aggregating gate**：gate 且有非空 `needs:`
+   - **Verification job**：有 `run:` 步骤且不是 gate
+3. **三检**：
+   - `dangling_needs` — `needs:` 引用的 job 名不在 workflow 中
+   - `self_dependencies` — job 直接或间接依赖自己
+   - `cycles` — 传递闭包找环（忽略 dangling target，因为它们会被 GitHub 拒绝）
+   - `ungated_jobs` — 存在验证 job 不在任何 aggregating gate 的 `needs:` 里
+   - `unreachable_jobs`（严格模式）— 存在 job 不从任何 gate 可达
+
+### 门禁设计（与 DoD #16 / #17 同构）
+
+```python
+DEFAULT_REQUIREMENTS = ("no_dangling_needs", "no_self_dependency", "acyclic", "gate_coverage")
+STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("all_jobs_reachable",)
+```
+
+- 默认门禁：**「作业依赖图健康吗？」**（容忍不可达 job，只要没有悬空依赖/自依赖/环/无人门禁的验证 job）
+- 严格门禁：**「每个 job 都从某个 gate 可达吗？」**（额外要求全覆盖）
+- 严格集合是默认集合的**严格超集** → 单调性由**构造**保证
+- 两种模式共用唯一判定函数 `evaluate_gate()`
+
+### 实测
+
+| 层级 | 结果 |
+|------|------|
+| P0 | ✅ `compileall -q` 0 errors |
+| P1 | ✅ **62 passed**（`test_job_graph_audit.py`，10 个 Test 类，全部 hermetic）|
+| 全量审计测试 | ✅ **155 passed**（`job_graph_audit` + `stack_topology_audit` + `pr_coverage_audit` + `ci_trigger_audit`）|
+| Live audit | ✅ `job_graph_audit.py --strict` exit 0（当前 workflow 图健康）|
+| CI 集成 | ✅ `job-graph-audit` job 已加入 `ci.yml`，并加入 `pr-coverage-gate.needs` |
+| YAML | ✅ `ci.yml` 解析通过，10 个 job，`pr-coverage-gate.needs` 含 `job-graph-audit` |
+
+### 设计约束
+
+- **无第三方依赖**：不 import PyYAML（不在 `requirements.lock`），CI job 不安装任何依赖
+- **只读**：审计永不修改 workflow 文件
+- **诚实降级**：workflow 文件不存在时 `rc=2`，绝不报「一切正常」
+- **hermetic 测试**：全部 62 条测试用 throwaway workflow 文件，不依赖真实仓库
+- **bug 注入**：`TestBugInjection` 类验证每个缺陷检测器确实咬得住
+
+### 本轮最重要的产出
+
+不是「加了 62 个测试」—— 是 **四个已有审计都看不见的「作业依赖图」维度被补上了**，
+而且**第一个实现版本就可能漏掉它要抓的缺陷**（如果信任 `needs:` 列表而不做传递闭包检查）。
+
+一个 gate 如果不对它要抓的缺陷报失败，它就不是 gate，是**橡皮章**。

@@ -220,6 +220,7 @@
 - [x] 门禁模式单调性 — `--require-checks`（严格模式）的要求集合改为默认模式的**严格超集**，两种模式共用唯一判定函数 `evaluate_gate()`；修复「严格模式比默认模式更宽松」的缺陷（not-subscribed / base-not-covered 的 PR 靠陈旧 checks 溜过门禁） ✅ (2026-11-02)
 - [x] ADR-0018 Accepted — 全部 DoD #1–#16 实现完成，v13 阶段收口 ✅ (2026-11-02)
 - [x] Stack topology audit — **合并顺序可解性**：新增 `scripts/stack_topology_audit.py` 审计 stacked PR 的 **shape**（ancestry / mergeability / duplicate payload），检出 PR #63 与 PR #66 的 diverged-duplicate 拓扑缺陷；默认门禁（`mergeable` + `no_duplicate_payload`）与严格门禁（+ `linear`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；hermetic 测试 32 条；**关键发现：`git merge-tree` 的退出码不是冲突信号**，必须从输出解析 ✅ (2026-11-03)
+- [x] Job dependency graph audit — **工作流内部的作业依赖图**：新增 `scripts/job_graph_audit.py` 审计 `jobs:` 块的三个具体缺陷 —— **dangling `needs:`**（指向不存在的 job → 整个 workflow 被 GitHub 拒绝，所有质量 job 一起被跳过）、**`needs:` cycle**（job 静默永不运行）、**ungated verification job**（gate 的 `needs:` 没有包含新验证 job → gate 报告「已验证」但实际未验证，与 DoD #16 缺陷同构）；默认门禁（`no_dangling_needs` + `no_self_dependency` + `acyclic` + `gate_coverage`）与严格门禁（+ `all_jobs_reachable`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；hermetic 测试 **62 条**（10 个 Test 类，含 bug 注入）；CI job `job-graph-audit` 已加入 `pr-coverage-gate.needs` ✅ (2026-11-04)
 
 **v0-v12 已完成 ✅ | v13 已完成 ✅**
 

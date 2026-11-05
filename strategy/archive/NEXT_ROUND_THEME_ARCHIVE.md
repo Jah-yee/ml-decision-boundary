@@ -930,3 +930,175 @@ loaded OK: 13668  failed: 700  skipped(no artifact): 6501  elapsed 61.1s
 
 ---
 
+---
+
+<!-- 归档于 2026-10-29 v124 早场：v123 晚场 + v123 早场 正文 -->
+
+## 🟢 v123 晚场 状态：**v13 DoD #6（复现指南文档化）完成，P0/P1/P2/P3 全绿（612 passed / 5 skipped / 0 FAILED），无新 PR**
+
+### 🆕 本轮交付：v13 DoD #6 — 复现指南文档化
+
+| 交付物 | 内容 |
+|--------|------|
+| `docs/REPRODUCE.md` | **重写** v0.1→v1.0（13,519 字节），覆盖 v12 SDK + v13 全部 5 个 DoD |
+| `strategy/runs/2026-10-28-2130.md` | 本轮 run log |
+
+### 背景
+
+ADR-0018「下轮待办」第 2 条：> 将重放方案导出为独立文档（如 `docs/REPRODUCE.md`），便于离线审计
+
+原 `docs/REPRODUCE.md` 是 v0.1 最小占位（833 字节），只覆盖 v0–v5 基础安装步骤，完全没有 v12 SDK / v13 Provenance / Replay / Integrity 等内容。
+
+### 文档结构（12 章）
+
+1. 环境与安装
+2. 质量关卡 P0–P3
+3. v12 Python SDK（同步/异步训练、模型查询、版本化）
+4. v13 实验来源（Provenance）（记录、指纹设计、来源比较、旧模型兼容）
+5. v13 重放（Replay）（方案结构、执行、诚实性设计）
+6. v13 覆盖率看板（4 类状态、阻塞原因分组）
+7. v13 产物兼容性（问题根因、别名表、健康审计）
+8. v13 内容寻址存储（迁移、存储统计）
+9. v13 完整性守卫（三段式分级、三个判据、审计与验证）
+10. CLI 命令速查（模型管理、训练实验、基准测试）
+11. HTTP API 契约（健康检查、来源与重放、模型注册表、训练与预测）
+12. 故障排查（matplotlib、sklearn 版本、产物加载、MLP 缓慢、pytest 超时、导入错误、Registry 体积）
+
+### 验收结果
+
+| 层级 | 命令 | 结果 |
+|------|------|------|
+| **P0** | `python3 -m compileall -q .` + import smoke | ✅ exit 0 + 11 个模块 import OK |
+| **P1** | `python3 -m pytest -q` | ✅ **612 passed, 5 skipped, 0 FAILED**（368.48s）|
+| **P2** | `python3 -m benchmarks --quick` | ✅ PASSED（acc 0.7900, thr 0.7000）|
+| **P3** | HTTP 契约 8 项 | ✅ health 200 / integrity_full 200 / integrity_single 200 / integrity_unknown 404 / verify 200 / verify_no_id 400 / predict_batch 200 / predict_no_dataset 400 |
+
+### 与上轮对比
+
+| 指标 | v123 早场 | v123 晚场 |
+|------|-----------|-----------|
+| P1 测试数 | 612 passed | 612 passed（无变化，本轮无新代码） |
+| P1 耗时 | 585.49s | 368.48s |
+| 交付物 | `core/replay_guard.py` + 51 测试 | `docs/REPRODUCE.md` 文档重写 |
+| `docs/REPRODUCE.md` | 833 字节 v0.1 占位 | 13,519 字节 v1.0 完整指南 |
+
+---
+
+## 🟢 v123 早场 状态：**v13 DoD #4（Replay Integrity Guard）完成，P0/P1/P2/P3 全绿（612 passed / 5 skipped / 0 FAILED），PR #63 已开**
+
+### 🆕 本轮交付：v13 DoD #4 — Replay Integrity Guard
+
+| 交付物 | 内容 |
+|--------|------|
+| `core/replay_guard.py` | **新**（唯一实现源）：三段式漂移分级 + `integrity_report()` + `verify_replay()` |
+| `core/registry.py` | `replay_integrity()` / `recipe_drift(model_id)` / `verify_replay(model_id)` |
+| `ml_db/client.py` | `MLDB.replay_integrity()` / `recipe_drift()` / `verify_replay()` |
+| `main.py` | CLI `model integrity` / `model verify <id>` |
+| `api/provenance.py` | `?integrity=1` / `?verify=1` |
+| `web/server.py` | 同上（Flask 契约一致） |
+| `tests/test_replay_guard.py` | **新** 27 测试 |
+| `tests/test_replay_integrity_surfaces.py` | **新** 24 测试 |
+| `docs/adr/ADR-0018-v13-dod.md` | DoD #4 落档 + 新增 DoD #12 |
+| `spec/phases.md` | v13 DoD #4 / #12 落档 |
+| `strategy/runs/2026-10-28-0934.md` | 本轮 run log |
+
+### 问题
+
+DoD #5 把 replay recipe **冻结**进了每个模型的 provenance 记录。冻结只有在"生成 recipe 的代码不会在底下变"的前提下才安全 —— 而它会变。
+
+实测：**368 个模型的 stored recipe 与今日代码生成的 recipe 不一致**。根因不是模型坏了，而是**拼写变了**：
+
+```
+stored: python main.py --model MLP --dataset circles --seed 42 --params 'hidden_layer_sizes=(50,)'
+fresh : python main.py --model MLP --dataset circles --seed 42 --params 'hidden_layer_sizes=[50]'
+```
+
+历史记录把 tuple 渲染为 Python repr `(50,)`；当前 `build_replay_command()` 渲染为 JSON list `[50]`（provenance 经 JSON 序列化，tuple 变成 list）。**两者指同一个超参数、训出同一个模型。**
+
+同时 `core/coverage.py` 的 `cli_replay_check()` 是个**孤儿函数**：只被 `tests/test_coverage.py` 调用，**没有接入任何 CLI / SDK / API 路径**。也就是说"recipe 还成立吗"此前**没有任何人问过**。
+
+### 解法
+
+`core/replay_guard.py`（新，唯一实现源）用**三段式分级**取代布尔相等比较：
+
+| 级别 | 含义 | 判据 |
+|------|------|------|
+| `none` | recipe 与今日代码输出一致 | 字符串完全相同 |
+| `cosmetic` | 拼写不同，**指同一次运行** | 超参值语义等价 + run-defining flag 相同 |
+| `semantic` | **会训出不同的模型** | 超参值不同 或 run-defining flag 不同 |
+
+三个关键判据：
+
+1. **超参值语义归一化** —— `(50,)` 与 `[50]` 归一为同一 tuple；`50` 与 `50.0` 归一为同一数值。序列统一归一为 tuple。
+2. **run-defining flag 与 visual-only flag 分离** —— `--n-samples` / `--noise` **不进入 CLI 训练路径**（`main.run_experiment` 硬编码 `n_samples=500, noise=0.3`，这两个 flag 只喂给绘图），因此二者不同是 cosmetic 而非 semantic。
+3. **`--params` 排除出 flag 比较** —— 它是可重复 flag，值已由超参映射单独比较；纳入 flag 比较会导致"仅因参数顺序不同"而误报。
+
+`verify_replay()` **实际执行** replay 并给出 verdict —— 漂移审计说"recipe 是否还匹配代码"，只有执行才说"运行是否还复现"。
+
+### 实测（真实 registry）
+
+```
+🧭 Replay integrity — 21339 registered model(s)
+============================================================
+   ✅ Recipe current:     20971
+   🟡 Cosmetic drift:       368  (spelled differently, same run)
+   ❌ Semantic drift:         0  (would reproduce a different model)
+
+   Models with a frozen recipe: 1735 / 21339
+   Stale text:  368  (21.2% of recipes)
+   Broken:      0  (reproducibility actually lost)
+```
+
+**registry 的可复现性承诺目前没有破。** 368 个 stale recipe 全部只是拼写差异，语义未变。
+
+本轮最有价值的产出：把一个"看起来 368 个模型坏了"的告警，变成"**0 个模型真的坏了**，368 个只是拼写差异"—— 避免了 368 次无意义重训。
+
+### 分级器的灵敏度（双向验证）
+
+- **必须报警**（判 `semantic`）：换 dataset / 换 seed / 换 model 类型 / 换超参值 / 加超参 / 删超参 / 序列内容变化（`(50,)` → `(100,)`）—— 7 类全部正确报警；
+- **必须不报警**（判 `cosmetic`）：tuple vs list / `C=1` vs `C=1.0` / `--n-samples`+`--noise` 差异 / `--params` 顺序差异 —— 4 类全部正确放行。
+
+### ⚠️ 事实性错误修正（v122 晚场）
+
+v122 晚场声称 **"PR #63 已开"**（指 DoD #5）。实测：
+
+```
+$ gh pr view 63
+GraphQL: Could not resolve to a PullRequest with the number of 63.
+```
+
+**当时 PR #63 不存在。** 实际开放的 PR 只有三个：
+
+| PR | 标题 | 状态 |
+|----|------|------|
+| #60 | `feat(v12): SDK Foundation` | OPEN / MERGEABLE / CLEAN / CI 6/6 |
+| #61 | `feat(v13): DoD #1 — Experiment Provenance Capture` | OPEN / MERGEABLE / CLEAN / CI 6/6 |
+| #62 | `feat(v13): DoD #2-#4 — provenance replay + coverage dashboard + content-addressed storage` | OPEN / MERGEABLE / CLEAN / CI 6/6 |
+
+**本轮（v123 早场）已开 PR #63**（DoD #4 Replay Integrity Guard），编号复用。
+
+> ⚠️ 注意：v122 晚场记录的 "PR #63（DoD #5）" 与本轮 "PR #63（DoD #4）" **不是同一个 PR**。前者从未存在，后者是本轮新建。DoD #5 的实际 PR 编号在 v122 晚场期间本应是 #63，但因当时未实际创建而落空。
+
+### ⚠️ 重复 stacked PR 风险
+
+分支拓扑实测：
+
+```
+origin/feat/v12-sdk-foundation ──────┐
+origin/feat/v13-provenance-provenance ─┤──> origin/feat/v13-replay-provenance
+```
+
+`origin/feat/v12-sdk-foundation` 与 `origin/feat/v13-provenance-provenance` **都是** `origin/feat/v13-replay-provenance` 的祖先。PR #62 的 diff 因此**已包含 DoD #1–#5 全部内容**，与 #60 / #61 构成 stacked PR。
+
+**建议（不阻塞本轮）**：按 **#60 → #61 → #62** 顺序 Merge（GitHub 会自动 rebase 后继 PR），或直接只 Merge #62（已含全部内容）后关闭 #60 / #61。
+
+### 验收结果
+
+| 层级 | 命令 | 结果 |
+|------|------|------|
+| **P0** | `python3 -m compileall -q .` + import smoke | ✅ exit 0 + `import main / ml_db / core.* / api.* / web.*` OK |
+| **P1** | `python3 -m pytest -q` | ✅ **612 passed, 5 skipped, 0 FAILED**（585.49s，561 → 612，+51 = guard 27 + surfaces 24）|
+| **P2** | `python3 -m benchmarks --quick` | ✅ PASSED（circles/SVM, acc 0.7900, thr 0.7000）|
+| **P3** | HTTP 契约 | ✅ health 200；`/api/provenance?integrity=1` 200 + 完整审计；`/api/provenance?integrity=1&id=<known>` 200 + 单模型 verdict；`/api/provenance?integrity=1&id=<unknown>` 404 E2003；`/api/provenance?verify=1&id=<known>` 200 + 执行验证；`/api/provenance?verify=1` 400；`/api/predict/batch` POST 200 |
+
+---

@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -27,11 +31,17 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
-          python3 scripts/generate_changelog.py --since $(git describe --tags --abbrev=0 HEAD~1) --dry-run > /tmp/changelog_body.md
+          # Resolve the *previous* release tag.  Two edge cases matter:
+          #   1. the very first release has no previous tag at all;
+          #   2. `git describe --tags` alone would resolve to the tag
+          #      being released (HEAD), not to the previous one.
+          CURRENT_TAG=$(git tag --points-at HEAD | head -1)
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${CURRENT_TAG}$" | head -1 || true)
+          python3 scripts/generate_changelog.py --since "$PREV_TAG" --dry-run > /tmp/changelog_body.md
           echo "body_file=/tmp/changelog_body.md" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           body_path: ${{ steps.changelog.outputs.body_file }}
           draft: false
@@ -43,8 +53,9 @@ jobs:
       - name: Update CHANGELOG.md for released version
         run: |
           TAG_NAME=${GITHUB_REF_NAME}
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1)
-          python3 scripts/generate_changelog.py --since $PREV_TAG --output CHANGELOG_NEW.md
+          CURRENT_TAG=$(git tag --points-at HEAD | head -1)
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${CURRENT_TAG}$" | head -1 || true)
+          python3 scripts/generate_changelog.py --since "$PREV_TAG" --output CHANGELOG_NEW.md
           # Insert version header and merge with existing
           {
             echo "# Changelog"
@@ -53,12 +64,12 @@ jobs:
             echo ""
             cat CHANGELOG_NEW.md
             echo ""
-            tail -n +3 CHANGELOG.md | head -c 5000  # Skip header lines and unreleased
+            tail -n +3 CHANGELOG.md | head -n 500  # Skip header lines and unreleased
           } > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
           rm -f CHANGELOG_NEW.md
 
       - name: Commit CHANGELOG update
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5
         with:
           commit_message: "docs: update CHANGELOG for ${{ github.ref_name }}"
           file_pattern: CHANGELOG.md

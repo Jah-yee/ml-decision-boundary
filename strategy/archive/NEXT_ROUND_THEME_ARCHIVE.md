@@ -1214,3 +1214,190 @@ STRICT_REQUIREMENTS = DEFAULT_REQUIREMENTS + ("linear",)
 | **2026-10-29 09:42** | 🟢 **v124 早场 #1：v13 DoD #7「CI 触发覆盖闭合」全部交付。**（详细正文见 archive）🟢* |
 | **2026-10-27 09:30** | 🟢 **v121 早场 #1：v13 DoD #2-#4 全部交付**（详细正文见 archive）🟢* |
 | **2026-10-27 21:41** | 🟢 **v122 晚场 #1：v13 DoD #5「Artifact Compatibility Layer」全部交付**（详细正文见 archive）🟢* |
+
+
+---
+
+## 🟢 v131 晚场（2026-11-05 21:30）— 已归档正文
+
+### 本轮的元观察
+
+「完成」与「交付」的缝，这轮又出现了一次，只是换了个位置：
+
+- **v130 早场**修的是「代码 staged 了但没 commit」（代码 → 版本库）
+- **v131 晚场**修的是「版本库里有了但 PR 分叉了」（版本库 → 可合并）
+
+**两个缺陷在同一个位置：stack 的最后一环。** 6 个 PR 全部 CLEAN 全部 CI 全绿，
+看起来「只差皇上点一下 Merge」—— 但**有一个 PR 实际上不可按建议顺序合并**。
+**绿色的 CI 和 CLEAN 的 mergeable 状态都不能证明「能合并」，只有拓扑审计能。**
+
+**另一个观察：「已修复」本身也需要证据。** push 成功 ≠ 审计器能看见 ——
+`stack_topology_audit.py` 解析的是**裸分支名**（不是 `origin/<branch>`），
+本地 ref 没同步时它会对着旧 ref 报**旧缺陷**，让人误以为修复失败而去做多余的手工改动。
+
+
+
+---
+
+## 🟢 v132 早场（2026-11-06 09:43）— 从 NEXT_ROUND_THEME.md 迁出的全局状态行
+
+| 项目 | 状态 |
+|------|------|
+| **v13 DoD #18** | ✅ **Job dependency graph audit 完成** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** |
+| **v13 DoD #17** | ✅ **Stack topology audit 完成 + CI 修复** — `scripts/stack_topology_audit.py` 可执行门禁 + hermetic 测试 32 条 + **关键发现：`git merge-tree` 的退出码不是冲突信号**（第一版信任退出码 → 假阴性，已改为从输出解析）+ **CI 修复：3 条 CLI 测试改为 hermetic（fake gh），消除对 `GH_TOKEN` 的隐式依赖** |
+| **v13 DoD #18** | ✅ **Job dependency graph audit 完成并落地** — `scripts/job_graph_audit.py` 可执行门禁 + hermetic 测试 62 条 + **三个具体缺陷：dangling `needs:` / `needs:` cycle / ungated verification job** + **CI 集成：`job-graph-audit` job 已加入 `pr-coverage-gate.needs`** + **CI 实测 10/10 SUCCESS（含 `pr-coverage-gate`）** |
+| **v13 DoD #6** | ✅ **复现指南文档化完成** — `docs/REPRODUCE.md` v0.1→v1.0，ADR-0018 下轮待办第 2 条已闭合|
+---
+
+
+---
+
+## 🟢 v132 早场（2026-11-06 09:43）— 皇上操作记录完整正文（已归档）
+
+| **2026-11-06 09:43** | 🟢 **v132 早场 #1：v14「Release Pipeline Audit」交付 —— 全仓唯一有写权限的发布流水线从「首次发布必然 exit 128」修到「经审计且逻辑正确」。** 🔍 **选题依据（不凭感觉）**：四个已有审计（`ci_trigger` / `pr_coverage` / `job_graph` / `stack_topology`）**都显式排除** `release.yml` —— 每个排除**都是对的**（tag 驱动的发布流水线不该在 PR 路径跑），但**四个「对的」叠加起来**，让**全仓唯一持有 `contents: write`、唯一产出对外发布物**的流水线**零审计覆盖**；而本仓 `git tag` 数量为 **0** → **发布路径从未执行过一次**。💥 **6 个缺陷全部实测验证（非推测）**：D1 `git describe --tags --abbrev=0 HEAD~1` → `fatal: No names found` rc=**128**（首次发布必死）；D2 锚定在**父提交**而非上一个 tag；D3 `head -c 5000` 按**字节**切断 → `UnicodeDecodeError` 且 **rc=0** → 损坏**静默**入库；D4 无 concurrency 守卫（并发推 tag → 竞态丢更新）；D5 第三方 action 用可变 tag；D6 permissions/trigger 未约束。🛠 **修复中最重要的判断**：第一版我写 `git describe --tags --abbrev=0 2>/dev/null || echo ""` —— 它确实不再 exit 128，**看着对**，但实测证明它解析出的是**正在发布的那个 tag**（`v0.2.0`）而不是上一个（`v0.1.0`）→ **把「崩溃」换成了「changelog 永远为空」的静默错误，后者更糟，因为它不会告诉你**。正确解法必须**排除当前 tag**：`git tag --points-at HEAD` + `grep -v` —— 真建 git repo 实测四种场景全对（首发布→`""`、二发布→`v0.1.0`、三发布→`v0.2.0`、无 tag→`""`）。📌 **D5 用真实上游 SHA**（`git ls-remote` 取回，非编造）：`softprops/action-gh-release@3bb1273…`、`stefanzweifel/git-auto-commit-action@b863ae1…` —— 第一版我编了两个「看着像 40 位十六进制」的 SHA，**审计直接判 `not a sha`** → **审计比我对**（编造的 SHA 会让流水线运行时直接失败）。🐛 **审计器自身被抓出 3 个真实 bug**（已修）：① `actions/checkout@v4` 被判「not a sha」—— **重复定义 `_TAG_REF_RE`**（第一稿残留的 `^tags:` 版本**遮蔽**了正确的那条）；② `concurrency_expr` 恒为空（只认 inline 不认 block）；③ `workflow_dispatch:` 漏检（`tags:` 块把 `on_event` 标记**覆盖**了）—— 修③时我先试「`indent <=`→`indent <`」的最小改动，结果 **23 条测试挂掉**（「块在其 key 层级上的兄弟键」被误判出栈）→ **正解是重写块模型，不是打补丁：最小改动 ≠ 最小风险**。✅ **验收**：`release_audit.py --strict` **exit 0（6/6 requirements）** + P0 compileall ✅ + **P1 68 passed**（13 个 Test 类）+ **bug 注入验证**：把 `release.yml` 修好后，4 条检出断言**确实失败**（检出是真的，不是橡皮章）→ 改写为「断言已修复」并新增 **7 条 `TestBugInjection`** 逐个重新注入原缺陷 + `job_graph_audit.py` 实测 **exit 0**（11 jobs，`release-audit` 被正确识别为 gate 且已列入 `pr-coverage-gate.needs`，**未引入新的 ungated job**）。💡 **元观察**：**「显式排除」是双刃的** —— 审计覆盖面是**整体属性**，不能只看单个审计自己声明的范围；**崩溃的修复可能比崩溃更危险** —— 能崩的缺陷是善意的，因为它会告诉你。📌 **请皇上决策**：① 合并本轮 PR；② 按 **#60 → #61 → #62 → #63 → #66 → #67** 自底向上 Merge（v13 stack）；③ 确认 ADR-0018 Accepted；④（**可选**）打第一个 tag（如 `v0.1.0`）验证发布链路——但这会触发**真实发布**，建议等本轮 PR 合并后再做。run log: `strategy/runs/2026-11-06-0943.md` 🟢 |
+
+
+---
+
+## 🟢 v132 早场（2026-11-06 09:43）— 当前全局状态完整表（已归档）
+
+## 当前全局状态
+| v8 (Model Registry) | ✅ 完成 (ADR-0013 Accepted 2026-07-04) |
+| v9 (Docs & Examples) | ✅ 完成 (ADR-0014 Accepted 2026-07-08) |
+| v10 (API & Web UI) | ✅ 完成 (ADR-0015 Accepted 2026-07-10) |
+| **v11 (Multi-Dataset + Experiment History)** | ✅ **完成 — PR #58 merged 2026-10-24T16:27:28Z，ADR-0016 Accepted 2026-07-25**（DoD #1-4 全绿）|
+| **v12 (Python API & SDK Foundation)** | ✅ **完成** — DoD #1 SDK / #2 Async queue / #3 Registry 版本化+标签查询 全绿，ADR-0017 Accepted；PR #60 已交付（OPEN / CLEAN / MERGEABLE，CI 6/6 SUCCESS），待皇上 Merge |
+| **v13 (Experiment Provenance & Reproducibility)** | 🟢 **DoD #1-#8 + #12-#16 全部完成** — #1 provenance capture（PR #61 待 Merge）/ #2 replay execution / #3 coverage dashboard / #4 content-addressed storage（PR #62 待 Merge）/ #5 artifact compatibility（v122 晚场交付）/ **#12 replay integrity guard（PR #63 待 Merge）** / **#7 CI 触发覆盖闭合（PR #66 待 Merge）** / **#8 PR 级 CI 覆盖验证（PR #67 待 Merge）** / **#14 CI 审计器环境无关性（PR #67 同批）** / **#16 CI 门禁强度单调性（PR #67 同批）**；ADR-0018 待 Accepted |
+| **v14 (Release Pipeline Audit)** | 🟢 **DoD #1–#7 全部交付** — #1 `scripts/release_audit.py`（自研 YAML 子集解析器，**不引入 PyYAML**）/ #2 6 项门禁 + `--strict` 严格超集 / #3 `release.yml` **6 处缺陷全修**（D1 首次发布 exit 128 / D2 锚定错误 / D3 字节截断 / D4 无 concurrency / D5 action 未钉 SHA / D6 permissions+trigger）/ #4 **68 条 hermetic 测试**（13 类，含 7 条 bug 注入）/ #5 **CI `release-audit` job 已加入 `pr-coverage-gate.needs`** / #6 `job_graph_audit --strict` exit 0（11 jobs，`release-audit` 正确识别为 gate）/ #7 run log + 主题三处更新 |
+| **发布流水线状态** | ✅ **从「首次发布必然 exit 128」修到「经审计且逻辑正确」** — 正确解法是 `git tag --points-at HEAD` + `grep -v` **排除当前 tag**（单纯 `git describe --tags` 会解析出**正在发布的那个 tag**，把「崩溃」换成「changelog 永远为空」的**静默错误**）；真建 git repo 实测四种 tag 场景全对；第三方 action 已钉到**真实上游 SHA** |
+| **本轮 PR** | 🟢 **v14 Release Pipeline Audit**：`scripts/release_audit.py`（新）+ `tests/test_release_audit.py`（新，68 条）+ `release.yml` 修复 + `ci.yml` 接入 `release-audit` job；**待皇上 Merge** |
+| **v13 stack** | ✅ **拓扑缺陷已修复** — PR #63/#66 的 `diverged-duplicate`（同一 CI trigger 修复被两条分支各提交一次，内容逐字节相同）已消除；**`stack_topology_audit.py --strict` exit 0，5/5 links linear**；6 个 PR 现可自底向上无冲突合并 |
+| **CI 触发覆盖** | ✅ **已闭合** — `pull_request` 无 `branches:` 过滤器；`scripts/ci_trigger_audit.py` 门禁（exit 0/1）+ CI `ci-trigger-audit` 自举 job |
+| **PR 级 CI 覆盖** | ✅ **已闭合** — `scripts/pr_coverage_audit.py` 门禁（exit 0/1）+ CI `pr-coverage-audit` 自举 job；**6/6 PR verified** |
+| **门禁模式单调性** | ✅ **已闭合** — 两种模式共用唯一判定函数 `evaluate_gate()`；`--require-checks` 要求集合是默认的**严格超集**（+`checks_completed`）；新增独立 CI job `pr-coverage-gate`（`needs:` 全部 8 job + `pull_request` 事件守卫）|
+| **CI 审计器环境无关性** | ✅ **已闭合** — head 分支 workflow 改为从 **GitHub Contents API** 读取（本地 git 降级为 fallback）；hermetic 测试；CI runner 上 `pr-coverage-audit` job **SUCCESS** |
+| **Stack 拓扑审计** | ✅ **已闭合** — `scripts/stack_topology_audit.py` 审计 stacked PR 的 **shape**（ancestry / mergeability / duplicate payload）；默认门禁（`mergeable` + `no_duplicate_payload`）与严格门禁（+ `linear`）共用 `evaluate_gate()`，严格集合是默认集合的严格超集；**32 条 hermetic 测试**；**93 条全量审计测试**；**live audit 正确检出 PR #63/#66 分叉重复提交**；**底部向上 6/6 PR 合并零冲突** |
+| **待合 PR #67** | 🟢 **PR #67 OPEN + CLEAN + MERGEABLE + CI 10/10 SUCCESS**（v13 DoD #8 + #14 + #16 + **#17 + #18**，head 已重放为 `833bcf6`，含 `job-graph-audit`）|
+| **待合 PR #66** | 🟢 **PR #66 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #7，**head 已重放为 `e3d5626`**，与 #63 的重复提交已消除）|
+| **待合 PR #63** | 🟢 **PR #63 OPEN + CLEAN + MERGEABLE + CI 7/7 SUCCESS**（v13 DoD #4 + #6，待皇上 Merge）✅ **已通过回移修复获得首次 CI 验证**|
+| **待合 PR #62** | 🟢 **PR #62 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v13 DoD #2-#4，待皇上 Merge）|
+| **待合 PR #61** | 🟢 **PR #61 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v13 DoD #1 provenance capture，待皇上 Merge）|
+| **待合 PR #60** | 🟢 **PR #60 OPEN + CLEAN + MERGEABLE + CI 6/6 SUCCESS**（v12 三 DoD，待皇上 Merge）|
+| **本轮分支** | `feat/v13-pr-coverage-audit`（base `feat/v13-ci-trigger-coverage`）|
+| **CI 安全审计** | ✅ **master 已脱险**：PR #58/#59 merged 后 master = pillow 13.0.0 + werkzeug 3.1.9 + Python 3.12；**master CI #40111672401 6/6 SUCCESS**（2026-07-04 以来首次真实重跑，63 CVE → 0） |
+
+
+---
+
+## 🟢 v132 早场（2026-11-06 09:43）— 本轮元观察（完整版，已归档）
+
+### 本轮的元观察
+
+**「显式排除」是双刃的。** 四个审计排除 `release.yml` 每一个都是对的，
+但**四个「对的」叠加起来**，让唯一有写权限的流水线零覆盖。
+**审计覆盖面是整体属性，不能只看单个审计自己声明的范围。**
+
+**崩溃的修复可能比崩溃更危险。** 把 `git describe --tags --abbrev=0 HEAD~1`
+改成 `git describe --tags --abbrev=0` 看着是修复（不再 exit 128），
+实测证明它解析出的是**正在发布的那个 tag**——
+**把「崩溃」换成了「changelog 永远为空」的静默错误。后者更糟，因为它不会告诉你。**
+
+**能崩的缺陷是善意的。** 它会告诉你。
+
+**最小改动 ≠ 最小风险。** 修 `on_event` 标记被覆盖时，
+「`indent <=` → `indent <`」这个一行改动让 **23 条测试挂掉**——
+因为「块在其 key 层级上的兄弟键」被误判出栈。**正解是重写块模型。**
+
+**一个连自家第一方 action 都会误报的审计，是不能信任的。**
+重复定义 `_TAG_REF_RE` 导致 `actions/checkout@v4` 被判「not a sha」——
+**测试比审计先发现，是因为测试断言的是「对的东西」而不是「审计现在说的东西」。**
+
+
+---
+
+## 🟢 v132 早场（2026-11-06 09:43）— 本轮交付详情（完整版，已归档）
+
+### 本轮交付：v14 — 审计并修复 `release.yml`
+
+| 交付物 | 内容 |
+|--------|------|
+| **选题依据** | 四个已有审计**都显式排除** `release.yml` —— 每个排除都是对的，但**叠加起来**让**全仓唯一持有 `contents: write`、唯一产出对外发布物**的流水线**零审计覆盖**；且本仓 `git tag` = **0** → **发布路径从未执行过一次** |
+| **`scripts/release_audit.py`** | **新**：自研 YAML 子集解析器（**不引入 PyYAML**）+ 6 项门禁 + `--strict` 超集 + JSON 输出 |
+| **`tests/test_release_audit.py`** | **新**：**68 条** hermetic 测试（13 类，含 7 条 bug 注入） |
+| **`release.yml` / `ci.yml`** | **修**：6 处缺陷全修 / **加**：`release-audit` job + 接入 `pr-coverage-gate.needs` |
+| **run log** | `strategy/runs/2026-11-06-0943.md`（**新**） |
+
+### 实测出来的 6 个缺陷（执行验证，不是推测）
+
+| # | 缺陷 | 实测证据 |
+|---|------|---------|
+| D1 | **首次发布必然失败** | `git describe --tags --abbrev=0 HEAD~1` → `fatal: No names found` rc=**128**（仓库无 tag） |
+| D2 | **锚定在父提交而非上一个 tag** | `HEAD~1` 是 commit 不是 tag；merge / 发版后有提交落地时区间就是错的 |
+| D3 | **changelog 按字节截断** | `head -c 5000` → `UnicodeDecodeError` 且 **rc=0** → 损坏静默入库 |
+| D4 | **无 concurrency 守卫** | 并发推 tag → 竞态改 `CHANGELOG.md` → 丢更新 |
+| D5 | **第三方 action 用可变 tag** | `action-gh-release@v2`、`git-auto-commit-action@v5` |
+| D6 | **permissions / trigger 未约束** | `write-all` 授予全部 scope；非 tag 触发则每 commit 发一次 release |
+| | | **（完整证据与推导见 run log 第 2 节）** |
+
+### 修复要点（本轮最重要的技术判断）
+
+**D1+D2 的正确解法**（并附**反例**）：
+
+```bash
+CURRENT_TAG=$(git tag --points-at HEAD | head -1)
+PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${CURRENT_TAG}$" | head -1 || true)
+```
+
+> ⚠️ **第一版修复是错的。** 我最初写 `git describe --tags --abbrev=0 2>/dev/null || echo ""`——
+> 它确实不再 exit 128，**看着对**，但实测证明它解析出的是**正在发布的那个 tag**（`v0.2.0`）而不是上一个（`v0.1.0`）：
+> **它把「崩溃」换成了「changelog 永远为空」的静默错误——后者更糟，因为它不会告诉你。**
+>
+> 正确解法必须**排除当前 tag**。真建 git repo 实测四种场景全对：
+> 首次发布→`""`、二发布→`v0.1.0`、三发布→`v0.2.0`、无 tag→`""`。
+
+**D5 用的是真实上游 SHA**（`git ls-remote` 取回，非编造）：
+`softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65`（v2）、
+`stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403`（v5）。
+> 第一版我编了两个「看着像 40 位十六进制」的 SHA，**审计直接判 `not a sha`** —— **审计比我对**。编造的 SHA 会让流水线运行时直接失败。
+
+### 审计器自身被抓出的 3 个真实 bug（已修）
+
+| Bug | 根因 |
+|-----|------|
+| `actions/checkout@v4` 被判「not a sha」 | **重复定义 `_TAG_REF_RE`**：残留的 `^tags:` 版本**遮蔽**了正确的那条 |
+| `concurrency_expr` 恒为空 | 只认 inline 值，不认 block 形式 |
+| `workflow_dispatch:` 漏检 | `tags:` 块把 `on_event` 标记**覆盖**了 |
+
+> 修第 3 个时我先试了「`indent <=` → `indent <`」的最小改动，结果 **23 条测试挂掉**（「块在其 key 层级上的兄弟键」被误判出栈）。
+> **正解是重写块模型，不是打补丁。最小改动 ≠ 最小风险。**
+
+### 动手前的复核（不轻信上一轮的自我报告）
+
+`spec/phases.md`：v0–v13 全部完成 ✅（ADR-0018 Accepted）｜`git tag`：**0 个** → 发布路径从未执行｜
+PyYAML：**不在** `requirements.lock` → 不引入新依赖｜`spec/CHARTER.md` 第 7 步「等 Merge」→ **合并权不在本代理**
+| open PR 队列 | 6 个，**全部 MERGEABLE/CLEAN + CI 全绿** |
+| master HEAD | `4082158`（PR #59）—— **v12 SDK 与整个 v13 阶段都还没进 master** |
+| `stack_topology_audit.py --strict` | ❌ **exit 1 — PR #63/#66 diverged-duplicate** |
+
+→ **代码侧 DoD 已全部完成，但没有任何一个 PR 被合并。** 本轮最高价值动作不是「再写一个 DoD」，
+而是**让已完成的 DoD 真正落地**（v13 收口到 master）。
+
+### 本轮的元观察
+
+**「显式排除」是双刃的。** 四个审计排除 `release.yml` 每一个都是对的，
+但**四个「对的」叠加起来**，让唯一有写权限的流水线零覆盖。
+**审计覆盖面是整体属性，不能只看单个审计自己声明的范围。**
+
+**崩溃的修复可能比崩溃更危险。** `git describe --tags --abbrev=0 HEAD~1`
+→ `git describe --tags --abbrev=0` 看着是修复（不再 exit 128），
+实测证明它解析出的是**正在发布的那个 tag**——
+**把「崩溃」换成了「changelog 永远为空」的静默错误。后者更糟，因为它不会告诉你。**
+**能崩的缺陷是善意的：它会告诉你。**
+
+**最小改动 ≠ 最小风险。** 修 `on_event` 标记被覆盖时，
+「`indent <=` → `indent <`」这个一行改动让 **23 条测试挂掉**——
+因为「块在其 key 层级上的兄弟键」被误判出栈。**正解是重写块模型。**
+
+**一个连自家第一方 action 都会误报的审计，是不能信任的。**
+重复定义 `_TAG_REF_RE` 导致 `actions/checkout@v4` 被判「not a sha」——
+**测试比审计先发现，是因为测试断言的是「对的东西」而不是「审计现在说的东西」。**

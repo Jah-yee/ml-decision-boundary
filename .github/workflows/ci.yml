@@ -19,6 +19,23 @@ on:
   # ever narrows the pull_request trigger again.
   pull_request:
 
+# Least-privilege token scopes.
+#
+# Without this block the workflow inherits the repository's default
+# token permission, which is 'read and write' on many repositories --
+# so every CI job would run with write access to the repo even though
+# none of them writes anything.  Declaring the scopes explicitly is
+# what makes the token *read-only*.
+#
+# 'contents: read'    -- actions/checkout needs to read the repository.
+# 'pull-requests: read' -- pr-coverage-audit / pr-coverage-gate read
+#                         pull requests through 'gh' with GITHUB_TOKEN.
+#
+# No 'write' scope is granted: no CI job pushes, comments, or releases.
+permissions:
+  contents: read
+  pull-requests: read
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -136,6 +153,37 @@ jobs:
       - name: Audit job dependency graph
         run: python3 scripts/job_graph_audit.py
 
+  # Audit the release pipeline itself.
+  #
+  # Every other audit in this workflow deliberately excludes
+  # `.github/workflows/release.yml`: a tag-driven publish pipeline is
+  # not supposed to run on pull requests, so auditing it in the PR
+  # path would be noise.  The consequence is that the one job holding
+  # `contents: write` and producing the shipped artefact had **no
+  # audit at all** -- and this repository has never been tagged, so the
+  # release path had never executed even once.  Its very first step
+  # was known to fail on a tagless repository.
+  #
+  # The audit is read-only and hermetic: it parses the workflow and
+  # reports; it never touches the network, the git history or the
+  # repository.  It installs no third-party packages.
+  release-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Audit release pipeline
+        run: python3 scripts/release_audit.py --workflow .github/workflows/release.yml --strict
+
   # The strict CI gate for *this* pull request.
   #
   # It is a separate job rather than a step inside pr-coverage-audit on
@@ -158,6 +206,7 @@ jobs:
       - ci-trigger-audit
       - pr-coverage-audit
       - job-graph-audit
+      - release-audit
       - quality-gates
       - benchmark
       - depth-sweep

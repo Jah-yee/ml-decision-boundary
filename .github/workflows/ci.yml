@@ -182,7 +182,67 @@ jobs:
           python-version: '3.12'
 
       - name: Audit release pipeline
-        run: python3 scripts/release_audit.py --workflow .github/workflows/release.yml --strict
+        # The invocation deliberately names **no** workflow file.  An
+        # earlier version of this job passed '--workflow
+        # .github/workflows/release.yml', which narrowed the audit to
+        # one of the repository's two workflows -- so the job that was
+        # supposed to guard the workflows never examined ci.yml, the
+        # workflow that holds eleven jobs, the pull-request gate and
+        # the token permissions.
+        #
+        # The defect was measurable: deleting the 'permissions:' block
+        # from ci.yml left this job exiting 0 while ci.yml's token
+        # inherited the repository's default (often read-write)
+        # permission.  The auditor itself *could* catch the defect;
+        # the invocation never pointed it at the file.
+        #
+        # scripts/audit_coverage_audit.py now guards this: it verifies
+        # that every audit invocation in this workflow covers every
+        # workflow file, so narrowing cannot be reintroduced silently.
+        run: python3 scripts/release_audit.py --strict
+
+  # Audit the *coverage* of the audits above.
+  #
+  # Every other audit in this workflow answers a question about an
+  # artifact: would this workflow trigger, is this pull request
+  # covered, is the job graph sound, is the release pipeline safe.
+  # This one asks a question about the audits themselves: **when an
+  # audit job runs, which artifacts does it actually look at?**
+  #
+  # The distinction matters because an audit that runs green while
+  # narrowly scoped produces exactly the wrong signal -- it says "this
+  # area is verified" when the truth is "this area was never looked
+  # at".
+  #
+  # The concrete instance this job exists for: the release-audit job
+  # used to pass '--workflow .github/workflows/release.yml', which
+  # narrowed it to one of the repository's two workflows.  Measured on
+  # 2026-11-07: deleting the 'permissions:' block from ci.yml left
+  # EVERY audit in this repository exiting 0 -- the security defect
+  # the previous round had just fixed had no guard at all.
+  #
+  # So this job makes the narrowing itself a defect.  It verifies that
+  # every audit invocation in this workflow covers every workflow file,
+  # and it fails the build when one does not.
+  #
+  # Like the other guard jobs it installs no third-party packages: the
+  # audit uses only the Python standard library.
+  audit-coverage-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Audit the coverage of the audit jobs
+        run: python3 scripts/audit_coverage_audit.py --strict
 
   # The strict CI gate for *this* pull request.
   #
@@ -207,6 +267,7 @@ jobs:
       - pr-coverage-audit
       - job-graph-audit
       - release-audit
+      - audit-coverage-audit
       - quality-gates
       - benchmark
       - depth-sweep
